@@ -1,31 +1,33 @@
 # OTServ Control Panel
 
-Painel web em Django para gerenciamento e operacao de servidores OTServ/Tibia.
+Idioma: Português (Brasil) | [English](README.en.md)
+
+Painel web em Django para gerenciamento e operação de servidores OTServ/Tibia.
 
 ## Objetivo
 
 Construir uma plataforma web para:
 
-- autenticacao de usuarios;
+- autenticação de usuários;
 - cadastro e gerenciamento de multiplos servidores OTServ;
-- validacao de status do servidor (online/offline);
-- exibicao de players online;
+- validação de status do servidor (online/offline);
+- exibição de players online;
 - leitura de entidades do banco do OTServ;
-- selecao de versao do servidor;
+- seleção de versão do servidor;
 - shopping integrado;
-- sistema de temas com upload e ativacao;
-- execucao local e em containers.
+- sistema de temas com upload e ativação;
+- execução local e em containers.
 
 ## Stack principal
 
 - Backend: Django
 - Frontend: Django Templates + Tailwind CSS
-- Banco da aplicacao: PostgreSQL (padrao), com opcao de MariaDB
+- Banco da aplicação: PostgreSQL (padrão), com opção de MariaDB
 - Infra: Docker + Docker Compose
 
 ## Build e Deploy (Docker)
 
-### Pre requisitos
+### Pré-requisitos
 
 - Docker
 - Docker Compose
@@ -42,9 +44,9 @@ docker compose build
 docker compose up -d
 ```
 
-O container roda migracoes automaticamente no startup (`python manage.py migrate --noinput`) antes de iniciar o servidor.
+O container roda migrações automaticamente no startup (`python manage.py migrate --noinput`) antes de iniciar o servidor.
 
-Aplicacao local: `http://localhost:8000`
+Aplicação local: `http://localhost:8000`
 
 ### Build manual por Dockerfile
 
@@ -60,6 +62,8 @@ Windows:
 docker build -f Dockerfile.windows -t otserver-tibia-site:windows .
 ```
 
+Observação: os Dockerfiles fazem `python -m pip install --upgrade pip` antes da instalação dos pacotes.
+
 ## CI/CD (GitHub Actions + Docker Hub)
 
 Workflows:
@@ -73,7 +77,7 @@ Disparo:
 - `push` para branch `main`
 - `workflow_dispatch` manual
 
-Secrets obrigatorios no repositorio GitHub:
+Secrets obrigatórios no repositório GitHub:
 
 - `DOCKERHUB_USERNAME`
 - `DOCKERHUB_TOKEN`
@@ -85,7 +89,7 @@ Tags publicadas:
 
 ## Qualidade e Testes
 
-Dependencias de dev:
+Dependências de dev:
 
 ```bash
 pip install -r requirements-dev.txt
@@ -102,13 +106,17 @@ pytest -q
 
 O workflow `quality.yml` roda esses checks automaticamente em push/PR para manter o projeto funcional.
 
+## Atualização de Dependências
+
+O Dependabot está habilitado em `.github/dependabot.yml` para monitorar dependências `pip` (incluindo `requirements.txt`) e abrir PRs semanais de atualização.
+
 ## Estrutura atual
 
 ```text
 .
 |-- core/
 |-- docs/
-|-- .github/workflows/
+|-- .github/
 |-- Dockerfile.linux
 |-- Dockerfile.windows
 |-- docker-compose.yml
@@ -120,5 +128,6 @@ O workflow `quality.yml` roda esses checks automaticamente em push/PR para mante
 |-- pyproject.toml
 |-- pytest.ini
 |-- tests/
+|-- README.en.md
 `-- README.md
 ```
