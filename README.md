@@ -66,6 +66,7 @@ Workflows:
 
 - `.github/workflows/docker-linux.yml`
 - `.github/workflows/docker-windows.yml`
+- `.github/workflows/quality.yml`
 
 Disparo:
 
@@ -82,6 +83,25 @@ Tags publicadas:
 - Linux: `linux-<sha>` e `latest-linux`
 - Windows: `windows-<sha>` e `latest-windows`
 
+## Qualidade e Testes
+
+Dependencias de dev:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+Checks locais:
+
+```bash
+ruff check .
+ruff format --check .
+python manage.py makemigrations --check --dry-run
+pytest -q
+```
+
+O workflow `quality.yml` roda esses checks automaticamente em push/PR para manter o projeto funcional.
+
 ## Estrutura atual
 
 ```text
@@ -96,5 +116,9 @@ Tags publicadas:
 |-- entrypoint.ps1
 |-- manage.py
 |-- requirements.txt
+|-- requirements-dev.txt
+|-- pyproject.toml
+|-- pytest.ini
+|-- tests/
 `-- README.md
 ```
