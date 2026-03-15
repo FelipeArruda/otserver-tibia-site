@@ -75,6 +75,7 @@ Workflows:
 Triggers:
 
 - `push` to `main`
+- `pull_request` to validate Linux and Windows builds without publishing images
 - manual `workflow_dispatch`
 
 Required GitHub repository secrets:
@@ -86,6 +87,16 @@ Published tags:
 
 - Linux: `linux-<sha>` and `latest-linux`
 - Windows: `windows-<sha>` and `latest-windows`
+
+Behavior by event:
+
+- `pull_request`: builds Linux and Windows only for validation, without Docker Hub login and without push
+- `push` to `main` and `workflow_dispatch`: builds and publishes the images
+
+Note about local Windows Dockerfile builds:
+
+- on a Linux Docker host, `Dockerfile.windows` cannot be executed end-to-end because the base image is Windows-only
+- the real validation for that Dockerfile runs on the GitHub Actions `windows-2022` runner
 
 ## Quality and Tests
 

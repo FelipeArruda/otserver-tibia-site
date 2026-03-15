@@ -4,11 +4,14 @@ on:
   push:
     branches:
       - main
+  pull_request:
   workflow_dispatch:
 
 jobs:
-  build-and-push-linux:
+  build-linux:
     runs-on: ubuntu-24.04
+    env:
+      IMAGE_NAME: otserver-tibia-site
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -17,9 +20,21 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Login to Docker Hub
+        if: github.event_name != 'pull_request'
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
+      - name: Build Linux image for validation
+        if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile.linux
+          platforms: linux/amd64
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:linux-${{ github.sha }}
+
       - name: Build and push Linux image
+        if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v7
         with:
           context: .
