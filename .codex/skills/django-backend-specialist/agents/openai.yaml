@@ -1,0 +1,5 @@
+interface:
+  display_name: "Django Backend Specialist"
+  short_description: "Especialista em backend Django"
+  default_prompt: "Use $django-backend-specialist para implementar ou revisar backend Django neste projeto."
+

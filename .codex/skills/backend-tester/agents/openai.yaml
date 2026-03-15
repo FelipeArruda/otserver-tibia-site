@@ -1,0 +1,14 @@
+interface:
+  display_name: "Backend Tester"
+  short_description: "Especialista em testes de backend"
+  default_prompt: "Use $backend-tester para validar endpoints, regras backend e regressões neste projeto."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "playwright"
+      description: "Playwright MCP para HTTP, respostas e investigacao de fluxos"
+
+policy:
+  allow_implicit_invocation: true
+

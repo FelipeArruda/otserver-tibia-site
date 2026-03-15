@@ -1,0 +1,4 @@
+interface:
+  display_name: "Database Specialist"
+  short_description: "Especialista em banco de dados"
+  default_prompt: "Use $database-specialist para modelar, revisar ou otimizar banco de dados."
