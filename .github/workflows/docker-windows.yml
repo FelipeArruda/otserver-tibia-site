@@ -16,6 +16,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Start Docker daemon
+        shell: powershell
+        run: |
+          Start-Service docker
+          $attempts = 0
+          do {
+            $attempts++
+            Start-Sleep -Seconds 2
+            docker version *> $null
+          } until ($LASTEXITCODE -eq 0 -or $attempts -ge 15)
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Docker daemon did not become ready on windows-2022."
+            exit 1
+          }
+          docker version
+
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request'
         shell: pwsh
