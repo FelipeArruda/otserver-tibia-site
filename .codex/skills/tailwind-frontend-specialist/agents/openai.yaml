@@ -1,0 +1,5 @@
+interface:
+  display_name: "Tailwind Frontend Specialist"
+  short_description: "Especialista em frontend Tailwind"
+  default_prompt: "Use $tailwind-frontend-specialist para criar ou refinar interfaces com Tailwind CSS."
+

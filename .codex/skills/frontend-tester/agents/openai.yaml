@@ -1,0 +1,13 @@
+interface:
+  display_name: "Frontend Tester"
+  short_description: "Especialista em testes de frontend"
+  default_prompt: "Use $frontend-tester para testar fluxos de interface e regressões end-to-end."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "playwright"
+      description: "Playwright MCP para browser automation, console e respostas HTTP"
+
+policy:
+  allow_implicit_invocation: true
