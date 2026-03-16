@@ -3,8 +3,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.linux
-    env_file:
-      - .env
     environment:
       - DJANGO_PORT=${DJANGO_PORT:-8000}
       - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
