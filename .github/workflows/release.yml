@@ -52,7 +52,7 @@ jobs:
         id: compute-tag
         run: |
           git fetch --tags
-          TODAY="$(date -u +%Y%m%d)"
+          TODAY="$(date -u +%Y.%m.%d)"
           LAST_INDEX="$(git tag -l "v${TODAY}.*" | sed -E "s/^v${TODAY}\.//" | sort -n | tail -1)"
 
           if [ -z "${LAST_INDEX}" ]; then
@@ -71,14 +71,14 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "${RELEASE_TAG}" -m "Release ${RELEASE_TAG}"
+          git tag -a "${RELEASE_TAG}" -m "${RELEASE_TAG}"
           git push origin "${RELEASE_TAG}"
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.compute-tag.outputs.release_tag }}
-          name: Release ${{ steps.compute-tag.outputs.release_tag }}
+          name: ${{ steps.compute-tag.outputs.release_tag }}
           generate_release_notes: true
 
   docker-linux-release:
