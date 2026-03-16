@@ -1,5 +1,6 @@
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import RegexValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -50,3 +51,51 @@ class User(AbstractUser):
 
     def __str__(self) -> str:
         return self.email
+
+
+class PlatformSetting(models.Model):
+    singleton_id = 1
+
+    platform_name = models.CharField(max_length=120, default="OTServ Control Panel")
+    default_language = models.CharField(
+        max_length=10,
+        choices=[
+            ("en", "English"),
+            ("pt-br", "Portuguese (Brazil)"),
+        ],
+        default="en",
+    )
+    default_timezone = models.CharField(max_length=64, default="UTC")
+    primary_color = models.CharField(
+        max_length=7,
+        default="#06b6d4",
+        validators=[
+            RegexValidator(
+                regex=r"^#[0-9A-Fa-f]{6}$",
+                message="Use a valid hex color, e.g. #06b6d4.",
+            )
+        ],
+    )
+    logo_url = models.URLField(blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("Platform setting")
+        verbose_name_plural = _("Platform settings")
+
+    def save(self, *args: object, **kwargs: object) -> None:
+        self.pk = self.singleton_id
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls) -> "PlatformSetting":
+        obj, _ = cls.objects.get_or_create(
+            pk=cls.singleton_id,
+            defaults={
+                "platform_name": "OTServ Control Panel",
+                "default_language": "en",
+                "default_timezone": "UTC",
+                "primary_color": "#06b6d4",
+            },
+        )
+        return obj

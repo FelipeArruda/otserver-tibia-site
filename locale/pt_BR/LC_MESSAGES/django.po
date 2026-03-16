@@ -277,3 +277,81 @@ msgstr "a mais"
 
 msgid "No roles created yet."
 msgstr "Nenhum papel criado ainda."
+
+msgid "Create user"
+msgstr "Criar usuário"
+
+msgid "Search by email"
+msgstr "Buscar por e-mail"
+
+msgid "All status"
+msgstr "Todos os status"
+
+msgid "All staff"
+msgstr "Todos (staff e não staff)"
+
+msgid "Staff only"
+msgstr "Apenas staff"
+
+msgid "Non-staff"
+msgstr "Não staff"
+
+msgid "All roles"
+msgstr "Todos os papéis"
+
+msgid "Apply filters"
+msgstr "Aplicar filtros"
+
+msgid "Roles"
+msgstr "Papéis"
+
+msgid "Actions"
+msgstr "Ações"
+
+msgid "No roles"
+msgstr "Sem papéis"
+
+msgid "Edit"
+msgstr "Editar"
+
+msgid "Deactivate"
+msgstr "Desativar"
+
+msgid "Activate"
+msgstr "Ativar"
+
+msgid "No actions"
+msgstr "Sem ações"
+
+msgid "Edit user"
+msgstr "Editar usuário"
+
+msgid "Configure account access level and role assignments."
+msgstr "Configure nível de acesso da conta e atribuições de papéis."
+
+msgid "Save changes"
+msgstr "Salvar alterações"
+
+msgid "Cancel"
+msgstr "Cancelar"
+
+msgid "Password"
+msgstr "Senha"
+
+msgid "Password confirmation"
+msgstr "Confirmação de senha"
+
+msgid "The two password fields didn’t match."
+msgstr "Os dois campos de senha não coincidem."
+
+msgid "User created successfully."
+msgstr "Usuário criado com sucesso."
+
+msgid "User updated successfully."
+msgstr "Usuário atualizado com sucesso."
+
+msgid "You cannot deactivate your own account."
+msgstr "Você não pode desativar sua própria conta."
+
+msgid "User status updated."
+msgstr "Status do usuário atualizado."

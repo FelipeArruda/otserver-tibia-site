@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib.auth.models import Group
@@ -9,14 +10,21 @@ from django.contrib.auth.views import (
     PasswordResetView,
 )
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views import View
-from django.views.generic import CreateView, TemplateView
+from django.views.generic import CreateView, TemplateView, UpdateView
 
-from accounts.forms import EmailAuthenticationForm, ForgotPasswordForm, SignUpForm
-from accounts.models import User
+from accounts.forms import (
+    AdminUserCreateForm,
+    AdminUserUpdateForm,
+    EmailAuthenticationForm,
+    ForgotPasswordForm,
+    PlatformSettingForm,
+    SignUpForm,
+)
+from accounts.models import PlatformSetting, User
 
 
 class AccountHomeView(LoginRequiredMixin, TemplateView):
@@ -61,6 +69,13 @@ class AccountHomeView(LoginRequiredMixin, TemplateView):
             "href": "#",
             "icon": "list",
             "staff_only": True,
+        },
+        {
+            "key": "settings",
+            "label": _("Platform Settings"),
+            "href": reverse_lazy("accounts:platform_settings"),
+            "icon": "settings",
+            "required_perms": ["accounts.change_platformsetting"],
         },
     ]
 
@@ -148,7 +163,34 @@ class UserManagementView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVi
 
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
         context = super().get_context_data(**kwargs)
-        context["users"] = User.objects.order_by("email")
+        users = User.objects.prefetch_related("groups").order_by("email")
+
+        search = self.request.GET.get("q", "").strip()
+        status = self.request.GET.get("status", "").strip()
+        staff = self.request.GET.get("staff", "").strip()
+        group = self.request.GET.get("group", "").strip()
+
+        if search:
+            users = users.filter(email__icontains=search)
+        if status == "active":
+            users = users.filter(is_active=True)
+        elif status == "inactive":
+            users = users.filter(is_active=False)
+        if staff == "yes":
+            users = users.filter(is_staff=True)
+        elif staff == "no":
+            users = users.filter(is_staff=False)
+        if group:
+            users = users.filter(groups__name=group).distinct()
+
+        context["users"] = users
+        context["groups"] = Group.objects.order_by("name")
+        context["filters"] = {
+            "q": search,
+            "status": status,
+            "staff": staff,
+            "group": group,
+        }
         return context
 
 
@@ -163,3 +205,67 @@ class RoleManagementView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVi
             "name"
         )
         return context
+
+
+class UserCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    template_name = "accounts/user_form.html"
+    form_class = AdminUserCreateForm
+    permission_required = "accounts.add_user"
+    raise_exception = True
+    success_url = reverse_lazy("accounts:users")
+
+    def form_valid(self, form: AdminUserCreateForm) -> HttpResponse:
+        response = super().form_valid(form)
+        messages.success(self.request, _("User created successfully."))
+        return response
+
+
+class UserUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    template_name = "accounts/user_form.html"
+    form_class = AdminUserUpdateForm
+    model = User
+    pk_url_kwarg = "pk"
+    permission_required = "accounts.change_user"
+    raise_exception = True
+    success_url = reverse_lazy("accounts:users")
+
+    def form_valid(self, form: AdminUserUpdateForm) -> HttpResponse:
+        response = super().form_valid(form)
+        messages.success(self.request, _("User updated successfully."))
+        return response
+
+
+class UserToggleActiveView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = "accounts.change_user"
+    raise_exception = True
+
+    def post(
+        self, request: HttpRequest, *args: object, **kwargs: object
+    ) -> HttpResponse:
+        user = get_object_or_404(User, pk=kwargs["pk"])
+
+        if user.pk == request.user.pk and user.is_active:
+            messages.error(request, _("You cannot deactivate your own account."))
+            return redirect("accounts:users")
+
+        user.is_active = not user.is_active
+        user.save(update_fields=["is_active"])
+        messages.success(request, _("User status updated."))
+        return redirect("accounts:users")
+
+
+class PlatformSettingsView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    template_name = "accounts/platform_settings.html"
+    form_class = PlatformSettingForm
+    permission_required = "accounts.change_platformsetting"
+    raise_exception = True
+    success_url = reverse_lazy("accounts:platform_settings")
+
+    def get_object(self, queryset: object = None) -> PlatformSetting:
+        del queryset
+        return PlatformSetting.get_solo()
+
+    def form_valid(self, form: PlatformSettingForm) -> HttpResponse:
+        response = super().form_valid(form)
+        messages.success(self.request, _("Platform settings updated successfully."))
+        return response

@@ -1,0 +1,72 @@
+﻿{% load i18n %}
+<!doctype html>
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if object %}{% trans "Edit user" %}{% else %}{% trans "Create user" %}{% endif %} | {% trans "OTServ Control Panel" %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="min-h-screen bg-slate-100 font-sans text-slate-800">
+  <main class="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+    <section class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700">RBAC</p>
+      <h1 class="mt-2 text-3xl font-extrabold text-slate-900">
+        {% if object %}{% trans "Edit user" %}{% else %}{% trans "Create user" %}{% endif %}
+      </h1>
+      <p class="mt-2 text-sm text-slate-600">{% trans "Configure account access level and role assignments." %}</p>
+
+      <form method="post" class="mt-6 space-y-5">
+        {% csrf_token %}
+
+        <div>
+          <label for="{{ form.email.id_for_label }}" class="text-sm font-semibold text-slate-700">{{ form.email.label }}</label>
+          {{ form.email }}
+          {% if form.email.errors %}<p class="mt-2 text-xs font-medium text-rose-600">{{ form.email.errors|striptags }}</p>{% endif %}
+        </div>
+
+        {% if form.password1 %}
+          <div>
+            <label for="{{ form.password1.id_for_label }}" class="text-sm font-semibold text-slate-700">{{ form.password1.label }}</label>
+            {{ form.password1 }}
+            {% if form.password1.errors %}<p class="mt-2 text-xs font-medium text-rose-600">{{ form.password1.errors|striptags }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="{{ form.password2.id_for_label }}" class="text-sm font-semibold text-slate-700">{{ form.password2.label }}</label>
+            {{ form.password2 }}
+            {% if form.password2.errors %}<p class="mt-2 text-xs font-medium text-rose-600">{{ form.password2.errors|striptags }}</p>{% endif %}
+          </div>
+        {% endif %}
+
+        <div class="grid gap-3 sm:grid-cols-3">
+          <label class="inline-flex items-center gap-2 text-sm">{{ form.is_active }} <span>{{ form.is_active.label }}</span></label>
+          <label class="inline-flex items-center gap-2 text-sm">{{ form.is_staff }} <span>{{ form.is_staff.label }}</span></label>
+          <label class="inline-flex items-center gap-2 text-sm">{{ form.is_superuser }} <span>{{ form.is_superuser.label }}</span></label>
+        </div>
+
+        <div>
+          <p class="text-sm font-semibold text-slate-700">{{ form.groups.label }}</p>
+          <div class="mt-2 grid gap-2 sm:grid-cols-2">
+            {{ form.groups }}
+          </div>
+          {% if form.groups.errors %}<p class="mt-2 text-xs font-medium text-rose-600">{{ form.groups.errors|striptags }}</p>{% endif %}
+        </div>
+
+        {% if form.non_field_errors %}
+          <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="flex gap-2">
+          <button type="submit" class="rounded-xl bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-cyan-500">
+            {% if object %}{% trans "Save changes" %}{% else %}{% trans "Create user" %}{% endif %}
+          </button>
+          <a href="{% url 'accounts:users' %}" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">{% trans "Cancel" %}</a>
+        </div>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

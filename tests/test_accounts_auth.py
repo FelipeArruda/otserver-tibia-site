@@ -8,6 +8,8 @@ from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
+from accounts.models import PlatformSetting
+
 
 @pytest.mark.django_db
 def test_signup_creates_user_with_email_as_identifier() -> None:
@@ -186,6 +188,208 @@ def test_roles_route_requires_view_group_permission() -> None:
 def test_default_roles_are_seeded() -> None:
     role_names = set(Group.objects.values_list("name", flat=True))
     assert {"Owner", "Game Master", "Support", "Viewer"}.issubset(role_names)
+
+
+@pytest.mark.django_db
+def test_user_create_route_requires_add_user_permission() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="manager@example.com", password="StrongPass123!"
+    )
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+
+    denied = client.get(reverse("accounts:user_create"))
+    assert denied.status_code == 403
+
+    manager.user_permissions.add(Permission.objects.get(codename="add_user"))
+    allowed = client.get(reverse("accounts:user_create"))
+    assert allowed.status_code == 200
+
+
+@pytest.mark.django_db
+def test_user_create_flow_works_with_required_permission() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="creator@example.com", password="StrongPass123!"
+    )
+    manager.user_permissions.add(Permission.objects.get(codename="add_user"))
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+    response = client.post(
+        reverse("accounts:user_create"),
+        {
+            "email": "new.user@example.com",
+            "password1": "StrongPass123!",
+            "password2": "StrongPass123!",
+            "is_active": "on",
+        },
+    )
+
+    assert response.status_code == 302
+    assert response.url == reverse("accounts:users")
+    assert user_model.objects.filter(email="new.user@example.com").exists()
+
+
+@pytest.mark.django_db
+def test_user_update_and_toggle_require_change_user_permission() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="changer@example.com", password="StrongPass123!"
+    )
+    target = user_model.objects.create_user(
+        email="target@example.com", password="StrongPass123!"
+    )
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+
+    denied_edit = client.get(reverse("accounts:user_update", kwargs={"pk": target.pk}))
+    denied_toggle = client.post(
+        reverse("accounts:user_toggle_active", kwargs={"pk": target.pk})
+    )
+    assert denied_edit.status_code == 403
+    assert denied_toggle.status_code == 403
+
+    manager.user_permissions.add(Permission.objects.get(codename="change_user"))
+
+    allowed_edit = client.post(
+        reverse("accounts:user_update", kwargs={"pk": target.pk}),
+        {
+            "email": target.email,
+            "is_active": "on",
+            "is_staff": "on",
+        },
+    )
+    assert allowed_edit.status_code == 302
+
+    target.refresh_from_db()
+    assert target.is_staff is True
+
+    toggle_response = client.post(
+        reverse("accounts:user_toggle_active", kwargs={"pk": target.pk})
+    )
+    assert toggle_response.status_code == 302
+    target.refresh_from_db()
+    assert target.is_active is False
+
+
+@pytest.mark.django_db
+def test_user_filters_by_status_and_search() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="viewer@example.com", password="StrongPass123!"
+    )
+    manager.user_permissions.add(Permission.objects.get(codename="view_user"))
+
+    user_model.objects.create_user(email="alpha@example.com", password="StrongPass123!")
+    user_model.objects.create_user(
+        email="beta@example.com", password="StrongPass123!", is_active=False
+    )
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+
+    active_response = client.get(reverse("accounts:users"), {"status": "active"})
+    active_content = active_response.content.decode("utf-8")
+    assert "alpha@example.com" in active_content
+    assert "beta@example.com" not in active_content
+
+    search_response = client.get(reverse("accounts:users"), {"q": "beta@"})
+    search_content = search_response.content.decode("utf-8")
+    assert "beta@example.com" in search_content
+    assert "alpha@example.com" not in search_content
+
+
+@pytest.mark.django_db
+def test_platform_settings_route_requires_change_permission() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="platform@example.com", password="StrongPass123!"
+    )
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+
+    denied_response = client.get(reverse("accounts:platform_settings"))
+    assert denied_response.status_code == 403
+
+    manager.user_permissions.add(
+        Permission.objects.get(codename="change_platformsetting")
+    )
+    allowed_response = client.get(reverse("accounts:platform_settings"))
+    assert allowed_response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_platform_settings_can_be_updated() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="platform-editor@example.com", password="StrongPass123!"
+    )
+    manager.user_permissions.add(
+        Permission.objects.get(codename="change_platformsetting")
+    )
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+    response = client.post(
+        reverse("accounts:platform_settings"),
+        {
+            "platform_name": "Painel OTServ BR",
+            "default_language": "pt-br",
+            "default_timezone": "America/Sao_Paulo",
+            "primary_color": "#0ea5e9",
+            "logo_url": "https://example.com/logo.png",
+        },
+    )
+    assert response.status_code == 302
+    assert response.url == reverse("accounts:platform_settings")
+
+    platform_settings = PlatformSetting.get_solo()
+    assert platform_settings.platform_name == "Painel OTServ BR"
+    assert platform_settings.default_language == "pt-br"
+    assert platform_settings.default_timezone == "America/Sao_Paulo"
+    assert platform_settings.primary_color == "#0ea5e9"
+
+
+@pytest.mark.django_db
+def test_platform_default_language_applies_without_user_selection() -> None:
+    user_model = get_user_model()
+    user_model.objects.create_user(email="lang@example.com", password="StrongPass123!")
+
+    platform_settings = PlatformSetting.get_solo()
+    platform_settings.default_language = "pt-br"
+    platform_settings.save(update_fields=["default_language"])
+
+    client = Client()
+    response = client.get(reverse("accounts:login"))
+
+    assert response.status_code == 200
+    assert response.wsgi_request.LANGUAGE_CODE == "pt-br"
+
+    client.post(reverse("set_language"), {"language": "en", "next": "/"})
+    response_with_cookie = client.get(reverse("accounts:login"))
+    assert response_with_cookie.wsgi_request.LANGUAGE_CODE == "en"
+
+
+@pytest.mark.django_db
+def test_home_shows_platform_settings_menu_with_permission() -> None:
+    user_model = get_user_model()
+    user = user_model.objects.create_user(
+        email="menu-platform@example.com", password="StrongPass123!"
+    )
+    user.user_permissions.add(Permission.objects.get(codename="change_platformsetting"))
+
+    client = Client()
+    assert client.login(username=user.email, password="StrongPass123!")
+    response = client.get(reverse("accounts:home"))
+    content = response.content.decode("utf-8")
+
+    assert response.status_code == 200
+    assert "Platform Settings" in content
+    assert reverse("accounts:platform_settings") in content
 
 
 @pytest.mark.django_db

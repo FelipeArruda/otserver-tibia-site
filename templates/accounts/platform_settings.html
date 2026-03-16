@@ -1,0 +1,77 @@
+{% load i18n %}
+<!doctype html>
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% trans "Platform Settings" %} | {% trans "OTServ Control Panel" %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="min-h-screen bg-slate-100 font-sans text-slate-800">
+  <main class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+    <section class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700">CONFIG</p>
+      <h1 class="mt-2 text-3xl font-extrabold text-slate-900">{% trans "Platform Settings" %}</h1>
+      <p class="mt-2 text-sm text-slate-600">{% trans "Set global defaults for language, timezone and visual branding." %}</p>
+
+      {% if messages %}
+        <div class="mt-4 space-y-2">
+          {% for message in messages %}
+            <div class="rounded-xl px-4 py-3 text-sm {% if message.tags == 'error' %}bg-rose-100 text-rose-700{% else %}bg-emerald-100 text-emerald-700{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" class="mt-6 grid gap-5">
+        {% csrf_token %}
+
+        <div>
+          <label for="{{ form.platform_name.id_for_label }}" class="text-sm font-semibold text-slate-700">{{ form.platform_name.label }}</label>
+          {{ form.platform_name }}
+          {% if form.platform_name.errors %}<p class="mt-2 text-xs font-medium text-rose-600">{{ form.platform_name.errors|striptags }}</p>{% endif %}
+        </div>
+
+        <div class="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label for="{{ form.default_language.id_for_label }}" class="text-sm font-semibold text-slate-700">{{ form.default_language.label }}</label>
+            {{ form.default_language }}
+            {% if form.default_language.errors %}<p class="mt-2 text-xs font-medium text-rose-600">{{ form.default_language.errors|striptags }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="{{ form.default_timezone.id_for_label }}" class="text-sm font-semibold text-slate-700">{{ form.default_timezone.label }}</label>
+            {{ form.default_timezone }}
+            {% if form.default_timezone.errors %}<p class="mt-2 text-xs font-medium text-rose-600">{{ form.default_timezone.errors|striptags }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div class="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label for="{{ form.primary_color.id_for_label }}" class="text-sm font-semibold text-slate-700">{{ form.primary_color.label }}</label>
+            {{ form.primary_color }}
+            {% if form.primary_color.errors %}<p class="mt-2 text-xs font-medium text-rose-600">{{ form.primary_color.errors|striptags }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="{{ form.logo_url.id_for_label }}" class="text-sm font-semibold text-slate-700">{{ form.logo_url.label }}</label>
+            {{ form.logo_url }}
+            {% if form.logo_url.errors %}<p class="mt-2 text-xs font-medium text-rose-600">{{ form.logo_url.errors|striptags }}</p>{% endif %}
+          </div>
+        </div>
+
+        {% if form.non_field_errors %}
+          <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="flex flex-wrap gap-2">
+          <button type="submit" class="rounded-xl bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-cyan-500">{% trans "Save settings" %}</button>
+          <a href="{% url 'accounts:home' %}" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">{% trans "Back to dashboard" %}</a>
+        </div>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

@@ -5,8 +5,8 @@ Definir e executar o módulo de configuração da plataforma para administraçã
 
 ## Andamento (execução incremental)
 - [x] Etapa 1: Fundação RBAC (perfis e permissões base, proteção de menus e rotas, telas iniciais de gestão e testes)
-- [ ] Etapa 2: Gestão de usuários (CRUD administrativo completo com filtros e ações)
-- [ ] Etapa 3: Configurações gerais (idioma padrão, fuso, branding básico)
+- [x] Etapa 2: Gestão de usuários (CRUD administrativo completo com filtros e ações)
+- [x] Etapa 3: Configurações gerais (idioma padrão, fuso, branding básico)
 - [ ] Etapa 4: Preferência de idioma por usuário e fallback global
 - [ ] Etapa 5: Auditoria de alterações críticas
 

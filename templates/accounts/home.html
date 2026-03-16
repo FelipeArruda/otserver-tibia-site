@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% trans "Account Home" %} | {% trans "OTServ Control Panel" %}</title>
+  <title>{% trans "Account Home" %} | {% if platform_settings %}{{ platform_settings.platform_name }}{% else %}{% trans "OTServ Control Panel" %}{% endif %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,7 +36,13 @@
       <div class="flex items-center justify-between lg:block">
         <div>
           <p class="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">OTServ</p>
-          <h1 class="mt-2 text-xl font-extrabold">{% trans "Control Center" %}</h1>
+          <h1 class="mt-2 text-xl font-extrabold">
+            {% if platform_settings %}
+              {{ platform_settings.platform_name }}
+            {% else %}
+              {% trans "Control Center" %}
+            {% endif %}
+          </h1>
           <p class="mt-1 text-sm text-slate-300">{% trans "Tibia server operations" %}</p>
         </div>
         <button id="menu-toggle" type="button" class="rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold lg:hidden">{% trans "Menu" %}</button>
@@ -46,7 +52,7 @@
         {% for item in menu_items %}
           <a
             href="{{ item.href }}"
-            class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition {% if item.key == 'overview' %}bg-cyan-500 text-white shadow-lg shadow-cyan-900/30{% else %}text-slate-200 hover:bg-slate-800 hover:text-white{% endif %}"
+            class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition {% if request.path == item.href or item.key == 'overview' and request.path == '/accounts/home/' %}bg-cyan-500 text-white shadow-lg shadow-cyan-900/30{% else %}text-slate-200 hover:bg-slate-800 hover:text-white{% endif %}"
           >
             <span aria-hidden="true" class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-600 bg-slate-700/70 text-slate-200">
               {% if item.icon == "home" %}
@@ -59,6 +65,8 @@
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="3.5"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a3.5 3.5 0 0 1 0 6.74"/></svg>
               {% elif item.icon == "lock" %}
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V8a4 4 0 1 1 8 0v3"/></svg>
+              {% elif item.icon == "settings" %}
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a2 2 0 1 1-4 0v-.1a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a2 2 0 1 1 0-4h.1a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1 1 0 0 0 1.1.2h.1a1 1 0 0 0 .6-.9V4a2 2 0 1 1 4 0v.1a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1 1 0 0 0-.2 1.1v.1a1 1 0 0 0 .9.6H20a2 2 0 1 1 0 4h-.1a1 1 0 0 0-.9.6z"/></svg>
               {% else %}
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
               {% endif %}
