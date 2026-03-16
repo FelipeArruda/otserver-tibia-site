@@ -36,11 +36,15 @@ class EmailLoginView(LoginView):
 class AccountLogoutView(View):
     next_page = reverse_lazy("accounts:login")
 
-    def get(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
+    def get(
+        self, request: HttpRequest, *args: object, **kwargs: object
+    ) -> HttpResponse:
         logout(request)
         return redirect(self.next_page)
 
-    def post(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
+    def post(
+        self, request: HttpRequest, *args: object, **kwargs: object
+    ) -> HttpResponse:
         logout(request)
         return redirect(self.next_page)
 

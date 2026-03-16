@@ -109,7 +109,9 @@ def test_forgot_password_page_is_translated_with_accents() -> None:
 @pytest.mark.django_db
 def test_forgot_password_sends_reset_email() -> None:
     user_model = get_user_model()
-    user_model.objects.create_user(email="recover@example.com", password="StrongPass123!")
+    user_model.objects.create_user(
+        email="recover@example.com", password="StrongPass123!"
+    )
 
     client = Client()
     response = client.post(
