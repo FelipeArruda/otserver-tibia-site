@@ -1,6 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 python manage.py migrate --noinput
+python manage.py seed_test_user
 
 if ($args.Count -eq 0) {
     python manage.py runserver 0.0.0.0:8000
