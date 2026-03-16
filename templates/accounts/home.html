@@ -48,7 +48,7 @@
             href="{{ item.href }}"
             class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition {% if item.key == 'overview' %}bg-cyan-500 text-white shadow-lg shadow-cyan-900/30{% else %}text-slate-200 hover:bg-slate-800 hover:text-white{% endif %}"
           >
-            <span aria-hidden="true">{{ item.icon }}</span>
+            <span aria-hidden="true" class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-600 bg-slate-700/70 text-[10px] font-bold tracking-wide">{{ item.icon }}</span>
             <span>{{ item.label }}</span>
           </a>
         {% empty %}
