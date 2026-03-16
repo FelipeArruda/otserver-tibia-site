@@ -1,13 +1,133 @@
-﻿{% extends "base.html" %}
-{% load i18n %}
+﻿{% load i18n %}
+<!doctype html>
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% trans "Account Home" %} | {% trans "OTServ Control Panel" %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ["Manrope", "Segoe UI", "sans-serif"],
+          },
+          colors: {
+            dashboard: {
+              50: "#eff6ff",
+              100: "#dbeafe",
+              500: "#2563eb",
+              600: "#1d4ed8",
+              900: "#0f172a"
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-800">
+  <div class="min-h-screen lg:grid lg:grid-cols-[17rem_1fr]">
+    <aside class="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 px-5 py-6 text-slate-100 lg:min-h-screen">
+      <div class="flex items-center justify-between lg:block">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">OTServ</p>
+          <h1 class="mt-2 text-xl font-extrabold">{% trans "Control Center" %}</h1>
+          <p class="mt-1 text-sm text-slate-300">{% trans "Tibia server operations" %}</p>
+        </div>
+        <button id="menu-toggle" type="button" class="rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold lg:hidden">{% trans "Menu" %}</button>
+      </div>
 
-{% block title %}{% trans "Account Home" %}{% endblock %}
+      <nav id="sidebar-menu" class="mt-6 hidden space-y-2 lg:block">
+        {% for item in menu_items %}
+          <a
+            href="{{ item.href }}"
+            class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition {% if item.key == 'overview' %}bg-cyan-500 text-white shadow-lg shadow-cyan-900/30{% else %}text-slate-200 hover:bg-slate-800 hover:text-white{% endif %}"
+          >
+            <span aria-hidden="true" class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-600 bg-slate-700/70 text-[10px] font-bold tracking-wide">{{ item.icon }}</span>
+            <span>{{ item.label }}</span>
+          </a>
+        {% empty %}
+          <p class="rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-300">{% trans "No modules available for your permissions yet." %}</p>
+        {% endfor %}
+      </nav>
 
-{% block content %}
-  <h1>{% trans "Account Home" %}</h1>
-  {% if user.is_authenticated %}
-    <p>{% blocktrans with email=user.email %}You are logged in as {{ email }}.{% endblocktrans %}</p>
-  {% else %}
-    <p>{% trans "You are not logged in." %}</p>
-  {% endif %}
-{% endblock %}
+      <div class="mt-8 rounded-2xl border border-slate-700 bg-slate-800/60 p-4">
+        <p class="text-xs uppercase tracking-[0.2em] text-slate-300">{% trans "Logged in" %}</p>
+        <p class="mt-2 text-sm font-semibold text-white">{{ user.email }}</p>
+        <a href="{% url 'accounts:logout' %}" class="mt-3 inline-flex text-sm font-semibold text-cyan-300 hover:text-cyan-200">{% trans "Logout" %}</a>
+      </div>
+    </aside>
+
+    <main class="px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
+      <header class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700">OTServ Dashboard</p>
+        <div class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 class="text-3xl font-extrabold tracking-tight text-slate-900">{% trans "Welcome to your command panel" %}</h2>
+          <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">{% trans "Server cluster healthy" %}</span>
+        </div>
+        <p class="mt-3 max-w-3xl text-sm text-slate-600">{% trans "Monitor realms, manage accounts and keep your Tibia operation stable from one place." %}</p>
+      </header>
+
+      <section class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{% trans "Online players" %}</p>
+          <p class="mt-3 text-3xl font-extrabold text-slate-900">214</p>
+          <p class="mt-2 text-sm text-emerald-600">+12 {% trans "in the last hour" %}</p>
+        </article>
+        <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{% trans "Active realms" %}</p>
+          <p class="mt-3 text-3xl font-extrabold text-slate-900">3/3</p>
+          <p class="mt-2 text-sm text-slate-600">{% trans "Production, Test, and Event" %}</p>
+        </article>
+        <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{% trans "Pending tickets" %}</p>
+          <p class="mt-3 text-3xl font-extrabold text-slate-900">7</p>
+          <p class="mt-2 text-sm text-amber-600">{% trans "2 high-priority incidents" %}</p>
+        </article>
+        <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{% trans "Next save-server" %}</p>
+          <p class="mt-3 text-3xl font-extrabold text-slate-900">03:00</p>
+          <p class="mt-2 text-sm text-slate-600">{% trans "Automated global save" %}</p>
+        </article>
+      </section>
+
+      <section class="mt-6 grid gap-4 xl:grid-cols-2">
+        <article class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+          <h3 class="text-xl font-bold text-slate-900">{% trans "Operational feed" %}</h3>
+          <ul class="mt-4 space-y-3 text-sm">
+            <li class="rounded-xl bg-slate-50 px-4 py-3"><span class="font-semibold text-emerald-700">{% trans "Realm online" %}:</span> {% trans "Astera realm responded in 86ms." %}</li>
+            <li class="rounded-xl bg-slate-50 px-4 py-3"><span class="font-semibold text-cyan-700">{% trans "Backup complete" %}:</span> {% trans "Characters and guilds backup finished successfully." %}</li>
+            <li class="rounded-xl bg-slate-50 px-4 py-3"><span class="font-semibold text-amber-700">{% trans "Warning" %}:</span> {% trans "High spawn load detected in Dragon Lair." %}</li>
+          </ul>
+        </article>
+
+        <article class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+          <h3 class="text-xl font-bold text-slate-900">{% trans "Quick actions" %}</h3>
+          <div class="mt-4 grid gap-3 sm:grid-cols-2">
+            <button type="button" class="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">{% trans "Restart test realm" %}</button>
+            <button type="button" class="rounded-xl bg-cyan-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-cyan-500">{% trans "Open maintenance" %}</button>
+            <button type="button" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{% trans "Review new accounts" %}</button>
+            <button type="button" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{% trans "Broadcast message" %}</button>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const toggle = document.getElementById("menu-toggle");
+    const menu = document.getElementById("sidebar-menu");
+
+    if (toggle && menu) {
+      toggle.addEventListener("click", function () {
+        menu.classList.toggle("hidden");
+      });
+    }
+  </script>
+</body>
+</html>

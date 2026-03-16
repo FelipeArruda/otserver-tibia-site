@@ -8,11 +8,15 @@
 ### Passos rápidos
 1. Instale dependências:
    - `pip install -r requirements.txt -r requirements-dev.txt`
-2. Rode migrações:
+2. Crie seu arquivo de ambiente:
+   - `cp .env.example .env` (Linux/macOS)
+   - `Copy-Item .env.example .env` (PowerShell)
+   - Ajuste principalmente `DJANGO_SECRET_KEY`, `DJANGO_DEBUG` e `DJANGO_ALLOWED_HOSTS`
+3. Rode migrações:
    - `python manage.py migrate`
-3. Compile mensagens de tradução:
+4. Compile mensagens de tradução:
    - `python scripts/compile_messages.py`
-4. Suba o servidor:
+5. Suba o servidor:
    - `python manage.py runserver`
 
 ## Internacionalização (i18n)
@@ -30,6 +34,14 @@ Sempre que alterar textos com `{% trans %}` ou editar `django.po`, rode:
 - Evite remover acentos por compatibilidade; o projeto usa UTF-8 ponta a ponta.
 
 Sem esse passo, o cookie de idioma será salvo, mas a interface continuará no idioma anterior.
+
+## Variáveis de ambiente (resumo)
+- `DJANGO_SECRET_KEY`: chave secreta da aplicação.
+- `DJANGO_DEBUG`: `True`/`False`.
+- `DJANGO_ALLOWED_HOSTS`: hosts separados por vírgula.
+- `DJANGO_DB_ENGINE`: engine do banco (ex.: `django.db.backends.sqlite3` ou PostgreSQL).
+- `DJANGO_DB_NAME`, `DJANGO_DB_USER`, `DJANGO_DB_PASSWORD`, `DJANGO_DB_HOST`, `DJANGO_DB_PORT`: conexão de banco.
+- `DJANGO_EMAIL_BACKEND`: backend de e-mail.
 
 ## Execução Docker
 Serviços sugeridos:

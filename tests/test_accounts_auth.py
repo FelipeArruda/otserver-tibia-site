@@ -1,5 +1,6 @@
 import pytest
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.contrib.auth.tokens import default_token_generator
 from django.core import mail
 from django.test import Client, override_settings
@@ -103,6 +104,65 @@ def test_forgot_password_page_is_translated_with_accents() -> None:
     assert response.status_code == 200
     assert "Esqueci minha senha" in content
     assert "instruções de redefinição" in content
+
+
+@pytest.mark.django_db
+def test_home_shows_admin_menus_when_user_has_permissions() -> None:
+    user_model = get_user_model()
+    user = user_model.objects.create_user(
+        email="adminmenu@example.com", password="StrongPass123!"
+    )
+    user.user_permissions.add(
+        Permission.objects.get(codename="view_user"),
+        Permission.objects.get(codename="view_group"),
+    )
+
+    client = Client()
+    assert client.login(username="adminmenu@example.com", password="StrongPass123!")
+    response = client.get(reverse("accounts:home"))
+    content = response.content.decode("utf-8")
+
+    assert response.status_code == 200
+    assert "User Management" in content
+    assert "Roles &amp; Groups" in content
+
+
+@pytest.mark.django_db
+def test_home_hides_admin_menus_without_permissions() -> None:
+    user_model = get_user_model()
+    user_model.objects.create_user(
+        email="simplemenu@example.com", password="StrongPass123!"
+    )
+
+    client = Client()
+    assert client.login(username="simplemenu@example.com", password="StrongPass123!")
+    response = client.get(reverse("accounts:home"))
+    content = response.content.decode("utf-8")
+
+    assert response.status_code == 200
+    assert "User Management" not in content
+    assert "Roles &amp; Groups" not in content
+
+
+@pytest.mark.django_db
+def test_home_shows_audit_menu_only_for_staff_users() -> None:
+    user_model = get_user_model()
+    regular = user_model.objects.create_user(
+        email="regular@example.com", password="StrongPass123!"
+    )
+    staff = user_model.objects.create_user(
+        email="staff@example.com", password="StrongPass123!", is_staff=True
+    )
+
+    client = Client()
+    assert client.login(username=regular.email, password="StrongPass123!")
+    regular_response = client.get(reverse("accounts:home"))
+    assert "Audit Logs" not in regular_response.content.decode("utf-8")
+    client.get(reverse("accounts:logout"))
+
+    assert client.login(username=staff.email, password="StrongPass123!")
+    staff_response = client.get(reverse("accounts:home"))
+    assert "Audit Logs" in staff_response.content.decode("utf-8")
 
 
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")

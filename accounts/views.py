@@ -20,6 +20,72 @@ from accounts.forms import EmailAuthenticationForm, ForgotPasswordForm, SignUpFo
 class AccountHomeView(LoginRequiredMixin, TemplateView):
     template_name = "accounts/home.html"
 
+    menu_items = [
+        {
+            "key": "overview",
+            "label": _("Overview"),
+            "href": "#",
+            "icon": "OV",
+        },
+        {
+            "key": "realm_status",
+            "label": _("Realm Status"),
+            "href": "#",
+            "icon": "RS",
+        },
+        {
+            "key": "characters",
+            "label": _("Characters"),
+            "href": "#",
+            "icon": "CH",
+        },
+        {
+            "key": "users",
+            "label": _("User Management"),
+            "href": "#",
+            "icon": "UM",
+            "required_perms": ["accounts.view_user"],
+        },
+        {
+            "key": "groups",
+            "label": _("Roles & Groups"),
+            "href": "#",
+            "icon": "RG",
+            "required_perms": ["auth.view_group"],
+        },
+        {
+            "key": "audit",
+            "label": _("Audit Logs"),
+            "href": "#",
+            "icon": "AL",
+            "staff_only": True,
+        },
+    ]
+
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context = super().get_context_data(**kwargs)
+        context["menu_items"] = [
+            item
+            for item in self.menu_items
+            if self._can_view_item(self.request.user, item)
+        ]
+        return context
+
+    @staticmethod
+    def _can_view_item(user: object, item: dict[str, object]) -> bool:
+        has_perm = getattr(user, "has_perm", None)
+        if not callable(has_perm):
+            return False
+
+        if item.get("staff_only") and not getattr(user, "is_staff", False):
+            return False
+
+        required_perms = item.get("required_perms", [])
+        if not required_perms:
+            return True
+
+        return all(has_perm(perm) for perm in required_perms)
+
 
 class SignUpView(CreateView):
     template_name = "registration/signup.html"
