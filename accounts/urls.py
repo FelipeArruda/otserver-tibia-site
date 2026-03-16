@@ -8,9 +8,13 @@ from accounts.views import (
     ForgotPasswordConfirmView,
     ForgotPasswordDoneView,
     ForgotPasswordView,
+    PlatformSettingsView,
     RoleManagementView,
     SignUpView,
+    UserCreateView,
     UserManagementView,
+    UserToggleActiveView,
+    UserUpdateView,
 )
 
 app_name = "accounts"
@@ -37,5 +41,17 @@ urlpatterns = [
     ),
     path("home/", AccountHomeView.as_view(), name="home"),
     path("users/", UserManagementView.as_view(), name="users"),
+    path("users/new/", UserCreateView.as_view(), name="user_create"),
+    path("users/<str:pk>/edit/", UserUpdateView.as_view(), name="user_update"),
+    path(
+        "users/<str:pk>/toggle-active/",
+        UserToggleActiveView.as_view(),
+        name="user_toggle_active",
+    ),
     path("roles/", RoleManagementView.as_view(), name="roles"),
+    path(
+        "settings/",
+        PlatformSettingsView.as_view(),
+        name="platform_settings",
+    ),
 ]

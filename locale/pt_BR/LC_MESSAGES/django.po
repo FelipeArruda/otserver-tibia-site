@@ -277,3 +277,183 @@ msgstr "a mais"
 
 msgid "No roles created yet."
 msgstr "Nenhum papel criado ainda."
+
+msgid "Create user"
+msgstr "Criar usuário"
+
+msgid "Search by email"
+msgstr "Buscar por e-mail"
+
+msgid "All status"
+msgstr "Todos os status"
+
+msgid "All staff"
+msgstr "Todos (staff e não staff)"
+
+msgid "Staff only"
+msgstr "Apenas staff"
+
+msgid "Non-staff"
+msgstr "Não staff"
+
+msgid "All roles"
+msgstr "Todos os papéis"
+
+msgid "Apply filters"
+msgstr "Aplicar filtros"
+
+msgid "Roles"
+msgstr "Papéis"
+
+msgid "Actions"
+msgstr "Ações"
+
+msgid "No roles"
+msgstr "Sem papéis"
+
+msgid "Edit"
+msgstr "Editar"
+
+msgid "Deactivate"
+msgstr "Desativar"
+
+msgid "Activate"
+msgstr "Ativar"
+
+msgid "No actions"
+msgstr "Sem ações"
+
+msgid "Edit user"
+msgstr "Editar usuário"
+
+msgid "Configure account access level and role assignments."
+msgstr "Configure nível de acesso da conta e atribuições de papéis."
+
+msgid "Save changes"
+msgstr "Salvar alterações"
+
+msgid "Cancel"
+msgstr "Cancelar"
+
+msgid "Password"
+msgstr "Senha"
+
+msgid "Password confirmation"
+msgstr "Confirmação de senha"
+
+msgid "The two password fields didn’t match."
+msgstr "Os dois campos de senha não coincidem."
+
+msgid "User created successfully."
+msgstr "Usuário criado com sucesso."
+
+msgid "User updated successfully."
+msgstr "Usuário atualizado com sucesso."
+
+msgid "You cannot deactivate your own account."
+msgstr "Você não pode desativar sua própria conta."
+
+msgid "User status updated."
+msgstr "Status do usuário atualizado."
+
+msgid "Platform Settings"
+msgstr "Configurações da plataforma"
+
+msgid "Set global defaults for language, timezone and visual branding."
+msgstr "Defina padrões globais para idioma, fuso horário e identidade visual."
+
+msgid "Save settings"
+msgstr "Salvar configurações"
+
+msgid "Visual Preview"
+msgstr "Pré-visualização"
+
+msgid "Use these defaults to keep the whole platform consistent for all users."
+msgstr "Use esses padrões para manter toda a plataforma consistente para todos os usuários."
+
+msgid "Primary branding active"
+msgstr "Identidade visual primária ativa"
+
+msgid "Management Tips"
+msgstr "Dicas de gestão"
+
+msgid "Keep at least one active superuser account."
+msgstr "Mantenha pelo menos uma conta superusuária ativa."
+
+msgid "Review role assignments before enabling staff access."
+msgstr "Revise as atribuições de papéis antes de liberar acesso de equipe."
+
+msgid "Use status filters to quickly find suspended users."
+msgstr "Use filtros de status para localizar rapidamente usuários suspensos."
+
+msgid "RBAC Summary"
+msgstr "Resumo de RBAC"
+
+msgid "Use groups to grant consistent permission bundles for your operation team."
+msgstr "Use grupos para conceder pacotes de permissões consistentes para sua equipe de operação."
+
+msgid "Active role groups"
+msgstr "Grupos de papéis ativos"
+
+msgid "Back to user list"
+msgstr "Voltar para a lista de usuários"
+
+msgid "Access flags"
+msgstr "Sinalizadores de acesso"
+
+msgid "Security Checklist"
+msgstr "Checklist de segurança"
+
+msgid "Use strong and unique passwords for privileged accounts."
+msgstr "Use senhas fortes e únicas para contas privilegiadas."
+
+msgid "Assign only the minimum roles required for each user."
+msgstr "Atribua apenas os papéis mínimos necessários para cada usuário."
+
+msgid "Avoid granting superuser unless it is strictly necessary."
+msgstr "Evite conceder superusuário, exceto quando for estritamente necessário."
+
+msgid "Operator status"
+msgstr "Status do operador"
+
+msgid "All critical services are online and synchronized."
+msgstr "Todos os serviços críticos estão online e sincronizados."
+
+msgid "Login API"
+msgstr "API de login"
+
+msgid "Game database"
+msgstr "Banco de dados do jogo"
+
+msgid "Webhook queue"
+msgstr "Fila de webhook"
+
+msgid "DELAY"
+msgstr "ATRASO"
+
+msgid "Dashboard"
+msgstr "Painel"
+
+msgid "The two password fields didn't match."
+msgstr "Os dois campos de senha não coincidem."
+
+msgid "Platform name"
+msgstr "Nome da plataforma"
+
+msgid "Default language"
+msgstr "Idioma padrão"
+
+msgid "Default timezone"
+msgstr "Fuso horário padrão"
+
+msgid "Primary color"
+msgstr "Cor primária"
+
+msgid "Logo URL"
+msgstr "URL do logo"
+
+msgid "English"
+msgstr "Inglês"
+
+msgid "Portuguese (Brazil)"
+msgstr "Português (Brasil)"
