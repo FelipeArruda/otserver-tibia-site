@@ -142,3 +142,15 @@ Dependabot is enabled in `.github/dependabot.yml` to monitor `pip` dependencies 
 |-- README.en.md
 `-- README.md
 ```
+
+## Languages (i18n)
+
+The language switcher uses `/i18n/setlang/` and the `django_language` cookie.
+
+Whenever you change translations (`locale/*/LC_MESSAGES/django.po`) or `{% trans %}` strings, compile message catalogs:
+
+```bash
+python scripts/compile_messages.py
+```
+
+Without this step, the language cookie may change but rendered HTML can remain untranslated.

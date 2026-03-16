@@ -142,3 +142,15 @@ O Dependabot est√° habilitado em `.github/dependabot.yml` para monitorar depend√
 |-- README.en.md
 `-- README.md
 ```
+
+## Idiomas (i18n)
+
+O seletor de idioma usa o endpoint `/i18n/setlang/` e cookie `django_language`.
+
+Sempre que alterar traducoes (`locale/*/LC_MESSAGES/django.po`) ou textos com `{% trans %}`, compile os catalogos:
+
+```bash
+python scripts/compile_messages.py
+```
+
+Sem esse passo, a mudanca de idioma pode salvar o cookie mas nao refletir no HTML renderizado.
