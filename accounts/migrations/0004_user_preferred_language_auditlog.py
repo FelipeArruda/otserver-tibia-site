@@ -12,6 +12,7 @@ def _repair_legacy_sqlite_user_schema(apps, schema_editor):
         return
 
     with connection.cursor() as cursor:
+
         def table_exists(name: str) -> bool:
             row = cursor.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name = %s",
@@ -63,7 +64,11 @@ def _repair_legacy_sqlite_user_schema(apps, schema_editor):
                 """
             )
 
-        legacy_user_table = "accounts_user_legacy" if table_exists("accounts_user_legacy") else "accounts_user"
+        legacy_user_table = (
+            "accounts_user_legacy"
+            if table_exists("accounts_user_legacy")
+            else "accounts_user"
+        )
 
         if table_exists("accounts_user_groups"):
             cursor.execute(
@@ -146,7 +151,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(_repair_legacy_sqlite_user_schema, migrations.RunPython.noop),
+        migrations.RunPython(
+            _repair_legacy_sqlite_user_schema, migrations.RunPython.noop
+        ),
         migrations.AddField(
             model_name="user",
             name="preferred_language",
