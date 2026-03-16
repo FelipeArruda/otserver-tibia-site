@@ -4,8 +4,8 @@ services:
       context: .
       dockerfile: Dockerfile.linux
     environment:
-      - DJANGO_PORT=${DJANGO_PORT:-8000}
+      - DJANGO_PORT=8000
       - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
-    ports:
-      - "${DJANGO_PORT:-8000}:${DJANGO_PORT:-8000}"
-    command: sh -c "python manage.py runserver 0.0.0.0:${DJANGO_PORT:-8000}"
+    expose:
+      - "8000"
+    command: sh -c "python manage.py runserver 0.0.0.0:8000"
