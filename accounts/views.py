@@ -1,5 +1,6 @@
 from django.contrib.auth import logout
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.contrib.auth.models import Group
 from django.contrib.auth.views import (
     LoginView,
     PasswordResetCompleteView,
@@ -15,6 +16,7 @@ from django.views import View
 from django.views.generic import CreateView, TemplateView
 
 from accounts.forms import EmailAuthenticationForm, ForgotPasswordForm, SignUpForm
+from accounts.models import User
 
 
 class AccountHomeView(LoginRequiredMixin, TemplateView):
@@ -25,39 +27,39 @@ class AccountHomeView(LoginRequiredMixin, TemplateView):
             "key": "overview",
             "label": _("Overview"),
             "href": "#",
-            "icon": "🏠",
+            "icon": "home",
         },
         {
             "key": "realm_status",
             "label": _("Realm Status"),
             "href": "#",
-            "icon": "🌐",
+            "icon": "globe",
         },
         {
             "key": "characters",
             "label": _("Characters"),
             "href": "#",
-            "icon": "🛡️",
+            "icon": "shield",
         },
         {
             "key": "users",
             "label": _("User Management"),
-            "href": "#",
-            "icon": "👥",
+            "href": reverse_lazy("accounts:users"),
+            "icon": "users",
             "required_perms": ["accounts.view_user"],
         },
         {
             "key": "groups",
             "label": _("Roles & Groups"),
-            "href": "#",
-            "icon": "🔐",
+            "href": reverse_lazy("accounts:roles"),
+            "icon": "lock",
             "required_perms": ["auth.view_group"],
         },
         {
             "key": "audit",
             "label": _("Audit Logs"),
             "href": "#",
-            "icon": "📜",
+            "icon": "list",
             "staff_only": True,
         },
     ]
@@ -137,3 +139,27 @@ class ForgotPasswordConfirmView(PasswordResetConfirmView):
 
 class ForgotPasswordCompleteView(PasswordResetCompleteView):
     template_name = "registration/password_reset_complete.html"
+
+
+class UserManagementView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+    template_name = "accounts/users.html"
+    permission_required = "accounts.view_user"
+    raise_exception = True
+
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context = super().get_context_data(**kwargs)
+        context["users"] = User.objects.order_by("email")
+        return context
+
+
+class RoleManagementView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+    template_name = "accounts/roles.html"
+    permission_required = "auth.view_group"
+    raise_exception = True
+
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context = super().get_context_data(**kwargs)
+        context["roles"] = Group.objects.prefetch_related("permissions").order_by(
+            "name"
+        )
+        return context

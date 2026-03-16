@@ -1,6 +1,6 @@
 import pytest
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Permission
+from django.contrib.auth.models import Group, Permission
 from django.contrib.auth.tokens import default_token_generator
 from django.core import mail
 from django.test import Client, override_settings
@@ -125,6 +125,8 @@ def test_home_shows_admin_menus_when_user_has_permissions() -> None:
     assert response.status_code == 200
     assert "User Management" in content
     assert "Roles &amp; Groups" in content
+    assert reverse("accounts:users") in content
+    assert reverse("accounts:roles") in content
 
 
 @pytest.mark.django_db
@@ -142,6 +144,48 @@ def test_home_hides_admin_menus_without_permissions() -> None:
     assert response.status_code == 200
     assert "User Management" not in content
     assert "Roles &amp; Groups" not in content
+    assert reverse("accounts:users") not in content
+    assert reverse("accounts:roles") not in content
+
+
+@pytest.mark.django_db
+def test_users_route_requires_view_user_permission() -> None:
+    user_model = get_user_model()
+    user = user_model.objects.create_user(
+        email="rbac1@example.com", password="StrongPass123!"
+    )
+
+    client = Client()
+    assert client.login(username="rbac1@example.com", password="StrongPass123!")
+    denied_response = client.get(reverse("accounts:users"))
+    assert denied_response.status_code == 403
+
+    user.user_permissions.add(Permission.objects.get(codename="view_user"))
+    allowed_response = client.get(reverse("accounts:users"))
+    assert allowed_response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_roles_route_requires_view_group_permission() -> None:
+    user_model = get_user_model()
+    user = user_model.objects.create_user(
+        email="rbac2@example.com", password="StrongPass123!"
+    )
+
+    client = Client()
+    assert client.login(username="rbac2@example.com", password="StrongPass123!")
+    denied_response = client.get(reverse("accounts:roles"))
+    assert denied_response.status_code == 403
+
+    user.user_permissions.add(Permission.objects.get(codename="view_group"))
+    allowed_response = client.get(reverse("accounts:roles"))
+    assert allowed_response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_default_roles_are_seeded() -> None:
+    role_names = set(Group.objects.values_list("name", flat=True))
+    assert {"Owner", "Game Master", "Support", "Viewer"}.issubset(role_names)
 
 
 @pytest.mark.django_db
