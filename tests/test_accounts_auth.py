@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
-from accounts.models import PlatformSetting
+from accounts.models import AuditLog, PlatformSetting
 
 
 @pytest.mark.django_db
@@ -410,14 +410,101 @@ def test_home_shows_platform_settings_menu_with_permission() -> None:
 
 
 @pytest.mark.django_db
-def test_home_shows_audit_menu_only_for_staff_users() -> None:
+def test_language_preference_updates_user_and_session() -> None:
+    user_model = get_user_model()
+    user = user_model.objects.create_user(
+        email="langpref@example.com", password="StrongPass123!"
+    )
+
+    client = Client()
+    assert client.login(username=user.email, password="StrongPass123!")
+    response = client.post(
+        reverse("accounts:language"),
+        {"language": "en", "next": reverse("accounts:home")},
+    )
+
+    assert response.status_code == 302
+    assert response.url == reverse("accounts:home")
+    user.refresh_from_db()
+    assert user.preferred_language == "en"
+    assert client.session.get("django_language") == "en"
+    assert response.cookies["django_language"].value == "en"
+
+
+@pytest.mark.django_db
+def test_middleware_uses_user_language_preference_without_cookie() -> None:
+    user_model = get_user_model()
+    user = user_model.objects.create_user(
+        email="prefonly@example.com",
+        password="StrongPass123!",
+        preferred_language="en",
+    )
+
+    client = Client()
+    assert client.login(username=user.email, password="StrongPass123!")
+    response = client.get(reverse("accounts:home"))
+
+    assert response.status_code == 200
+    assert response.wsgi_request.LANGUAGE_CODE == "en"
+
+
+@pytest.mark.django_db
+def test_audit_route_requires_view_permission() -> None:
+    user_model = get_user_model()
+    user = user_model.objects.create_user(
+        email="auditor-denied@example.com", password="StrongPass123!"
+    )
+
+    client = Client()
+    assert client.login(username=user.email, password="StrongPass123!")
+    denied = client.get(reverse("accounts:audit_logs"))
+    assert denied.status_code == 403
+
+    user.user_permissions.add(Permission.objects.get(codename="view_auditlog"))
+    allowed = client.get(reverse("accounts:audit_logs"))
+    assert allowed.status_code == 200
+
+
+@pytest.mark.django_db
+def test_platform_settings_update_creates_audit_log() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="audit-platform@example.com", password="StrongPass123!"
+    )
+    manager.user_permissions.add(
+        Permission.objects.get(codename="change_platformsetting")
+    )
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+    response = client.post(
+        reverse("accounts:platform_settings"),
+        {
+            "platform_name": "Audit Platform",
+            "default_language": "pt-br",
+            "default_timezone": "America/Sao_Paulo",
+            "primary_color": "#0ea5e9",
+            "logo_url": "https://example.com/logo.png",
+        },
+    )
+    assert response.status_code == 302
+    assert AuditLog.objects.filter(
+        action="platform.settings.update",
+        target="platform",
+        actor=manager,
+    ).exists()
+
+
+@pytest.mark.django_db
+def test_home_shows_audit_menu_only_with_permission() -> None:
     user_model = get_user_model()
     regular = user_model.objects.create_user(
         email="regular@example.com", password="StrongPass123!"
     )
-    staff = user_model.objects.create_user(
-        email="staff@example.com", password="StrongPass123!", is_staff=True
+    auditor = user_model.objects.create_user(
+        email="auditor@example.com", password="StrongPass123!"
     )
+    auditor.user_permissions.add(Permission.objects.get(codename="view_auditlog"))
 
     client = Client()
     assert client.login(username=regular.email, password="StrongPass123!")
@@ -425,9 +512,9 @@ def test_home_shows_audit_menu_only_for_staff_users() -> None:
     assert "Audit Logs" not in regular_response.content.decode("utf-8")
     client.get(reverse("accounts:logout"))
 
-    assert client.login(username=staff.email, password="StrongPass123!")
-    staff_response = client.get(reverse("accounts:home"))
-    assert "Audit Logs" in staff_response.content.decode("utf-8")
+    assert client.login(username=auditor.email, password="StrongPass123!")
+    auditor_response = client.get(reverse("accounts:home"))
+    assert "Audit Logs" in auditor_response.content.decode("utf-8")
 
 
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")

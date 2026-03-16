@@ -47,6 +47,15 @@ class UserManager(BaseUserManager):
 class User(AbstractUser):
     username = None
     email = models.EmailField(_("email address"), primary_key=True)
+    preferred_language = models.CharField(
+        max_length=10,
+        choices=[
+            ("en", "English"),
+            ("pt-br", "Portuguese (Brazil)"),
+        ],
+        blank=True,
+        default="",
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS: list[str] = []
@@ -102,3 +111,23 @@ class PlatformSetting(models.Model):
             },
         )
         return obj
+
+
+class AuditLog(models.Model):
+    actor = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="audit_logs",
+        verbose_name=_("Actor"),
+    )
+    action = models.CharField(max_length=120, verbose_name=_("Action"))
+    target = models.CharField(max_length=120, verbose_name=_("Target"))
+    details = models.JSONField(default=dict, blank=True, verbose_name=_("Details"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created at"))
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = _("Audit log")
+        verbose_name_plural = _("Audit logs")
