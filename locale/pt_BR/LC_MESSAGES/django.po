@@ -130,3 +130,105 @@ msgstr "Digite sua senha"
 
 msgid "Confirm password"
 msgstr "Confirme sua senha"
+
+msgid "Control Center"
+msgstr "Central de Controle"
+
+msgid "Tibia server operations"
+msgstr "Operações do servidor Tibia"
+
+msgid "Menu"
+msgstr "Menu"
+
+msgid "No modules available for your permissions yet."
+msgstr "Nenhum módulo disponível para suas permissões no momento."
+
+msgid "Logged in"
+msgstr "Logado como"
+
+msgid "Welcome to your command panel"
+msgstr "Bem-vindo ao seu painel de comando"
+
+msgid "Server cluster healthy"
+msgstr "Cluster de servidores saudável"
+
+msgid "Monitor realms, manage accounts and keep your Tibia operation stable from one place."
+msgstr "Monitore realms, gerencie contas e mantenha sua operação Tibia estável em um único lugar."
+
+msgid "Online players"
+msgstr "Jogadores online"
+
+msgid "in the last hour"
+msgstr "na última hora"
+
+msgid "Active realms"
+msgstr "Realms ativos"
+
+msgid "Production, Test, and Event"
+msgstr "Produção, Teste e Evento"
+
+msgid "Pending tickets"
+msgstr "Chamados pendentes"
+
+msgid "2 high-priority incidents"
+msgstr "2 incidentes de alta prioridade"
+
+msgid "Next save-server"
+msgstr "Próximo save-server"
+
+msgid "Automated global save"
+msgstr "Salvamento global automatizado"
+
+msgid "Operational feed"
+msgstr "Feed operacional"
+
+msgid "Realm online"
+msgstr "Realm online"
+
+msgid "Astera realm responded in 86ms."
+msgstr "O realm Astera respondeu em 86ms."
+
+msgid "Backup complete"
+msgstr "Backup concluído"
+
+msgid "Characters and guilds backup finished successfully."
+msgstr "Backup de personagens e guildas finalizado com sucesso."
+
+msgid "Warning"
+msgstr "Aviso"
+
+msgid "High spawn load detected in Dragon Lair."
+msgstr "Alta carga de spawn detectada em Dragon Lair."
+
+msgid "Quick actions"
+msgstr "Ações rápidas"
+
+msgid "Restart test realm"
+msgstr "Reiniciar realm de teste"
+
+msgid "Open maintenance"
+msgstr "Abrir manutenção"
+
+msgid "Review new accounts"
+msgstr "Revisar novas contas"
+
+msgid "Broadcast message"
+msgstr "Enviar mensagem global"
+
+msgid "Overview"
+msgstr "Visão geral"
+
+msgid "Realm Status"
+msgstr "Status dos realms"
+
+msgid "Characters"
+msgstr "Personagens"
+
+msgid "User Management"
+msgstr "Gestão de usuários"
+
+msgid "Roles & Groups"
+msgstr "Papéis e grupos"
+
+msgid "Audit Logs"
+msgstr "Logs de auditoria"
