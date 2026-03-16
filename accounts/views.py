@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
@@ -12,6 +13,7 @@ from django.contrib.auth.views import (
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
+from django.utils import translation
 from django.utils.translation import gettext_lazy as _
 from django.views import View
 from django.views.generic import CreateView, TemplateView, UpdateView
@@ -27,9 +29,7 @@ from accounts.forms import (
 from accounts.models import PlatformSetting, User
 
 
-class AccountHomeView(LoginRequiredMixin, TemplateView):
-    template_name = "accounts/home.html"
-
+class DashboardNavigationMixin:
     menu_items = [
         {
             "key": "overview",
@@ -78,6 +78,7 @@ class AccountHomeView(LoginRequiredMixin, TemplateView):
             "required_perms": ["accounts.change_platformsetting"],
         },
     ]
+    active_menu_key = "overview"
 
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
         context = super().get_context_data(**kwargs)
@@ -86,6 +87,7 @@ class AccountHomeView(LoginRequiredMixin, TemplateView):
             for item in self.menu_items
             if self._can_view_item(self.request.user, item)
         ]
+        context["active_menu_key"] = self.active_menu_key
         return context
 
     @staticmethod
@@ -102,6 +104,10 @@ class AccountHomeView(LoginRequiredMixin, TemplateView):
             return True
 
         return all(has_perm(perm) for perm in required_perms)
+
+
+class AccountHomeView(DashboardNavigationMixin, LoginRequiredMixin, TemplateView):
+    template_name = "accounts/home.html"
 
 
 class SignUpView(CreateView):
@@ -156,10 +162,13 @@ class ForgotPasswordCompleteView(PasswordResetCompleteView):
     template_name = "registration/password_reset_complete.html"
 
 
-class UserManagementView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+class UserManagementView(
+    DashboardNavigationMixin, LoginRequiredMixin, PermissionRequiredMixin, TemplateView
+):
     template_name = "accounts/users.html"
     permission_required = "accounts.view_user"
     raise_exception = True
+    active_menu_key = "users"
 
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
         context = super().get_context_data(**kwargs)
@@ -194,10 +203,13 @@ class UserManagementView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVi
         return context
 
 
-class RoleManagementView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+class RoleManagementView(
+    DashboardNavigationMixin, LoginRequiredMixin, PermissionRequiredMixin, TemplateView
+):
     template_name = "accounts/roles.html"
     permission_required = "auth.view_group"
     raise_exception = True
+    active_menu_key = "groups"
 
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
         context = super().get_context_data(**kwargs)
@@ -207,12 +219,15 @@ class RoleManagementView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVi
         return context
 
 
-class UserCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+class UserCreateView(
+    DashboardNavigationMixin, LoginRequiredMixin, PermissionRequiredMixin, CreateView
+):
     template_name = "accounts/user_form.html"
     form_class = AdminUserCreateForm
     permission_required = "accounts.add_user"
     raise_exception = True
     success_url = reverse_lazy("accounts:users")
+    active_menu_key = "users"
 
     def form_valid(self, form: AdminUserCreateForm) -> HttpResponse:
         response = super().form_valid(form)
@@ -220,7 +235,9 @@ class UserCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
         return response
 
 
-class UserUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+class UserUpdateView(
+    DashboardNavigationMixin, LoginRequiredMixin, PermissionRequiredMixin, UpdateView
+):
     template_name = "accounts/user_form.html"
     form_class = AdminUserUpdateForm
     model = User
@@ -228,6 +245,7 @@ class UserUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     permission_required = "accounts.change_user"
     raise_exception = True
     success_url = reverse_lazy("accounts:users")
+    active_menu_key = "users"
 
     def form_valid(self, form: AdminUserUpdateForm) -> HttpResponse:
         response = super().form_valid(form)
@@ -254,12 +272,15 @@ class UserToggleActiveView(LoginRequiredMixin, PermissionRequiredMixin, View):
         return redirect("accounts:users")
 
 
-class PlatformSettingsView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+class PlatformSettingsView(
+    DashboardNavigationMixin, LoginRequiredMixin, PermissionRequiredMixin, UpdateView
+):
     template_name = "accounts/platform_settings.html"
     form_class = PlatformSettingForm
     permission_required = "accounts.change_platformsetting"
     raise_exception = True
     success_url = reverse_lazy("accounts:platform_settings")
+    active_menu_key = "settings"
 
     def get_object(self, queryset: object = None) -> PlatformSetting:
         del queryset
@@ -267,5 +288,14 @@ class PlatformSettingsView(LoginRequiredMixin, PermissionRequiredMixin, UpdateVi
 
     def form_valid(self, form: PlatformSettingForm) -> HttpResponse:
         response = super().form_valid(form)
+        preferred_language = form.instance.default_language
+        translation.activate(preferred_language)
+        self.request.session["django_language"] = preferred_language
+        self.request.LANGUAGE_CODE = preferred_language
+        response.set_cookie(
+            settings.LANGUAGE_COOKIE_NAME,
+            preferred_language,
+            max_age=settings.LANGUAGE_COOKIE_AGE,
+        )
         messages.success(self.request, _("Platform settings updated successfully."))
         return response

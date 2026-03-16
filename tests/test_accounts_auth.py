@@ -367,6 +367,8 @@ def test_platform_settings_can_be_updated() -> None:
     assert platform_settings.default_language == "pt-br"
     assert platform_settings.default_timezone == "America/Sao_Paulo"
     assert platform_settings.primary_color == "#0ea5e9"
+    assert client.session.get("django_language") == "pt-br"
+    assert response.cookies["django_language"].value == "pt-br"
 
 
 @pytest.mark.django_db

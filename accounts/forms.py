@@ -204,3 +204,15 @@ class PlatformSettingForm(forms.ModelForm):
                 }
             ),
         }
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields["platform_name"].label = _("Platform name")
+        self.fields["default_language"].label = _("Default language")
+        self.fields["default_language"].choices = [
+            ("en", _("English")),
+            ("pt-br", _("Portuguese (Brazil)")),
+        ]
+        self.fields["default_timezone"].label = _("Default timezone")
+        self.fields["primary_color"].label = _("Primary color")
+        self.fields["logo_url"].label = _("Logo URL")
