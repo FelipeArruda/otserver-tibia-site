@@ -92,7 +92,9 @@ def parse_po(po_path: Path) -> dict[str, str]:
             key = f"{key}\x00{msgid_plural}"
             plural_values = [
                 str(value)
-                for _, value in sorted(dict(msgstr_plural).items(), key=lambda item: item[0])
+                for _, value in sorted(
+                    dict(msgstr_plural).items(), key=lambda item: item[0]
+                )
             ]
             messages[key] = "\x00".join(plural_values)
         else:
@@ -144,7 +146,9 @@ def parse_po(po_path: Path) -> dict[str, str]:
                 elif state == "msgid":
                     entry["msgid"] = str(entry.get("msgid", "")) + fragment
                 elif state == "msgid_plural":
-                    entry["msgid_plural"] = str(entry.get("msgid_plural", "")) + fragment
+                    entry["msgid_plural"] = (
+                        str(entry.get("msgid_plural", "")) + fragment
+                    )
                 elif state == "msgstr":
                     entry["msgstr"] = str(entry.get("msgstr", "")) + fragment
                 elif state and state.startswith("msgstr["):
