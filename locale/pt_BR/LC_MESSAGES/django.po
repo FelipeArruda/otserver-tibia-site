@@ -1,0 +1,132 @@
+﻿msgid ""
+msgstr ""
+"Project-Id-Version: otserver-tibia-site\n"
+"POT-Creation-Date: 2026-03-16 00:00+0000\n"
+"PO-Revision-Date: 2026-03-16 00:00+0000\n"
+"Last-Translator: Team\n"
+"Language-Team: Portuguese (Brazil)\n"
+"Language: pt_BR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+msgid "OTServ Control Panel"
+msgstr "Painel de Controle OTServ"
+
+msgid "Home"
+msgstr "Início"
+
+msgid "Logout"
+msgstr "Sair"
+
+msgid "Login"
+msgstr "Entrar"
+
+msgid "Sign up"
+msgstr "Cadastre-se"
+
+msgid "Change language"
+msgstr "Alterar idioma"
+
+msgid "Account Home"
+msgstr "Página da Conta"
+
+msgid "You are logged in as {{ email }}."
+msgstr "Você está autenticado como {{ email }}."
+
+msgid "You are not logged in."
+msgstr "Você não está autenticado."
+
+msgid "Sign in"
+msgstr "Acessar"
+
+msgid "Forgot your password?"
+msgstr "Esqueceu sua senha?"
+
+msgid "Create account"
+msgstr "Criar conta"
+
+msgid "Forgot password"
+msgstr "Esqueci minha senha"
+
+msgid "Enter your email and we will send reset instructions."
+msgstr "Informe seu e-mail e enviaremos instruções de redefinição."
+
+msgid "Send reset email"
+msgstr "Enviar e-mail de redefinição"
+
+msgid "Email sent"
+msgstr "E-mail enviado"
+
+msgid "If the email exists, we sent password reset instructions."
+msgstr "Se o e-mail existir, enviamos instruções de redefinição de senha."
+
+msgid "Reset password"
+msgstr "Redefinir senha"
+
+msgid "Change password"
+msgstr "Alterar senha"
+
+msgid "Password updated"
+msgstr "Senha atualizada"
+
+msgid "Sign in with your new password"
+msgstr "Entre com sua nova senha"
+
+msgid "Please go to the following page and choose a new password:"
+msgstr "Acesse a página abaixo e escolha uma nova senha:"
+
+msgid "Your account email"
+msgstr "E-mail da sua conta"
+
+msgid "Thanks for using our site!"
+msgstr "Obrigado por usar nosso site!"
+
+msgid "Password reset requested"
+msgstr "Redefinição de senha solicitada"
+
+msgid "Email"
+msgstr "E-mail"
+
+msgid "name@example.com"
+msgstr "nome@exemplo.com"
+
+msgid "email address"
+msgstr "endereço de e-mail"
+
+msgid "You're receiving this email because you requested a password reset for your account at {{ project_name }}."
+msgstr "Você recebeu este e-mail porque solicitou uma redefinição de senha para sua conta em {{ project_name }}."
+
+msgid "Secure Access"
+msgstr "Acesso seguro"
+
+msgid "Manage your OTServ project in one place."
+msgstr "Gerencie seu projeto OTServ em um único lugar."
+
+msgid "Sign in to monitor servers, review status and keep your control panel organized."
+msgstr "Acesse para monitorar servidores, revisar status e manter seu painel organizado."
+
+msgid "Email login"
+msgstr "Login por e-mail"
+
+msgid "Simple and secure authentication flow."
+msgstr "Fluxo de autenticação simples e seguro."
+
+msgid "Recovery flow"
+msgstr "Fluxo de recuperação"
+
+msgid "Reset your password whenever needed."
+msgstr "Redefina sua senha sempre que precisar."
+
+msgid "Welcome back"
+msgstr "Bem-vindo de volta"
+
+msgid "Use your email and password to continue."
+msgstr "Use seu e-mail e senha para continuar."
+
+msgid "Enter your password"
+msgstr "Digite sua senha"
+
+msgid "Confirm password"
+msgstr "Confirme sua senha"
