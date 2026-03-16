@@ -14,6 +14,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils import translation
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext_lazy as _
 from django.views import View
 from django.views.generic import CreateView, TemplateView, UpdateView
@@ -26,7 +27,8 @@ from accounts.forms import (
     PlatformSettingForm,
     SignUpForm,
 )
-from accounts.models import PlatformSetting, User
+from accounts.models import AuditLog, PlatformSetting, User
+from accounts.services import log_audit_event
 
 
 class DashboardNavigationMixin:
@@ -66,9 +68,9 @@ class DashboardNavigationMixin:
         {
             "key": "audit",
             "label": _("Audit Logs"),
-            "href": "#",
+            "href": reverse_lazy("accounts:audit_logs"),
             "icon": "list",
-            "staff_only": True,
+            "required_perms": ["accounts.view_auditlog"],
         },
         {
             "key": "settings",
@@ -136,6 +138,37 @@ class AccountLogoutView(View):
     ) -> HttpResponse:
         logout(request)
         return redirect(self.next_page)
+
+
+class LanguagePreferenceView(LoginRequiredMixin, View):
+    def post(
+        self, request: HttpRequest, *args: object, **kwargs: object
+    ) -> HttpResponse:
+        del args, kwargs
+        language = request.POST.get("language", "").strip().lower()
+        valid_languages = {code for code, _ in settings.LANGUAGES}
+        next_url = request.POST.get("next") or reverse_lazy("accounts:home")
+
+        if not url_has_allowed_host_and_scheme(
+            url=next_url,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+        ):
+            next_url = reverse_lazy("accounts:home")
+
+        response = redirect(next_url)
+        if language in valid_languages:
+            request.user.preferred_language = language
+            request.user.save(update_fields=["preferred_language"])
+            translation.activate(language)
+            request.session["django_language"] = language
+            request.LANGUAGE_CODE = language
+            response.set_cookie(
+                settings.LANGUAGE_COOKIE_NAME,
+                language,
+                max_age=settings.LANGUAGE_COOKIE_AGE,
+            )
+        return response
 
 
 class ForgotPasswordView(PasswordResetView):
@@ -231,6 +264,15 @@ class UserCreateView(
 
     def form_valid(self, form: AdminUserCreateForm) -> HttpResponse:
         response = super().form_valid(form)
+        log_audit_event(
+            request=self.request,
+            action="user.create",
+            target=form.instance.email,
+            details={
+                "is_staff": form.instance.is_staff,
+                "is_superuser": form.instance.is_superuser,
+            },
+        )
         messages.success(self.request, _("User created successfully."))
         return response
 
@@ -249,6 +291,16 @@ class UserUpdateView(
 
     def form_valid(self, form: AdminUserUpdateForm) -> HttpResponse:
         response = super().form_valid(form)
+        log_audit_event(
+            request=self.request,
+            action="user.update",
+            target=form.instance.email,
+            details={
+                "is_active": form.instance.is_active,
+                "is_staff": form.instance.is_staff,
+                "is_superuser": form.instance.is_superuser,
+            },
+        )
         messages.success(self.request, _("User updated successfully."))
         return response
 
@@ -268,6 +320,12 @@ class UserToggleActiveView(LoginRequiredMixin, PermissionRequiredMixin, View):
 
         user.is_active = not user.is_active
         user.save(update_fields=["is_active"])
+        log_audit_event(
+            request=request,
+            action="user.toggle_active",
+            target=user.email,
+            details={"is_active": user.is_active},
+        )
         messages.success(request, _("User status updated."))
         return redirect("accounts:users")
 
@@ -297,5 +355,44 @@ class PlatformSettingsView(
             preferred_language,
             max_age=settings.LANGUAGE_COOKIE_AGE,
         )
+        log_audit_event(
+            request=self.request,
+            action="platform.settings.update",
+            target="platform",
+            details={
+                "default_language": form.instance.default_language,
+                "default_timezone": form.instance.default_timezone,
+                "primary_color": form.instance.primary_color,
+                "platform_name": form.instance.platform_name,
+            },
+        )
         messages.success(self.request, _("Platform settings updated successfully."))
         return response
+
+
+class AuditLogListView(
+    DashboardNavigationMixin, LoginRequiredMixin, PermissionRequiredMixin, TemplateView
+):
+    template_name = "accounts/audit_logs.html"
+    permission_required = "accounts.view_auditlog"
+    raise_exception = True
+    active_menu_key = "audit"
+
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context = super().get_context_data(**kwargs)
+        search = self.request.GET.get("q", "").strip()
+        action = self.request.GET.get("action", "").strip()
+        logs = AuditLog.objects.select_related("actor")
+        if search:
+            logs = logs.filter(target__icontains=search)
+        if action:
+            logs = logs.filter(action=action)
+
+        context["logs"] = logs[:100]
+        context["actions"] = (
+            AuditLog.objects.order_by("action")
+            .values_list("action", flat=True)
+            .distinct()
+        )
+        context["filters"] = {"q": search, "action": action}
+        return context

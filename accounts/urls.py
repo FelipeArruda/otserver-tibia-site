@@ -3,11 +3,13 @@ from django.urls import path
 from accounts.views import (
     AccountHomeView,
     AccountLogoutView,
+    AuditLogListView,
     EmailLoginView,
     ForgotPasswordCompleteView,
     ForgotPasswordConfirmView,
     ForgotPasswordDoneView,
     ForgotPasswordView,
+    LanguagePreferenceView,
     PlatformSettingsView,
     RoleManagementView,
     SignUpView,
@@ -22,6 +24,7 @@ app_name = "accounts"
 urlpatterns = [
     path("login/", EmailLoginView.as_view(), name="login"),
     path("logout/", AccountLogoutView.as_view(), name="logout"),
+    path("language/", LanguagePreferenceView.as_view(), name="language"),
     path("signup/", SignUpView.as_view(), name="signup"),
     path("forgot-password/", ForgotPasswordView.as_view(), name="password_reset"),
     path(
@@ -54,4 +57,5 @@ urlpatterns = [
         PlatformSettingsView.as_view(),
         name="platform_settings",
     ),
+    path("audit/", AuditLogListView.as_view(), name="audit_logs"),
 ]

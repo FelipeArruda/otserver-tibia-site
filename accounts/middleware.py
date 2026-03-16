@@ -15,10 +15,37 @@ class PlatformDefaultsMiddleware:
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
         if self._should_apply_default_language(request):
-            self._apply_language_from_platform(request)
+            if not self._apply_language_from_user_preference(request):
+                self._apply_language_from_platform(request)
 
         self._apply_timezone_from_platform()
         return self.get_response(request)
+
+    @staticmethod
+    def _apply_language_from_user_preference(request: HttpRequest) -> bool:
+        if not hasattr(request, "user"):
+            return False
+
+        try:
+            user = request.user
+            preferred_language = getattr(user, "preferred_language", "")
+        except RuntimeError:
+            return False
+
+        if not getattr(user, "is_authenticated", False):
+            return False
+
+        if not preferred_language:
+            return False
+
+        valid_languages = {code for code, _ in settings.LANGUAGES}
+        if preferred_language not in valid_languages:
+            return False
+
+        translation.activate(preferred_language)
+        request.LANGUAGE_CODE = preferred_language
+        request.session["django_language"] = preferred_language
+        return True
 
     @staticmethod
     def _should_apply_default_language(request: HttpRequest) -> bool:

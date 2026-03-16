@@ -457,3 +457,33 @@ msgstr "Inglês"
 
 msgid "Portuguese (Brazil)"
 msgstr "Português (Brasil)"
+
+msgid "Track critical platform changes with actor, action and timestamp."
+msgstr "Acompanhe mudanças críticas da plataforma com autor, ação e data/hora."
+
+msgid "Search by target"
+msgstr "Buscar por alvo"
+
+msgid "All actions"
+msgstr "Todas as ações"
+
+msgid "When"
+msgstr "Quando"
+
+msgid "Actor"
+msgstr "Autor"
+
+msgid "Action"
+msgstr "Ação"
+
+msgid "Target"
+msgstr "Alvo"
+
+msgid "Details"
+msgstr "Detalhes"
+
+msgid "System"
+msgstr "Sistema"
+
+msgid "No audit records found."
+msgstr "Nenhum registro de auditoria encontrado."
