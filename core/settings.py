@@ -45,6 +45,26 @@ def _get_allowed_hosts() -> list[str]:
     return [host.strip() for host in hosts_raw.split(",") if host.strip()]
 
 
+def _get_csrf_trusted_origins(allowed_hosts: list[str]) -> list[str]:
+    trusted_origins_raw = os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "")
+    explicit_origins = [
+        origin.strip()
+        for origin in trusted_origins_raw.split(",")
+        if origin.strip()
+    ]
+    if explicit_origins:
+        return explicit_origins
+
+    # Fallback: build trusted origins from allowed hosts.
+    origins: list[str] = []
+    for host in allowed_hosts:
+        if host in {"localhost", "127.0.0.1"}:
+            origins.append(f"http://{host}")
+            continue
+        origins.append(f"https://{host}")
+    return origins
+
+
 _load_local_env()
 
 # Quick-start development settings - unsuitable for production
@@ -61,6 +81,7 @@ DEBUG = _get_bool("DJANGO_DEBUG", True)
 
 
 ALLOWED_HOSTS = _get_allowed_hosts()
+CSRF_TRUSTED_ORIGINS = _get_csrf_trusted_origins(ALLOWED_HOSTS)
 
 
 # Application definition
