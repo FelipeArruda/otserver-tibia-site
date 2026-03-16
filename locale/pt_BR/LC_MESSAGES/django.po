@@ -232,3 +232,48 @@ msgstr "Papéis e grupos"
 
 msgid "Audit Logs"
 msgstr "Logs de auditoria"
+
+msgid "Manage active accounts and control platform access."
+msgstr "Gerencie contas ativas e controle o acesso à plataforma."
+
+msgid "Back to dashboard"
+msgstr "Voltar ao dashboard"
+
+msgid "Staff"
+msgstr "Staff"
+
+msgid "Superuser"
+msgstr "Superusuário"
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Yes"
+msgstr "Sim"
+
+msgid "No"
+msgstr "Não"
+
+msgid "Active"
+msgstr "Ativo"
+
+msgid "Inactive"
+msgstr "Inativo"
+
+msgid "No users found."
+msgstr "Nenhum usuário encontrado."
+
+msgid "Manage platform roles and permission bundles."
+msgstr "Gerencie papéis da plataforma e pacotes de permissões."
+
+msgid "permissions"
+msgstr "permissões"
+
+msgid "No permissions assigned yet."
+msgstr "Nenhuma permissão atribuída ainda."
+
+msgid "more"
+msgstr "a mais"
+
+msgid "No roles created yet."
+msgstr "Nenhum papel criado ainda."

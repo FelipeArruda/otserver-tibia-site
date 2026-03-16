@@ -8,7 +8,9 @@ from accounts.views import (
     ForgotPasswordConfirmView,
     ForgotPasswordDoneView,
     ForgotPasswordView,
+    RoleManagementView,
     SignUpView,
+    UserManagementView,
 )
 
 app_name = "accounts"
@@ -34,4 +36,6 @@ urlpatterns = [
         name="password_reset_complete",
     ),
     path("home/", AccountHomeView.as_view(), name="home"),
+    path("users/", UserManagementView.as_view(), name="users"),
+    path("roles/", RoleManagementView.as_view(), name="roles"),
 ]
