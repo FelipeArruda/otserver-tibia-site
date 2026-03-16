@@ -52,7 +52,7 @@ jobs:
         id: compute-tag
         run: |
           git fetch --tags
-          TODAY="$(date -u +%Y%m%d)"
+          TODAY="$(date -u +%Y.%m.%d)"
           LAST_INDEX="$(git tag -l "v${TODAY}.*" | sed -E "s/^v${TODAY}\.//" | sort -n | tail -1)"
 
           if [ -z "${LAST_INDEX}" ]; then
@@ -71,15 +71,17 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "${RELEASE_TAG}" -m "Release ${RELEASE_TAG}"
+          git tag -a "${RELEASE_TAG}" -m "${RELEASE_TAG}"
           git push origin "${RELEASE_TAG}"
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.compute-tag.outputs.release_tag }}
-          name: Release ${{ steps.compute-tag.outputs.release_tag }}
-          generate_release_notes: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.compute-tag.outputs.release_tag }}
+        run: |
+          gh release create "${RELEASE_TAG}" \
+            --title "${RELEASE_TAG}" \
+            --generate-notes
 
   docker-linux-release:
     runs-on: ubuntu-24.04
@@ -92,10 +94,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Build and push Linux release image
         uses: docker/build-push-action@v7

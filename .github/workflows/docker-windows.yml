@@ -1,9 +1,6 @@
 name: Docker Build Windows
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
   workflow_dispatch:
 
@@ -32,22 +29,7 @@ jobs:
           }
           docker version
 
-      - name: Login to Docker Hub
-        if: github.event_name != 'pull_request'
-        shell: pwsh
-        run: |
-          "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-
-      - name: Build Windows image
+      - name: Build Windows image for validation
         shell: pwsh
         run: |
           docker build -f Dockerfile.windows -t "${{ env.IMAGE_NAME }}:windows-${{ github.sha }}" .
-
-      - name: Push Windows image
-        if: github.event_name != 'pull_request'
-        shell: pwsh
-        run: |
-          docker tag "${{ env.IMAGE_NAME }}:windows-${{ github.sha }}" "${{ secrets.DOCKERHUB_USERNAME }}/otserver-tibia-site:windows-${{ github.sha }}"
-          docker tag "${{ env.IMAGE_NAME }}:windows-${{ github.sha }}" "${{ secrets.DOCKERHUB_USERNAME }}/otserver-tibia-site:latest-windows"
-          docker push "${{ secrets.DOCKERHUB_USERNAME }}/otserver-tibia-site:windows-${{ github.sha }}"
-          docker push "${{ secrets.DOCKERHUB_USERNAME }}/otserver-tibia-site:latest-windows"

@@ -1,6 +1,6 @@
-# OTServ Control Panel
+﻿# OTServ Control Panel
 
-Language: English | [Português (Brasil)](README.md)
+Language: English | [PortuguÃªs (Brasil)](README.md)
 
 Django web panel for managing OTServ/Tibia servers.
 
@@ -96,11 +96,11 @@ Behavior by event:
 
 Automated release:
 
-- generates tags in the `vYYYYMMDD.N` format (for example, `v20260316.1`)
-- if another release runs on the same day, `N` is incremented (`v20260316.2`, `v20260316.3`, ...)
+- generates tags in the `vYYYY.MM.DD.N` format (for example, `v2026.03.16.1`)
+- if another release runs on the same day, `N` is incremented (`v2026.03.16.2`, `v20260316.3`, ...)
 - publishes Docker Hub images using the release version:
-  - `${DOCKERHUB_USERNAME}/otserver-tibia-site:vYYYYMMDD.N-linux`
-  - `${DOCKERHUB_USERNAME}/otserver-tibia-site:vYYYYMMDD.N-windows`
+  - `${DOCKERHUB_USERNAME}/otserver-tibia-site:vYYYY.MM.DD.N-linux`
+  - `${DOCKERHUB_USERNAME}/otserver-tibia-site:vYYYY.MM.DD.N-windows`
 
 Note about local Windows Dockerfile builds:
 
@@ -163,3 +163,4 @@ python scripts/compile_messages.py
 ```
 
 Without this step, the language cookie may change but rendered HTML can remain untranslated.
+

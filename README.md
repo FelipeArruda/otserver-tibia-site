@@ -1,37 +1,37 @@
-# OTServ Control Panel
+﻿# OTServ Control Panel
 
 [![Linux Build](https://github.com/FelipeArruda/otserver-tibia-site/actions/workflows/docker-linux.yml/badge.svg)](https://github.com/FelipeArruda/otserver-tibia-site/actions/workflows/docker-linux.yml)
 [![Windows Build](https://github.com/FelipeArruda/otserver-tibia-site/actions/workflows/docker-windows.yml/badge.svg)](https://github.com/FelipeArruda/otserver-tibia-site/actions/workflows/docker-windows.yml)
 [![Quality Checks](https://github.com/FelipeArruda/otserver-tibia-site/actions/workflows/quality.yml/badge.svg)](https://github.com/FelipeArruda/otserver-tibia-site/actions/workflows/quality.yml)
 
-Idioma: Português (Brasil) | [English](README.en.md)
+Idioma: PortuguÃªs (Brasil) | [English](README.en.md)
 
-Painel web em Django para gerenciamento e operação de servidores OTServ/Tibia.
+Painel web em Django para gerenciamento e operaÃ§Ã£o de servidores OTServ/Tibia.
 
 ## Objetivo
 
 Construir uma plataforma web para:
 
-- autenticação de usuários;
+- autenticaÃ§Ã£o de usuÃ¡rios;
 - cadastro e gerenciamento de multiplos servidores OTServ;
-- validação de status do servidor (online/offline);
-- exibição de players online;
+- validaÃ§Ã£o de status do servidor (online/offline);
+- exibiÃ§Ã£o de players online;
 - leitura de entidades do banco do OTServ;
-- seleção de versão do servidor;
+- seleÃ§Ã£o de versÃ£o do servidor;
 - shopping integrado;
-- sistema de temas com upload e ativação;
-- execução local e em containers.
+- sistema de temas com upload e ativaÃ§Ã£o;
+- execuÃ§Ã£o local e em containers.
 
 ## Stack principal
 
 - Backend: Django
 - Frontend: Django Templates + Tailwind CSS
-- Banco da aplicação: PostgreSQL (padrão), com opção de MariaDB
+- Banco da aplicaÃ§Ã£o: PostgreSQL (padrÃ£o), com opÃ§Ã£o de MariaDB
 - Infra: Docker + Docker Compose
 
 ## Build e Deploy (Docker)
 
-### Pré-requisitos
+### PrÃ©-requisitos
 
 - Docker
 - Docker Compose
@@ -48,9 +48,9 @@ docker compose build
 docker compose up -d
 ```
 
-O container roda migrações automaticamente no startup (`python manage.py migrate --noinput`) antes de iniciar o servidor.
+O container roda migraÃ§Ãµes automaticamente no startup (`python manage.py migrate --noinput`) antes de iniciar o servidor.
 
-Aplicação local: `http://localhost:8000`
+AplicaÃ§Ã£o local: `http://localhost:8000`
 
 ### Build manual por Dockerfile
 
@@ -66,7 +66,7 @@ Windows:
 docker build -f Dockerfile.windows -t otserver-tibia-site:windows .
 ```
 
-Observação: os Dockerfiles fazem `python -m pip install --upgrade pip` antes da instalação dos pacotes.
+ObservaÃ§Ã£o: os Dockerfiles fazem `python -m pip install --upgrade pip` antes da instalaÃ§Ã£o dos pacotes.
 
 ## CI/CD (GitHub Actions + Docker Hub)
 
@@ -83,7 +83,7 @@ Disparo:
 - `pull_request` para validar build de Linux e Windows sem publicar imagem
 - `workflow_dispatch` manual
 
-Secrets obrigatórios no repositório GitHub:
+Secrets obrigatÃ³rios no repositÃ³rio GitHub:
 
 - `DOCKERHUB_USERNAME`
 - `DOCKERHUB_TOKEN`
@@ -100,11 +100,11 @@ Comportamento por evento:
 
 Release automatizado:
 
-- gera tag no formato `vYYYYMMDD.N` (ex.: `v20260316.1`)
-- se houver novo release no mesmo dia, incrementa `N` (`v20260316.2`, `v20260316.3`, ...)
+- gera tag no formato `vYYYY.MM.DD.N` (ex.: `v2026.03.16.1`)
+- se houver novo release no mesmo dia, incrementa `N` (`v2026.03.16.2`, `v20260316.3`, ...)
 - publica imagens no Docker Hub com a versao do release:
-  - `${DOCKERHUB_USERNAME}/otserver-tibia-site:vYYYYMMDD.N-linux`
-  - `${DOCKERHUB_USERNAME}/otserver-tibia-site:vYYYYMMDD.N-windows`
+  - `${DOCKERHUB_USERNAME}/otserver-tibia-site:vYYYY.MM.DD.N-linux`
+  - `${DOCKERHUB_USERNAME}/otserver-tibia-site:vYYYY.MM.DD.N-windows`
 
 Observacao sobre build local do Dockerfile de Windows:
 
@@ -113,7 +113,7 @@ Observacao sobre build local do Dockerfile de Windows:
 
 ## Qualidade e Testes
 
-Dependências de dev:
+DependÃªncias de dev:
 
 ```bash
 pip install -r requirements-dev.txt
@@ -130,9 +130,9 @@ pytest -q
 
 O workflow `quality.yml` roda esses checks automaticamente em push/PR para manter o projeto funcional.
 
-## Atualização de Dependências
+## AtualizaÃ§Ã£o de DependÃªncias
 
-O Dependabot está habilitado em `.github/dependabot.yml` para monitorar dependências `pip` (incluindo `requirements.txt`) e abrir PRs semanais de atualização.
+O Dependabot estÃ¡ habilitado em `.github/dependabot.yml` para monitorar dependÃªncias `pip` (incluindo `requirements.txt`) e abrir PRs semanais de atualizaÃ§Ã£o.
 
 ## Estrutura atual
 
@@ -167,3 +167,4 @@ python scripts/compile_messages.py
 ```
 
 Sem esse passo, a mudanca de idioma pode salvar o cookie mas nao refletir no HTML renderizado.
+
