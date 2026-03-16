@@ -32,7 +32,17 @@
 </head>
 <body class="min-h-screen bg-slate-100 text-slate-800">
   <div class="min-h-screen lg:grid lg:grid-cols-[18rem_1fr]">
-    <aside class="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 px-5 py-6 text-slate-100 lg:min-h-screen">
+    <aside class="relative bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 px-5 py-6 text-slate-100 lg:min-h-screen">
+      <form action="{% url 'accounts:language' %}" method="post" class="absolute right-5 top-5 hidden lg:flex">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        {% get_current_language as CURRENT_LANGUAGE %}
+        <div class="inline-flex items-center gap-1 rounded-xl border border-slate-700 bg-slate-800/70 p-1">
+          <button type="submit" name="language" value="en" class="rounded-lg px-2 py-1 text-xs font-semibold {% if CURRENT_LANGUAGE == 'en' %}bg-cyan-500 text-white{% else %}text-slate-300 hover:bg-slate-700{% endif %}">EN</button>
+          <button type="submit" name="language" value="pt-br" class="rounded-lg px-2 py-1 text-xs font-semibold {% if CURRENT_LANGUAGE == 'pt-br' %}bg-cyan-500 text-white{% else %}text-slate-300 hover:bg-slate-700{% endif %}">BR</button>
+        </div>
+      </form>
+
       <div class="flex items-center justify-between lg:block">
         <div>
           <p class="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">OTServ</p>
@@ -48,7 +58,7 @@
         <button id="menu-toggle" type="button" class="rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold lg:hidden">{% trans "Menu" %}</button>
       </div>
 
-      <form action="{% url 'accounts:language' %}" method="post" class="mt-5 flex lg:mt-4">
+      <form action="{% url 'accounts:language' %}" method="post" class="mt-5 flex lg:hidden">
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ request.get_full_path }}">
         {% get_current_language as CURRENT_LANGUAGE %}

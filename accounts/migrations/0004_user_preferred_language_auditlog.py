@@ -5,12 +5,148 @@ from django.conf import settings
 from django.db import migrations, models
 
 
+def _repair_legacy_sqlite_user_schema(apps, schema_editor):
+    del apps
+    connection = schema_editor.connection
+    if connection.vendor != "sqlite":
+        return
+
+    with connection.cursor() as cursor:
+        def table_exists(name: str) -> bool:
+            row = cursor.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name = %s",
+                [name],
+            ).fetchone()
+            return row is not None
+
+        if not table_exists("accounts_user"):
+            return
+
+        columns = cursor.execute("PRAGMA table_info('accounts_user')").fetchall()
+        column_names = [column[1] for column in columns]
+        primary_key = next((column[1] for column in columns if column[5] == 1), "")
+
+        has_legacy_user_table = table_exists("accounts_user_legacy")
+        should_rebuild_user = "id" in column_names and primary_key != "email"
+        if not should_rebuild_user and not has_legacy_user_table:
+            return
+
+        cursor.execute("PRAGMA foreign_keys = OFF")
+
+        if should_rebuild_user:
+            cursor.execute("ALTER TABLE accounts_user RENAME TO accounts_user_legacy")
+            cursor.execute(
+                """
+                CREATE TABLE accounts_user (
+                    password varchar(128) NOT NULL,
+                    last_login datetime NULL,
+                    is_superuser bool NOT NULL,
+                    first_name varchar(150) NOT NULL,
+                    last_name varchar(150) NOT NULL,
+                    is_staff bool NOT NULL,
+                    is_active bool NOT NULL,
+                    date_joined datetime NOT NULL,
+                    email varchar(254) NOT NULL PRIMARY KEY
+                )
+                """
+            )
+            cursor.execute(
+                """
+                INSERT INTO accounts_user (
+                    password, last_login, is_superuser, first_name, last_name,
+                    is_staff, is_active, date_joined, email
+                )
+                SELECT
+                    password, last_login, is_superuser, first_name, last_name,
+                    is_staff, is_active, date_joined, email
+                FROM accounts_user_legacy
+                """
+            )
+
+        legacy_user_table = "accounts_user_legacy" if table_exists("accounts_user_legacy") else "accounts_user"
+
+        if table_exists("accounts_user_groups"):
+            cursor.execute(
+                "ALTER TABLE accounts_user_groups RENAME TO accounts_user_groups_legacy"
+            )
+            cursor.execute(
+                """
+                CREATE TABLE accounts_user_groups (
+                    id integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    user_id varchar(254) NOT NULL REFERENCES accounts_user (email) DEFERRABLE INITIALLY DEFERRED,
+                    group_id integer NOT NULL REFERENCES auth_group (id) DEFERRABLE INITIALLY DEFERRED
+                )
+                """
+            )
+            cursor.execute(
+                """
+                INSERT INTO accounts_user_groups (id, user_id, group_id)
+                SELECT legacy.id, users.email, legacy.group_id
+                FROM accounts_user_groups_legacy legacy
+                JOIN """
+                + legacy_user_table
+                + """ users ON users.id = legacy.user_id
+                """
+            )
+            cursor.execute(
+                "CREATE UNIQUE INDEX accounts_user_groups_user_group_unique ON accounts_user_groups (user_id, group_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX accounts_user_groups_user_id_idx ON accounts_user_groups (user_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX accounts_user_groups_group_id_idx ON accounts_user_groups (group_id)"
+            )
+            cursor.execute("DROP TABLE accounts_user_groups_legacy")
+
+        if table_exists("accounts_user_user_permissions"):
+            cursor.execute(
+                "ALTER TABLE accounts_user_user_permissions RENAME TO accounts_user_user_permissions_legacy"
+            )
+            cursor.execute(
+                """
+                CREATE TABLE accounts_user_user_permissions (
+                    id integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    user_id varchar(254) NOT NULL REFERENCES accounts_user (email) DEFERRABLE INITIALLY DEFERRED,
+                    permission_id integer NOT NULL REFERENCES auth_permission (id) DEFERRABLE INITIALLY DEFERRED
+                )
+                """
+            )
+            cursor.execute(
+                """
+                INSERT INTO accounts_user_user_permissions (id, user_id, permission_id)
+                SELECT legacy.id, users.email, legacy.permission_id
+                FROM accounts_user_user_permissions_legacy legacy
+                JOIN """
+                + legacy_user_table
+                + """ users ON users.id = legacy.user_id
+                """
+            )
+            cursor.execute(
+                "CREATE UNIQUE INDEX accounts_user_user_permissions_user_perm_unique ON accounts_user_user_permissions (user_id, permission_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX accounts_user_user_permissions_user_id_idx ON accounts_user_user_permissions (user_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX accounts_user_user_permissions_permission_id_idx ON accounts_user_user_permissions (permission_id)"
+            )
+            cursor.execute("DROP TABLE accounts_user_user_permissions_legacy")
+
+        if table_exists("accounts_user_legacy"):
+            cursor.execute("DROP TABLE accounts_user_legacy")
+        cursor.execute("PRAGMA foreign_keys = ON")
+
+
 class Migration(migrations.Migration):
+    atomic = False
+
     dependencies = [
         ("accounts", "0003_platformsetting"),
     ]
 
     operations = [
+        migrations.RunPython(_repair_legacy_sqlite_user_schema, migrations.RunPython.noop),
         migrations.AddField(
             model_name="user",
             name="preferred_language",
