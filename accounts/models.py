@@ -8,13 +8,16 @@ from django.utils.translation import gettext_lazy as _
 class UserManager(BaseUserManager):
     use_in_migrations = True
 
+    def get_by_natural_key(self, username: str) -> "User":
+        return self.get(**{f"{self.model.USERNAME_FIELD}__iexact": username})
+
     def _create_user(
         self, email: str, password: str | None, **extra_fields: object
     ) -> "User":
         if not email:
             raise ValueError("The Email must be set")
 
-        email = self.normalize_email(email)
+        email = self.normalize_email(email).lower()
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)

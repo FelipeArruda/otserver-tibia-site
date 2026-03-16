@@ -45,6 +45,21 @@ def test_login_accepts_email_and_password() -> None:
 
 
 @pytest.mark.django_db
+def test_login_accepts_email_case_insensitively() -> None:
+    user_model = get_user_model()
+    user_model.objects.create_user(email="Admin@Admin.com", password="StrongPass123!")
+
+    client = Client()
+    response = client.post(
+        reverse("accounts:login"),
+        {"username": "admin@admin.com", "password": "StrongPass123!"},
+    )
+
+    assert response.status_code == 302
+    assert response.url == reverse("accounts:home")
+
+
+@pytest.mark.django_db
 def test_auth_routes_are_accessible_and_functional() -> None:
     user_model = get_user_model()
     user = user_model.objects.create_user(
