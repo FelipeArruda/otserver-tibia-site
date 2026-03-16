@@ -75,6 +75,7 @@ Workflows:
 - `.github/workflows/docker-linux.yml`
 - `.github/workflows/docker-windows.yml`
 - `.github/workflows/quality.yml`
+- `.github/workflows/release.yml`
 
 Disparo:
 
@@ -96,6 +97,14 @@ Comportamento por evento:
 
 - `pull_request`: builda Linux e Windows apenas para validacao, sem login no Docker Hub e sem `push`
 - `push` em `main` e `workflow_dispatch`: builda e publica as imagens
+
+Release automatizado:
+
+- gera tag no formato `vYYYYMMDD.N` (ex.: `v20260316.1`)
+- se houver novo release no mesmo dia, incrementa `N` (`v20260316.2`, `v20260316.3`, ...)
+- publica imagens no Docker Hub com a versao do release:
+  - `${DOCKERHUB_USERNAME}/otserver-tibia-site:vYYYYMMDD.N-linux`
+  - `${DOCKERHUB_USERNAME}/otserver-tibia-site:vYYYYMMDD.N-windows`
 
 Observacao sobre build local do Dockerfile de Windows:
 

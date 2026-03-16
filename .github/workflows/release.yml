@@ -1,0 +1,153 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  quality:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Lint and tests
+        run: |
+          ruff check .
+          ruff format --check .
+          python manage.py makemigrations --check --dry-run
+          pytest -q
+
+  create-release-tag:
+    runs-on: ubuntu-24.04
+    needs: quality
+    outputs:
+      release_tag: ${{ steps.compute-tag.outputs.release_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Compute next daily tag
+        id: compute-tag
+        run: |
+          git fetch --tags
+          TODAY="$(date -u +%Y%m%d)"
+          LAST_INDEX="$(git tag -l "v${TODAY}.*" | sed -E "s/^v${TODAY}\.//" | sort -n | tail -1)"
+
+          if [ -z "${LAST_INDEX}" ]; then
+            NEXT_INDEX=1
+          else
+            NEXT_INDEX=$((LAST_INDEX + 1))
+          fi
+
+          RELEASE_TAG="v${TODAY}.${NEXT_INDEX}"
+          echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "Computed release tag: ${RELEASE_TAG}"
+
+      - name: Create and push tag
+        env:
+          RELEASE_TAG: ${{ steps.compute-tag.outputs.release_tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${RELEASE_TAG}" -m "Release ${RELEASE_TAG}"
+          git push origin "${RELEASE_TAG}"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.compute-tag.outputs.release_tag }}
+          name: Release ${{ steps.compute-tag.outputs.release_tag }}
+          generate_release_notes: true
+
+  docker-linux-release:
+    runs-on: ubuntu-24.04
+    needs: create-release-tag
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Linux release image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile.linux
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/otserver-tibia-site:${{ needs.create-release-tag.outputs.release_tag }}-linux
+            ${{ secrets.DOCKERHUB_USERNAME }}/otserver-tibia-site:latest-linux
+
+  docker-windows-release:
+    runs-on: windows-2022
+    needs: create-release-tag
+    env:
+      IMAGE_NAME: otserver-tibia-site
+      RELEASE_TAG: ${{ needs.create-release-tag.outputs.release_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Start Docker daemon
+        shell: powershell
+        run: |
+          Start-Service docker
+          $attempts = 0
+          do {
+            $attempts++
+            Start-Sleep -Seconds 2
+            docker version *> $null
+          } until ($LASTEXITCODE -eq 0 -or $attempts -ge 15)
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Docker daemon did not become ready on windows-2022."
+            exit 1
+          }
+          docker version
+
+      - name: Login to Docker Hub
+        shell: pwsh
+        run: |
+          "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Build Windows release image
+        shell: pwsh
+        run: |
+          docker build -f Dockerfile.windows -t "${env:IMAGE_NAME}:${env:RELEASE_TAG}-windows" .
+
+      - name: Push Windows release image
+        shell: pwsh
+        run: |
+          docker tag "${env:IMAGE_NAME}:${env:RELEASE_TAG}-windows" "${{ secrets.DOCKERHUB_USERNAME }}/otserver-tibia-site:${env:RELEASE_TAG}-windows"
+          docker tag "${env:IMAGE_NAME}:${env:RELEASE_TAG}-windows" "${{ secrets.DOCKERHUB_USERNAME }}/otserver-tibia-site:latest-windows"
+          docker push "${{ secrets.DOCKERHUB_USERNAME }}/otserver-tibia-site:${env:RELEASE_TAG}-windows"
+          docker push "${{ secrets.DOCKERHUB_USERNAME }}/otserver-tibia-site:latest-windows"
