@@ -64,6 +64,13 @@ class DashboardNavigationMixin:
             "icon": "list",
             "required_perms": ["accounts.view_auditlog"],
         },
+        {
+            "key": "otservers",
+            "label": _("OTServers"),
+            "href": reverse_lazy("accounts:otservers"),
+            "icon": "database",
+            "required_perms": ["accounts.view_otserver"],
+        },
     ]
     settings_menu_items = [
         {
@@ -86,13 +93,6 @@ class DashboardNavigationMixin:
             "href": reverse_lazy("accounts:platform_settings"),
             "icon": "settings",
             "required_perms": ["accounts.change_platformsetting"],
-        },
-        {
-            "key": "otservers",
-            "label": _("OTServers"),
-            "href": reverse_lazy("accounts:otservers"),
-            "icon": "database",
-            "required_perms": ["accounts.view_otserver"],
         },
     ]
     active_menu_key = "overview"
