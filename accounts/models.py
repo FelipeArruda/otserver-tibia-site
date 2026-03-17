@@ -136,6 +136,20 @@ class AuditLog(models.Model):
 
 
 class OTServer(models.Model):
+    @staticmethod
+    def _build_tibia_version_choices() -> tuple[tuple[str, str], ...]:
+        versions: list[tuple[str, str]] = []
+        for major in range(7, 16):
+            start_minor = 40 if major == 7 else 0
+            end_minor = 30 if major == 15 else 90
+            for minor in range(start_minor, end_minor + 1, 10):
+                version = f"{major}.{minor:02d}"
+                versions.append((version, version))
+        return tuple(versions)
+
+    TIBIA_VERSION_CHOICES = _build_tibia_version_choices.__func__()
+    DEFAULT_TIBIA_VERSION = "15.30"
+
     class Environment(models.TextChoices):
         PRODUCTION = "production", _("Production")
         STAGING = "staging", _("Staging")
@@ -146,6 +160,12 @@ class OTServer(models.Model):
         MARIADB = "mariadb", "MariaDB"
 
     name = models.CharField(max_length=120, unique=True, verbose_name=_("Name"))
+    tibia_version = models.CharField(
+        max_length=10,
+        choices=TIBIA_VERSION_CHOICES,
+        default=DEFAULT_TIBIA_VERSION,
+        verbose_name=_("Tibia version"),
+    )
     environment = models.CharField(
         max_length=20,
         choices=Environment.choices,

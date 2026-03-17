@@ -352,6 +352,7 @@ class OTServerForm(forms.ModelForm):
         model = OTServer
         fields = (
             "name",
+            "tibia_version",
             "environment",
             "database_engine",
             "db_host",
@@ -370,6 +371,7 @@ class OTServerForm(forms.ModelForm):
         )
         widgets = {
             "name": forms.TextInput(attrs={"class": BASE_INPUT_CLASSES}),
+            "tibia_version": forms.Select(attrs={"class": BASE_INPUT_CLASSES}),
             "environment": forms.Select(attrs={"class": BASE_INPUT_CLASSES}),
             "database_engine": forms.Select(attrs={"class": BASE_INPUT_CLASSES}),
             "db_host": forms.TextInput(attrs={"class": BASE_INPUT_CLASSES}),
@@ -389,6 +391,8 @@ class OTServerForm(forms.ModelForm):
         self.fields["timezone"].choices = PlatformSettingForm._build_timezone_choices()
 
         self.fields["environment"].label = _("Environment")
+        self.fields["tibia_version"].label = _("Tibia version")
+        self.fields["tibia_version"].required = False
         self.fields["database_engine"].label = _("Database engine")
         self.fields["db_host"].label = _("Database host")
         self.fields["db_port"].label = _("Database port")
@@ -423,6 +427,12 @@ class OTServerForm(forms.ModelForm):
         except ZoneInfoNotFoundError as exc:
             raise forms.ValidationError(_("Select a valid timezone.")) from exc
         return timezone_name
+
+    def clean_tibia_version(self) -> str:
+        version = self.cleaned_data.get("tibia_version", "").strip()
+        if version:
+            return version
+        return OTServer.DEFAULT_TIBIA_VERSION
 
     def save(self, commit: bool = True) -> OTServer:
         current_server: OTServer | None = None

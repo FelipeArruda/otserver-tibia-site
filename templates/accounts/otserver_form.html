@@ -15,11 +15,16 @@
     <form method="post" class="space-y-5">
       {% csrf_token %}
 
-      <div class="grid gap-5 sm:grid-cols-2">
+      <div class="grid gap-5 sm:grid-cols-3">
         <div>
           <label for="{{ form.name.id_for_label }}" class="text-sm font-semibold text-slate-700">{{ form.name.label }}</label>
           {{ form.name }}
           {% if form.name.errors %}<p class="mt-2 text-xs font-semibold text-rose-600">{{ form.name.errors|striptags }}</p>{% endif %}
+        </div>
+        <div>
+          <label for="{{ form.tibia_version.id_for_label }}" class="text-sm font-semibold text-slate-700">{{ form.tibia_version.label }}</label>
+          {{ form.tibia_version }}
+          {% if form.tibia_version.errors %}<p class="mt-2 text-xs font-semibold text-rose-600">{{ form.tibia_version.errors|striptags }}</p>{% endif %}
         </div>
         <div>
           <label for="{{ form.environment.id_for_label }}" class="text-sm font-semibold text-slate-700">{{ form.environment.label }}</label>

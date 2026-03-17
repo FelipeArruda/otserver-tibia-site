@@ -697,6 +697,7 @@ def test_otserver_crud_flow_with_permissions() -> None:
         reverse("accounts:otserver_create"),
         {
             "name": "Crystal Server",
+            "tibia_version": "13.40",
             "environment": "production",
             "database_engine": "mysql",
             "db_host": "localhost",
@@ -716,6 +717,7 @@ def test_otserver_crud_flow_with_permissions() -> None:
     )
     assert create_response.status_code == 302
     server = OTServer.objects.get(name="Crystal Server")
+    assert server.tibia_version == "13.40"
     assert AuditLog.objects.filter(
         action="otserver.create", target="Crystal Server", actor=manager
     ).exists()
@@ -728,6 +730,7 @@ def test_otserver_crud_flow_with_permissions() -> None:
         reverse("accounts:otserver_update", args=[server.pk]),
         {
             "name": "Crystal Server",
+            "tibia_version": "12.70",
             "environment": "staging",
             "database_engine": "mariadb",
             "db_host": "127.0.0.1",
@@ -747,6 +750,7 @@ def test_otserver_crud_flow_with_permissions() -> None:
     )
     assert update_response.status_code == 302
     server.refresh_from_db()
+    assert server.tibia_version == "12.70"
     assert server.environment == "staging"
     assert server.database_engine == "mariadb"
     assert server.db_password.startswith("enc::")
@@ -824,6 +828,54 @@ def test_otserver_form_shows_loading_state_markup_for_connection_test() -> None:
     assert "data-test-connection-spinner" in content
     assert "data-test-connection-loading-label" in content
     assert "Testing connection..." in content
+
+
+@pytest.mark.django_db
+def test_otserver_form_lists_tibia_versions_and_uses_default() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="otserver-version-form@example.com", password="StrongPass123!"
+    )
+    manager.user_permissions.add(
+        Permission.objects.get(codename="view_otserver"),
+        Permission.objects.get(codename="add_otserver"),
+    )
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+    response = client.get(reverse("accounts:otserver_create"))
+    content = response.content.decode("utf-8")
+
+    assert response.status_code == 200
+    assert 'name="tibia_version"' in content
+    assert '<option value="7.40"' in content
+    assert '<option value="15.30"' in content
+
+    create_without_explicit_version = client.post(
+        reverse("accounts:otserver_create"),
+        {
+            "name": "VersionDefaultServer",
+            "environment": "production",
+            "database_engine": "mysql",
+            "db_host": "localhost",
+            "db_port": 3306,
+            "db_name": "otserv",
+            "db_user": "otserv_user",
+            "db_password": "Secret123!",
+            "db_charset": "utf8mb4",
+            "db_collation": "",
+            "db_use_ssl": "",
+            "api_base_url": "",
+            "api_token": "",
+            "timezone": "UTC",
+            "monitor_enabled": "on",
+            "is_active": "on",
+        },
+    )
+
+    assert create_without_explicit_version.status_code == 302
+    created_server = OTServer.objects.get(name="VersionDefaultServer")
+    assert created_server.tibia_version == OTServer.DEFAULT_TIBIA_VERSION
 
 
 @pytest.mark.django_db

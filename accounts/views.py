@@ -863,6 +863,7 @@ class OTServerCreateView(
             action="otserver.create",
             target=form.instance.name,
             details={
+                "tibia_version": form.instance.tibia_version,
                 "environment": form.instance.environment,
                 "database_engine": form.instance.database_engine,
                 "db_host": form.instance.db_host,
@@ -979,6 +980,7 @@ class OTServerUpdateView(
             action="otserver.update",
             target=form.instance.name,
             details={
+                "tibia_version": form.instance.tibia_version,
                 "environment": form.instance.environment,
                 "database_engine": form.instance.database_engine,
                 "db_host": form.instance.db_host,
