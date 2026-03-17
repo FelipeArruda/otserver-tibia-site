@@ -192,6 +192,25 @@ def test_home_shows_settings_group_when_one_settings_item_is_allowed() -> None:
 
 
 @pytest.mark.django_db
+def test_home_shows_otservers_in_main_menu() -> None:
+    user_model = get_user_model()
+    user = user_model.objects.create_user(
+        email="otservers-menu@example.com", password="StrongPass123!"
+    )
+    user.user_permissions.add(Permission.objects.get(codename="view_otserver"))
+
+    client = Client()
+    assert client.login(username=user.email, password="StrongPass123!")
+    response = client.get(reverse("accounts:home"))
+    content = response.content.decode("utf-8")
+
+    assert response.status_code == 200
+    assert "OTServers" in content
+    assert reverse("accounts:otservers") in content
+    assert 'data-testid="settings-group"' not in content
+
+
+@pytest.mark.django_db
 def test_users_route_requires_view_user_permission() -> None:
     user_model = get_user_model()
     user = user_model.objects.create_user(
