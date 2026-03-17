@@ -632,6 +632,93 @@ msgstr "Tipos de conteúdo"
 msgid "Sessions"
 msgstr "Sessões"
 
+msgid "OTServers"
+msgstr "OTServers"
+
+msgid "Manage your Tibia OTServer connections and runtime profiles."
+msgstr "Gerencie conexões e perfis de execução dos seus OTServers Tibia."
+
+msgid "Add OTServer"
+msgstr "Adicionar OTServer"
+
+msgid "Search by name"
+msgstr "Buscar por nome"
+
+msgid "All environments"
+msgstr "Todos os ambientes"
+
+msgid "All databases"
+msgstr "Todos os bancos"
+
+msgid "No OTServers found."
+msgstr "Nenhum OTServer encontrado."
+
+msgid "Edit OTServer"
+msgstr "Editar OTServer"
+
+msgid "Create OTServer"
+msgstr "Criar OTServer"
+
+msgid "Configure OTServer runtime profile and database settings."
+msgstr "Configure o perfil de execucao do OTServer e as configuracoes de banco."
+
+msgid "Back to OTServers"
+msgstr "Voltar para OTServers"
+
+msgid "Review OTServer configuration and connection metadata."
+msgstr "Revise as configuracoes do OTServer e os metadados de conexao."
+
+msgid "Remove this OTServer?"
+msgstr "Remover este OTServer?"
+
+msgid "Keep current password"
+msgstr "Manter senha atual"
+
+msgid "Keep current token"
+msgstr "Manter token atual"
+
+msgid "Leave blank to keep the current password."
+msgstr "Deixe em branco para manter a senha atual."
+
+msgid "Leave blank to keep the current token."
+msgstr "Deixe em branco para manter o token atual."
+
+msgid "Fix the highlighted fields before testing."
+msgstr "Corrija os campos destacados antes de testar."
+
+msgid "Connection test succeeded."
+msgstr "Teste de conexao realizado com sucesso."
+
+msgid "Connection test failed."
+msgstr "Teste de conexao falhou."
+
+msgid "OTServer created successfully."
+msgstr "OTServer criado com sucesso."
+
+msgid "OTServer updated successfully."
+msgstr "OTServer atualizado com sucesso."
+
+msgid "OTServer removed successfully."
+msgstr "OTServer removido com sucesso."
+
+msgid "Connection test result"
+msgstr "Resultado do teste de conexao"
+
+msgid "Success"
+msgstr "Sucesso"
+
+msgid "Failed"
+msgstr "Falhou"
+
+msgid "API"
+msgstr "API"
+
+msgid "Skipped"
+msgstr "Ignorado"
+
+msgid "Test connection"
+msgstr "Testar conexao"
+
 msgid "A role with this name already exists."
 msgstr "Já existe um papel com este nome."
 

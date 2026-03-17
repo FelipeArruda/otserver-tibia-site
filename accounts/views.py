@@ -34,7 +34,7 @@ from accounts.forms import (
     SignUpForm,
 )
 from accounts.models import AuditLog, OTServer, PlatformSetting, User
-from accounts.services import log_audit_event, test_otserver_connections
+from accounts.services import check_otserver_connections, log_audit_event
 
 
 class DashboardNavigationMixin:
@@ -771,7 +771,7 @@ class OTServerCreateView(
             messages.error(request, _("Fix the highlighted fields before testing."))
             return self.render_to_response(self.get_context_data(form=form), status=400)
 
-        test_result = test_otserver_connections(
+        test_result = check_otserver_connections(
             database_engine=form.cleaned_data["database_engine"],
             db_host=form.cleaned_data["db_host"],
             db_port=form.cleaned_data["db_port"],
@@ -864,8 +864,8 @@ class OTServerUpdateView(
         self, request: HttpRequest, *args: object, **kwargs: object
     ) -> HttpResponse:
         self.object = self.get_object()
-        original_db_password = self.object.db_password
-        original_api_token = self.object.api_token
+        original_db_password = self.object.get_db_password()
+        original_api_token = self.object.get_api_token()
         if request.POST.get("action") != "test_connection":
             return super().post(request, *args, **kwargs)
 
@@ -879,7 +879,7 @@ class OTServerUpdateView(
 
         db_password = form.cleaned_data["db_password"] or original_db_password
         api_token = form.cleaned_data["api_token"] or original_api_token
-        test_result = test_otserver_connections(
+        test_result = check_otserver_connections(
             database_engine=form.cleaned_data["database_engine"],
             db_host=form.cleaned_data["db_host"],
             db_port=form.cleaned_data["db_port"],

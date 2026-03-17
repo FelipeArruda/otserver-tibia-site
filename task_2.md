@@ -3,8 +3,8 @@
 ## Checklist de etapas
 - [x] Etapa 1: Base do modulo OTServer (modelo, CRUD, listagem, RBAC, auditoria basica, paginação e filtros).
 - [x] Etapa 2: Teste de conexao com banco (MySQL/MariaDB) e validacao de API.
-- [ ] Etapa 3: Seguranca avancada de credenciais (protecao/criptografia) e mascaramento completo.
-- [ ] Etapa 4: UX refinada, mensagens finais, cobertura de testes ampliada e documentacao final.
+- [x] Etapa 3: Seguranca avancada de credenciais (protecao/criptografia) e mascaramento completo.
+- [x] Etapa 4: UX refinada, mensagens finais, cobertura de testes ampliada e documentacao final.
 
 ## Objetivo
 Implementar um modulo completo para cadastro, visualizacao, edicao e remocao de OTServers, com foco em conectividade com banco de dados do servidor de jogo e validacoes operacionais.

@@ -14,6 +14,7 @@ from django.utils.http import urlsafe_base64_encode
 
 from accounts.forms import PlatformSettingForm
 from accounts.models import AuditLog, OTServer, PlatformSetting
+from accounts.services import check_otserver_connections
 
 
 @pytest.mark.django_db
@@ -748,7 +749,8 @@ def test_otserver_crud_flow_with_permissions() -> None:
     server.refresh_from_db()
     assert server.environment == "staging"
     assert server.database_engine == "mariadb"
-    assert server.db_password == "Secret123!"
+    assert server.db_password.startswith("enc::")
+    assert server.get_db_password() == "Secret123!"
     assert AuditLog.objects.filter(
         action="otserver.update", target="Crystal Server", actor=manager
     ).exists()
@@ -923,7 +925,7 @@ def test_otserver_test_connection_from_create_does_not_persist_and_logs() -> Non
 
     from unittest.mock import patch
 
-    with patch("accounts.views.test_otserver_connections") as test_mock:
+    with patch("accounts.views.check_otserver_connections") as test_mock:
         test_mock.return_value = {
             "success": True,
             "database": {"ok": True, "latency_ms": 11, "message": "db ok"},
@@ -992,7 +994,7 @@ def test_otserver_test_connection_update_uses_saved_secrets_and_logs() -> None:
 
     from unittest.mock import patch
 
-    with patch("accounts.views.test_otserver_connections") as test_mock:
+    with patch("accounts.views.check_otserver_connections") as test_mock:
         test_mock.return_value = {
             "success": False,
             "database": {"ok": False, "latency_ms": None, "message": "failed"},
@@ -1035,6 +1037,67 @@ def test_otserver_test_connection_update_uses_saved_secrets_and_logs() -> None:
 
 
 @pytest.mark.django_db
+def test_otserver_secrets_are_encrypted_and_masked_on_detail() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="otserver-secret-mask@example.com",
+        password="StrongPass123!",
+    )
+    manager.user_permissions.add(Permission.objects.get(codename="view_otserver"))
+    server = OTServer.objects.create(
+        name="SecureOTServer",
+        environment="production",
+        database_engine="mysql",
+        db_host="localhost",
+        db_port=3306,
+        db_name="otserv",
+        db_user="user",
+        db_password="my-db-secret",
+        api_token="my-api-token",
+        timezone="UTC",
+    )
+
+    server.refresh_from_db()
+    assert server.db_password.startswith("enc::")
+    assert server.api_token.startswith("enc::")
+    assert server.get_db_password() == "my-db-secret"
+    assert server.get_api_token() == "my-api-token"
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+    response = client.get(reverse("accounts:otserver_detail", args=[server.pk]))
+    content = response.content.decode("utf-8")
+
+    assert response.status_code == 200
+    assert "********" in content
+    assert "my-db-secret" not in content
+    assert "my-api-token" not in content
+
+
+@pytest.mark.django_db
+def test_otserver_encrypted_secret_supports_long_values() -> None:
+    long_secret = "s" * 400
+    server = OTServer.objects.create(
+        name="LongSecretServer",
+        environment="production",
+        database_engine="mysql",
+        db_host="localhost",
+        db_port=3306,
+        db_name="otserv",
+        db_user="user",
+        db_password=long_secret,
+        api_token=long_secret,
+        timezone="UTC",
+    )
+    server.refresh_from_db()
+
+    assert server.db_password.startswith("enc::")
+    assert server.api_token.startswith("enc::")
+    assert server.get_db_password() == long_secret
+    assert server.get_api_token() == long_secret
+
+
+@pytest.mark.django_db
 def test_otserver_test_connection_requires_permissions() -> None:
     user_model = get_user_model()
     user = user_model.objects.create_user(
@@ -1067,6 +1130,72 @@ def test_otserver_test_connection_requires_permissions() -> None:
         },
     )
     assert denied.status_code == 403
+
+
+def test_otserver_connection_service_handles_success(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import sys
+    import types
+
+    class DummyCursor:
+        def execute(self, _query: str) -> None:
+            return None
+
+        def fetchone(self) -> tuple[int]:
+            return (1,)
+
+        def __enter__(self) -> "DummyCursor":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> bool:
+            del exc_type, exc, tb
+            return False
+
+    class DummyConnection:
+        def cursor(self) -> DummyCursor:
+            return DummyCursor()
+
+        def close(self) -> None:
+            return None
+
+    class DummyHttpResponse:
+        def __enter__(self) -> "DummyHttpResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> bool:
+            del exc_type, exc, tb
+            return False
+
+        def getcode(self) -> int:
+            return 200
+
+    monkeypatch.setitem(
+        sys.modules,
+        "pymysql",
+        types.SimpleNamespace(connect=lambda **_kwargs: DummyConnection()),
+    )
+    monkeypatch.setattr(
+        "accounts.services.urllib.request.urlopen",
+        lambda _request, timeout: DummyHttpResponse(),
+    )
+
+    result = check_otserver_connections(
+        database_engine="mysql",
+        db_host="localhost",
+        db_port=3306,
+        db_name="otserv",
+        db_user="user",
+        db_password="secret",
+        db_charset="utf8mb4",
+        db_use_ssl=False,
+        api_base_url="https://example.com/health",
+        api_token="token",
+    )
+
+    assert result["success"] is True
+    assert result["database"]["ok"] is True
+    assert result["api"]["ok"] is True
 
 
 @pytest.mark.django_db

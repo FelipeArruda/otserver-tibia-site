@@ -4,6 +4,8 @@ from django.core.validators import RegexValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from accounts.secrets import decrypt_secret, encrypt_secret
+
 
 class UserManager(BaseUserManager):
     use_in_migrations = True
@@ -160,7 +162,7 @@ class OTServer(models.Model):
     db_port = models.PositiveIntegerField(default=3306, verbose_name=_("Database port"))
     db_name = models.CharField(max_length=128, verbose_name=_("Database name"))
     db_user = models.CharField(max_length=128, verbose_name=_("Database user"))
-    db_password = models.CharField(max_length=255, verbose_name=_("Database password"))
+    db_password = models.TextField(verbose_name=_("Database password"))
     db_charset = models.CharField(
         max_length=64,
         default="utf8mb4",
@@ -173,9 +175,7 @@ class OTServer(models.Model):
     )
     db_use_ssl = models.BooleanField(default=False, verbose_name=_("Use SSL"))
     api_base_url = models.URLField(blank=True, verbose_name=_("API base URL"))
-    api_token = models.CharField(
-        max_length=255, blank=True, verbose_name=_("API token")
-    )
+    api_token = models.TextField(blank=True, verbose_name=_("API token"))
     timezone = models.CharField(
         max_length=64, default="UTC", verbose_name=_("Timezone")
     )
@@ -190,6 +190,19 @@ class OTServer(models.Model):
         ordering = ["name"]
         verbose_name = _("OTServer")
         verbose_name_plural = _("OTServers")
+
+    def save(self, *args: object, **kwargs: object) -> None:
+        if self.db_password:
+            self.db_password = encrypt_secret(self.db_password)
+        if self.api_token:
+            self.api_token = encrypt_secret(self.api_token)
+        super().save(*args, **kwargs)
+
+    def get_db_password(self) -> str:
+        return decrypt_secret(self.db_password)
+
+    def get_api_token(self) -> str:
+        return decrypt_secret(self.api_token)
 
     def __str__(self) -> str:
         return self.name

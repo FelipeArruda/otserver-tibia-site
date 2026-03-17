@@ -25,7 +25,7 @@ def log_audit_event(
     )
 
 
-def test_otserver_connections(
+def check_otserver_connections(
     *,
     database_engine: str,
     db_host: str,

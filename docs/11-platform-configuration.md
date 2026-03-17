@@ -57,6 +57,38 @@ Stored data:
 - JSON details
 - Timestamp
 
+## OTServer management
+Routes:
+- `/accounts/otservers/`
+- `/accounts/otservers/new/`
+- `/accounts/otservers/<id>/`
+- `/accounts/otservers/<id>/edit/`
+
+Permissions:
+- `accounts.view_otserver`
+- `accounts.add_otserver`
+- `accounts.change_otserver`
+- `accounts.delete_otserver`
+
+Supported connections:
+- MySQL
+- MariaDB
+
+Connection test flow:
+- Available on create/edit OTServer form.
+- Executes DB connectivity check (`SELECT 1`) and optional API health request.
+- Does not persist OTServer data when action is `test_connection`.
+- Writes audit event `otserver.connection_test`.
+
+Security for OTServer secrets:
+- `db_password` and `api_token` are encrypted at rest.
+- Existing plaintext values are migrated and encrypted by migration `0006`.
+- UI keeps secrets masked and avoids exposing full values.
+
+Environment variable:
+- `OTSERVER_SECRETS_KEY` (optional, strongly recommended in production)
+  - If missing, encryption key material falls back to `DJANGO_SECRET_KEY`.
+
 ## i18n maintenance
 Update translations:
 1. Edit `locale/pt_BR/LC_MESSAGES/django.po`

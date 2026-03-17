@@ -61,6 +61,7 @@ _load_local_env()
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", DEFAULT_SECRET_KEY)
+OTSERVER_SECRETS_KEY = os.getenv("OTSERVER_SECRETS_KEY", "")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = _env_bool("DJANGO_DEBUG", True)
