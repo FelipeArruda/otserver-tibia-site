@@ -192,7 +192,22 @@ class AccountHomeView(DashboardNavigationMixin, LoginRequiredMixin, TemplateView
         except Exception:
             database_ok = False
 
-        context["show_secondary_content"] = False
+        last_hour = now - timedelta(hours=1)
+        recent_online_delta = AuditLog.objects.filter(
+            action="otserver.connection_test",
+            created_at__gte=last_hour,
+            details__success=True,
+        ).count()
+
+        next_save_server = timezone.localtime(now).replace(
+            hour=3, minute=0, second=0, microsecond=0
+        )
+        if next_save_server <= timezone.localtime(now):
+            next_save_server += timedelta(days=1)
+
+        pending_incidents = failed_ot_tests_24h + len(character_summary["errors"])
+
+        context["show_secondary_content"] = True
         context["home_metrics"] = {
             "total_users": total_users,
             "active_servers": active_servers,
@@ -205,6 +220,9 @@ class AccountHomeView(DashboardNavigationMixin, LoginRequiredMixin, TemplateView
             "healthy_character_sources": character_summary["healthy_sources"],
             "active_character_sources": character_summary["active_sources"],
             "audit_events_24h": audit_events_24h,
+            "pending_incidents": pending_incidents,
+            "recent_online_delta": recent_online_delta,
+            "next_save_server": next_save_server,
             "latest_event_at": latest_audit_event.created_at
             if latest_audit_event
             else None,
@@ -215,6 +233,13 @@ class AccountHomeView(DashboardNavigationMixin, LoginRequiredMixin, TemplateView
             "database_ok": database_ok,
         }
         context["recent_audit_logs"] = recent_audit_logs
+        context["operator_status"] = {
+            "login_api": "ok" if failed_ot_tests_24h == 0 else "delay",
+            "game_database": (
+                "ok" if database_ok and character_summary["errors"] == [] else "delay"
+            ),
+            "webhook_queue": "ok" if audit_events_24h < 100 else "delay",
+        }
         context["dashboard_healthy"] = (
             database_ok
             and failed_ot_tests_24h == 0

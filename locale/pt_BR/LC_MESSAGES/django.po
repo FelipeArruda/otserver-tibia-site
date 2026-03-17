@@ -1010,3 +1010,12 @@ msgstr "Todos os status foram mapeados corretamente."
 
 msgid "%(errors)s OT source(s) failed while loading character metrics."
 msgstr "%(errors)s fonte(s) OT falharam ao carregar as métricas de personagens."
+
+msgid "%(healthy)s/%(total)s OT sources healthy"
+msgstr "%(healthy)s/%(total)s fontes OT saudáveis"
+
+msgid "high-priority incidents"
+msgstr "incidentes de alta prioridade"
+
+msgid "Some services require attention. Review incidents and OT connectivity."
+msgstr "Alguns serviços precisam de atenção. Revise incidentes e conectividade dos OTs."

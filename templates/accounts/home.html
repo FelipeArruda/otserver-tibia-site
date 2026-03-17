@@ -7,123 +7,49 @@
 {% block page_description %}{% trans "Monitor realms, manage accounts and keep your Tibia operation stable from one place." %}{% endblock %}
 
 {% block page_actions %}
-  <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold {% if dashboard_healthy %}bg-emerald-100 text-emerald-700{% else %}bg-amber-100 text-amber-700{% endif %}">
-    <span class="h-2 w-2 rounded-full {% if dashboard_healthy %}bg-emerald-500{% else %}bg-amber-500{% endif %}"></span>
+  <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">
     {% if dashboard_healthy %}{% trans "Server cluster healthy" %}{% else %}{% trans "Cluster needs attention" %}{% endif %}
   </span>
 {% endblock %}
 
 {% block primary_content %}
-  <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-    <article class="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-cyan-900 p-6 text-white shadow-sm ring-1 ring-slate-200 md:col-span-2">
-      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">{% trans "Total characters" %}</p>
-      <div class="mt-3 flex flex-wrap items-end justify-between gap-3">
-        <p class="text-4xl font-black leading-none">{{ home_metrics.total_characters }}</p>
-        <p class="text-sm text-cyan-100">
-          {% blocktrans with count=home_metrics.healthy_character_sources total=home_metrics.active_character_sources %}Data from {{ count }}/{{ total }} active OT sources.{% endblocktrans %}
-        </p>
-      </div>
-
-      <div class="mt-5 space-y-3">
-        <div>
-          <div class="mb-1 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.14em] text-cyan-100">
-            <span>{% trans "Online characters" %}</span>
-            <span>
-              {% if home_metrics.total_characters %}
-                {% widthratio home_metrics.online_characters home_metrics.total_characters 100 %}%
-              {% else %}
-                0%
-              {% endif %}
-            </span>
-          </div>
-          <div class="h-2 rounded-full bg-white/20">
-            <div class="h-2 rounded-full bg-emerald-300" style="width: {% if home_metrics.total_characters %}{% widthratio home_metrics.online_characters home_metrics.total_characters 100 %}{% else %}0{% endif %}%;"></div>
-          </div>
-        </div>
-
-        <div>
-          <div class="mb-1 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.14em] text-cyan-100">
-            <span>{% trans "Offline characters" %}</span>
-            <span>
-              {% if home_metrics.total_characters %}
-                {% widthratio home_metrics.offline_characters home_metrics.total_characters 100 %}%
-              {% else %}
-                0%
-              {% endif %}
-            </span>
-          </div>
-          <div class="h-2 rounded-full bg-white/20">
-            <div class="h-2 rounded-full bg-slate-200" style="width: {% if home_metrics.total_characters %}{% widthratio home_metrics.offline_characters home_metrics.total_characters 100 %}{% else %}0{% endif %}%;"></div>
-          </div>
-        </div>
-      </div>
-    </article>
-
+  <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
     <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{% trans "Online characters" %}</p>
-      <p class="mt-3 text-3xl font-extrabold text-emerald-600">{{ home_metrics.online_characters }}</p>
-      <p class="mt-2 text-sm text-emerald-700">
-        {% if home_metrics.total_characters %}
-          {% widthratio home_metrics.online_characters home_metrics.total_characters 100 %}% {% trans "of tracked characters" %}
-        {% else %}
-          0% {% trans "of tracked characters" %}
-        {% endif %}
-      </p>
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{% trans "Online players" %}</p>
+      <p class="mt-3 text-3xl font-extrabold text-slate-900">{{ home_metrics.online_characters }}</p>
+      <p class="mt-2 text-sm text-emerald-600">+{{ home_metrics.recent_online_delta }} {% trans "in the last hour" %}</p>
     </article>
-
-    <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{% trans "Offline characters" %}</p>
-      <p class="mt-3 text-3xl font-extrabold text-slate-900">{{ home_metrics.offline_characters }}</p>
-      <p class="mt-2 text-sm text-slate-600">
-        {% if home_metrics.unknown_status_characters %}
-          {% blocktrans with unknown=home_metrics.unknown_status_characters %}{{ unknown }} with unknown status.{% endblocktrans %}
-        {% else %}
-          {% trans "All status values mapped correctly." %}
-        {% endif %}
-      </p>
-    </article>
-
     <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
       <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{% trans "Active realms" %}</p>
       <p class="mt-3 text-3xl font-extrabold text-slate-900">{{ home_metrics.active_servers }}/{{ home_metrics.total_servers }}</p>
-      <p class="mt-2 text-sm text-slate-600">{% trans "OTServers currently enabled." %}</p>
-    </article>
-
-    <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{% trans "Audit events (24h)" %}</p>
-      <p class="mt-3 text-3xl font-extrabold text-slate-900">{{ home_metrics.audit_events_24h }}</p>
-      <p class="mt-2 text-sm {% if home_metrics.failed_ot_tests_24h %}text-amber-600{% else %}text-emerald-600{% endif %}">
-        {{ home_metrics.failed_ot_tests_24h }} {% trans "failed OT connection tests" %}
+      <p class="mt-2 text-sm text-slate-600">
+        {% blocktrans with healthy=home_metrics.healthy_character_sources total=home_metrics.active_character_sources %}{{ healthy }}/{{ total }} OT sources healthy{% endblocktrans %}
       </p>
+    </article>
+    <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{% trans "Pending tickets" %}</p>
+      <p class="mt-3 text-3xl font-extrabold text-slate-900">{{ home_metrics.pending_incidents }}</p>
+      <p class="mt-2 text-sm text-amber-600">{{ home_metrics.failed_ot_tests_24h }} {% trans "high-priority incidents" %}</p>
+    </article>
+    <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{% trans "Next save-server" %}</p>
+      <p class="mt-3 text-3xl font-extrabold text-slate-900">{{ home_metrics.next_save_server|date:"H:i" }}</p>
+      <p class="mt-2 text-sm text-slate-600">{% trans "Automated global save" %}</p>
     </article>
   </section>
 
-  {% if home_metrics.characters_source_errors %}
-    <section class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-      {% blocktrans with errors=home_metrics.characters_source_errors %}{{ errors }} OT source(s) failed while loading character metrics.{% endblocktrans %}
-    </section>
-  {% endif %}
-
   <section class="grid gap-4 xl:grid-cols-2">
     <article class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-      <div class="flex items-center justify-between gap-2">
-        <h3 class="text-xl font-bold text-slate-900">{% trans "Operational feed" %}</h3>
-        {% if home_metrics.latest_event_at %}
-          <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{{ home_metrics.latest_event_at|date:"Y-m-d H:i" }}</span>
-        {% endif %}
-      </div>
-
+      <h3 class="text-xl font-bold text-slate-900">{% trans "Operational feed" %}</h3>
       <ul class="mt-4 space-y-3 text-sm">
         {% for event in recent_audit_logs %}
-          <li class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <p class="font-semibold text-slate-900">{{ event.action }}</p>
-              <span class="text-xs font-medium text-slate-500">{{ event.created_at|date:"Y-m-d H:i" }}</span>
-            </div>
-            <p class="mt-1 break-words text-slate-700">{{ event.target }}</p>
+          <li class="rounded-xl bg-slate-50 px-4 py-3">
+            <span class="font-semibold text-cyan-700">{{ event.action }}:</span>
+            {{ event.target }}
+            <span class="text-slate-500">({{ event.created_at|date:"Y-m-d H:i" }})</span>
           </li>
         {% empty %}
-          <li class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-600">{% trans "No audit events recorded yet." %}</li>
+          <li class="rounded-xl bg-slate-50 px-4 py-3 text-slate-600">{% trans "No audit events recorded yet." %}</li>
         {% endfor %}
       </ul>
     </article>
@@ -131,19 +57,29 @@
     <article class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
       <h3 class="text-xl font-bold text-slate-900">{% trans "Quick actions" %}</h3>
       <div class="mt-4 grid gap-3 sm:grid-cols-2">
-        {% if can_view_otservers %}
-          <a href="{% url 'accounts:otservers' %}" class="rounded-xl bg-slate-900 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-slate-800">{% trans "Open OTServers" %}</a>
-        {% endif %}
-        {% if can_view_characters %}
-          <a href="{% url 'accounts:characters' %}" class="rounded-xl bg-cyan-600 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-cyan-500">{% trans "Open characters" %}</a>
-        {% endif %}
-        {% if can_view_users %}
-          <a href="{% url 'accounts:users' %}" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{% trans "Open users" %}</a>
-        {% endif %}
-        {% if can_view_audit %}
-          <a href="{% url 'accounts:audit_logs' %}" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{% trans "Open audit logs" %}</a>
-        {% endif %}
+        <button type="button" class="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">{% trans "Restart test realm" %}</button>
+        <button type="button" class="rounded-xl bg-cyan-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-cyan-500">{% trans "Open maintenance" %}</button>
+        <button type="button" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{% trans "Review new accounts" %}</button>
+        <button type="button" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{% trans "Broadcast message" %}</button>
       </div>
     </article>
   </section>
+{% endblock %}
+
+{% block secondary_content %}
+  <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+    <h3 class="text-base font-bold text-slate-900">{% trans "Operator status" %}</h3>
+    <p class="mt-2 text-sm text-slate-600">
+      {% if dashboard_healthy %}
+        {% trans "All critical services are online and synchronized." %}
+      {% else %}
+        {% trans "Some services require attention. Review incidents and OT connectivity." %}
+      {% endif %}
+    </p>
+    <div class="mt-3 space-y-2 text-sm">
+      <div class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"><span>{% trans "Login API" %}</span><span class="font-semibold {% if operator_status.login_api == 'ok' %}text-emerald-600{% else %}text-amber-600{% endif %}">{% if operator_status.login_api == "ok" %}OK{% else %}DELAY{% endif %}</span></div>
+      <div class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"><span>{% trans "Game database" %}</span><span class="font-semibold {% if operator_status.game_database == 'ok' %}text-emerald-600{% else %}text-amber-600{% endif %}">{% if operator_status.game_database == "ok" %}OK{% else %}DELAY{% endif %}</span></div>
+      <div class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"><span>{% trans "Webhook queue" %}</span><span class="font-semibold {% if operator_status.webhook_queue == 'ok' %}text-emerald-600{% else %}text-amber-600{% endif %}">{% if operator_status.webhook_queue == "ok" %}OK{% else %}DELAY{% endif %}</span></div>
+    </div>
+  </article>
 {% endblock %}
