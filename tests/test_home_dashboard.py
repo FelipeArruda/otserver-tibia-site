@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
@@ -52,10 +54,23 @@ def test_home_dashboard_uses_project_data_metrics_and_recent_events() -> None:
 
     client = Client()
     assert client.login(username=user.email, password="StrongPass123!")
-    response = client.get(reverse("accounts:home"))
+    with patch("accounts.views.summarize_otserver_characters") as summary_mock:
+        summary_mock.return_value = {
+            "total_characters": 120,
+            "online_characters": 37,
+            "offline_characters": 80,
+            "unknown_status_characters": 3,
+            "active_sources": 2,
+            "healthy_sources": 2,
+            "errors": [],
+        }
+        response = client.get(reverse("accounts:home"))
     content = response.content.decode("utf-8")
 
     assert response.status_code == 200
+    assert "120" in content
+    assert "37" in content
+    assert "80" in content
     assert "1/2" in content
     assert "otserver.connection_test" in content
     assert "Realm Alpha" in content

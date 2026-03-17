@@ -15,40 +15,46 @@
 {% block primary_content %}
   <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
     <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{% trans "Registered users" %}</p>
-      <p class="mt-3 text-3xl font-extrabold text-slate-900">{{ home_metrics.total_users }}</p>
-      <p class="mt-2 text-sm text-slate-600">{% trans "Total accounts in the platform." %}</p>
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{% trans "Total characters" %}</p>
+      <p class="mt-3 text-3xl font-extrabold text-slate-900">{{ home_metrics.total_characters }}</p>
+      <p class="mt-2 text-sm text-slate-600">
+        {% blocktrans with count=home_metrics.healthy_character_sources total=home_metrics.active_character_sources %}Data from {{ count }}/{{ total }} active OT sources.{% endblocktrans %}
+      </p>
+    </article>
+    <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{% trans "Online characters" %}</p>
+      <p class="mt-3 text-3xl font-extrabold text-emerald-600">{{ home_metrics.online_characters }}</p>
+      <p class="mt-2 text-sm text-emerald-700">
+        {% if home_metrics.total_characters %}
+          {% widthratio home_metrics.online_characters home_metrics.total_characters 100 %}% {% trans "of tracked characters" %}
+        {% else %}
+          0% {% trans "of tracked characters" %}
+        {% endif %}
+      </p>
+    </article>
+    <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{% trans "Offline characters" %}</p>
+      <p class="mt-3 text-3xl font-extrabold text-slate-900">{{ home_metrics.offline_characters }}</p>
+      <p class="mt-2 text-sm text-slate-600">
+        {% if home_metrics.unknown_status_characters %}
+          {% blocktrans with unknown=home_metrics.unknown_status_characters %}{{ unknown }} with unknown status.{% endblocktrans %}
+        {% else %}
+          {% trans "All status values mapped correctly." %}
+        {% endif %}
+      </p>
     </article>
     <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
       <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{% trans "Active realms" %}</p>
       <p class="mt-3 text-3xl font-extrabold text-slate-900">{{ home_metrics.active_servers }}/{{ home_metrics.total_servers }}</p>
       <p class="mt-2 text-sm text-slate-600">{% trans "OTServers currently enabled." %}</p>
     </article>
-    <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{% trans "Audit events (24h)" %}</p>
-      <p class="mt-3 text-3xl font-extrabold text-slate-900">{{ home_metrics.audit_events_24h }}</p>
-      <p class="mt-2 text-sm {% if home_metrics.failed_ot_tests_24h %}text-amber-600{% else %}text-emerald-600{% endif %}">
-        {{ home_metrics.failed_ot_tests_24h }} {% trans "failed OT connection tests" %}
-      </p>
-    </article>
-    <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{% trans "Latest platform event" %}</p>
-      <p class="mt-3 text-xl font-extrabold text-slate-900">
-        {% if home_metrics.latest_event_at %}
-          {{ home_metrics.latest_event_at|date:"Y-m-d H:i" }}
-        {% else %}
-          -
-        {% endif %}
-      </p>
-      <p class="mt-2 truncate text-sm text-slate-600">
-        {% if home_metrics.latest_event_action %}
-          {{ home_metrics.latest_event_action }}
-        {% else %}
-          {% trans "No audit events recorded yet." %}
-        {% endif %}
-      </p>
-    </article>
   </section>
+
+  {% if home_metrics.characters_source_errors %}
+    <section class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+      {% blocktrans with errors=home_metrics.characters_source_errors %}{{ errors }} OT source(s) failed while loading character metrics.{% endblocktrans %}
+    </section>
+  {% endif %}
 
   <section class="grid gap-4 xl:grid-cols-2">
     <article class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">

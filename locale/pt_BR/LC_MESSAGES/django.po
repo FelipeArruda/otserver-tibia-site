@@ -986,3 +986,27 @@ msgstr "Abrir usuários"
 
 msgid "Open audit logs"
 msgstr "Abrir logs de auditoria"
+
+msgid "Total characters"
+msgstr "Personagens totais"
+
+msgid "Data from %(count)s/%(total)s active OT sources."
+msgstr "Dados de %(count)s/%(total)s fontes OT ativas."
+
+msgid "Online characters"
+msgstr "Personagens online"
+
+msgid "of tracked characters"
+msgstr "dos personagens monitorados"
+
+msgid "Offline characters"
+msgstr "Personagens offline"
+
+msgid "%(unknown)s with unknown status."
+msgstr "%(unknown)s com status desconhecido."
+
+msgid "All status values mapped correctly."
+msgstr "Todos os status foram mapeados corretamente."
+
+msgid "%(errors)s OT source(s) failed while loading character metrics."
+msgstr "%(errors)s fonte(s) OT falharam ao carregar as métricas de personagens."

@@ -216,6 +216,118 @@ def fetch_otserver_characters(
     return characters
 
 
+def fetch_otserver_character_summary(
+    *,
+    server: OTServer,
+    timeout_seconds: int = 5,
+) -> dict[str, int]:
+    try:
+        import pymysql
+        from pymysql.cursors import DictCursor
+    except Exception as exc:
+        raise RuntimeError(_("PyMySQL dependency is not installed.")) from exc
+
+    if server.database_engine not in {"mysql", "mariadb"}:
+        raise RuntimeError(_("Unsupported database engine."))
+
+    connect_kwargs: dict[str, Any] = {
+        "host": server.db_host,
+        "port": int(server.db_port),
+        "user": server.db_user,
+        "password": server.get_db_password(),
+        "database": server.db_name,
+        "charset": server.db_charset or "utf8mb4",
+        "connect_timeout": timeout_seconds,
+        "cursorclass": DictCursor,
+    }
+    if server.db_use_ssl:
+        connect_kwargs["ssl"] = {}
+
+    connection = pymysql.connect(**connect_kwargs)
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SHOW TABLES LIKE %s", ("players",))
+            if cursor.fetchone() is None:
+                raise RuntimeError(_("Players table not found."))
+
+            cursor.execute("SHOW COLUMNS FROM players")
+            available_columns = {
+                str(column.get("Field", "")).lower()
+                for column in cursor.fetchall()
+                if isinstance(column, dict)
+            }
+            if "name" not in available_columns:
+                raise RuntimeError(_("Column 'name' not found in players table."))
+
+            if "online" in available_columns:
+                cursor.execute(
+                    """
+                    SELECT
+                        COUNT(*) AS total_characters,
+                        SUM(CASE WHEN online = 1 THEN 1 ELSE 0 END) AS online_characters
+                    FROM players
+                    """
+                )
+                row = cursor.fetchone() or {}
+                total = _as_int_or_none(row.get("total_characters")) or 0
+                online = _as_int_or_none(row.get("online_characters")) or 0
+                offline = max(total - online, 0)
+                return {
+                    "total_characters": total,
+                    "online_characters": online,
+                    "offline_characters": offline,
+                    "unknown_status_characters": 0,
+                }
+
+            cursor.execute("SELECT COUNT(*) AS total_characters FROM players")
+            row = cursor.fetchone() or {}
+            total = _as_int_or_none(row.get("total_characters")) or 0
+            return {
+                "total_characters": total,
+                "online_characters": 0,
+                "offline_characters": 0,
+                "unknown_status_characters": total,
+            }
+    finally:
+        connection.close()
+
+
+def summarize_otserver_characters(
+    *, servers: list[OTServer], timeout_seconds: int = 5
+) -> dict[str, Any]:
+    active_servers = [server for server in servers if server.is_active]
+    summary = {
+        "total_characters": 0,
+        "online_characters": 0,
+        "offline_characters": 0,
+        "unknown_status_characters": 0,
+        "active_sources": len(active_servers),
+        "healthy_sources": 0,
+        "errors": [],
+    }
+
+    for server in active_servers:
+        try:
+            server_summary = fetch_otserver_character_summary(
+                server=server, timeout_seconds=timeout_seconds
+            )
+        except Exception as exc:
+            summary["errors"].append(
+                {"otserver_name": server.name, "message": str(exc)}
+            )
+            continue
+
+        summary["healthy_sources"] += 1
+        summary["total_characters"] += server_summary["total_characters"]
+        summary["online_characters"] += server_summary["online_characters"]
+        summary["offline_characters"] += server_summary["offline_characters"]
+        summary["unknown_status_characters"] += server_summary[
+            "unknown_status_characters"
+        ]
+
+    return summary
+
+
 def list_otserver_characters(
     *,
     servers: list[OTServer],

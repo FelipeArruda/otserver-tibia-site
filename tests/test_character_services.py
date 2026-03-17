@@ -1,6 +1,12 @@
 from datetime import UTC, datetime
+from types import SimpleNamespace
 
-from accounts.services import filter_otserver_characters, sort_otserver_characters
+from accounts import services
+from accounts.services import (
+    filter_otserver_characters,
+    sort_otserver_characters,
+    summarize_otserver_characters,
+)
 
 
 def test_filter_otserver_characters_filters_by_status_vocation_and_level() -> None:
@@ -64,3 +70,35 @@ def test_sort_otserver_characters_supports_level_and_updated_sorting() -> None:
 
     by_updated = sort_otserver_characters(characters, order="updated_desc")
     assert [row["name"] for row in by_updated] == ["KnightB", "KnightA", "KnightC"]
+
+
+def test_summarize_otserver_characters_aggregates_and_handles_errors(
+    monkeypatch,
+) -> None:
+    servers = [
+        SimpleNamespace(name="Alpha", is_active=True),
+        SimpleNamespace(name="Beta", is_active=True),
+        SimpleNamespace(name="Gamma", is_active=False),
+    ]
+
+    def fake_summary(*, server, timeout_seconds=5):
+        if server.name == "Beta":
+            raise RuntimeError("unreachable")
+        return {
+            "total_characters": 10,
+            "online_characters": 4,
+            "offline_characters": 5,
+            "unknown_status_characters": 1,
+        }
+
+    monkeypatch.setattr(services, "fetch_otserver_character_summary", fake_summary)
+
+    result = summarize_otserver_characters(servers=servers)
+
+    assert result["active_sources"] == 2
+    assert result["healthy_sources"] == 1
+    assert result["total_characters"] == 10
+    assert result["online_characters"] == 4
+    assert result["offline_characters"] == 5
+    assert result["unknown_status_characters"] == 1
+    assert result["errors"] == [{"otserver_name": "Beta", "message": "unreachable"}]

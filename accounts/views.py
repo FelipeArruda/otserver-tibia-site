@@ -39,6 +39,7 @@ from accounts.services import (
     check_otserver_connections,
     list_otserver_characters,
     log_audit_event,
+    summarize_otserver_characters,
 )
 
 
@@ -168,6 +169,9 @@ class AccountHomeView(DashboardNavigationMixin, LoginRequiredMixin, TemplateView
         total_users = User.objects.count()
         total_servers = OTServer.objects.count()
         active_servers = OTServer.objects.filter(is_active=True).count()
+        character_summary = summarize_otserver_characters(
+            servers=list(OTServer.objects.all())
+        )
         audit_events_24h = AuditLog.objects.filter(created_at__gte=last_24h).count()
         latest_audit_event = AuditLog.objects.select_related("actor").first()
         recent_audit_logs = list(
@@ -193,6 +197,13 @@ class AccountHomeView(DashboardNavigationMixin, LoginRequiredMixin, TemplateView
             "total_users": total_users,
             "active_servers": active_servers,
             "total_servers": total_servers,
+            "total_characters": character_summary["total_characters"],
+            "online_characters": character_summary["online_characters"],
+            "offline_characters": character_summary["offline_characters"],
+            "unknown_status_characters": character_summary["unknown_status_characters"],
+            "characters_source_errors": len(character_summary["errors"]),
+            "healthy_character_sources": character_summary["healthy_sources"],
+            "active_character_sources": character_summary["active_sources"],
             "audit_events_24h": audit_events_24h,
             "latest_event_at": latest_audit_event.created_at
             if latest_audit_event
@@ -204,7 +215,11 @@ class AccountHomeView(DashboardNavigationMixin, LoginRequiredMixin, TemplateView
             "database_ok": database_ok,
         }
         context["recent_audit_logs"] = recent_audit_logs
-        context["dashboard_healthy"] = database_ok and failed_ot_tests_24h == 0
+        context["dashboard_healthy"] = (
+            database_ok
+            and failed_ot_tests_24h == 0
+            and character_summary["errors"] == []
+        )
         context["can_view_users"] = self.request.user.has_perm("accounts.view_user")
         context["can_view_otservers"] = self.request.user.has_perm(
             "accounts.view_otserver"
