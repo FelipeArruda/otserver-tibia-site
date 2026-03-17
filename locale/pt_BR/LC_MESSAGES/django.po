@@ -611,6 +611,27 @@ msgstr "Remover papel"
 msgid "Role name"
 msgstr "Nome do papel"
 
+msgid "Permissions"
+msgstr "Permissões"
+
+msgid "Save role changes"
+msgstr "Salvar alterações do papel"
+
+msgid "Accounts"
+msgstr "Contas"
+
+msgid "Administration"
+msgstr "Administração"
+
+msgid "Authentication"
+msgstr "Autenticação"
+
+msgid "Content types"
+msgstr "Tipos de conteúdo"
+
+msgid "Sessions"
+msgstr "Sessões"
+
 msgid "A role with this name already exists."
 msgstr "Já existe um papel com este nome."
 
