@@ -28,11 +28,12 @@ from accounts.forms import (
     AdminUserUpdateForm,
     EmailAuthenticationForm,
     ForgotPasswordForm,
+    OTServerForm,
     PlatformSettingForm,
     RoleManagementForm,
     SignUpForm,
 )
-from accounts.models import AuditLog, PlatformSetting, User
+from accounts.models import AuditLog, OTServer, PlatformSetting, User
 from accounts.services import log_audit_event
 
 
@@ -85,6 +86,13 @@ class DashboardNavigationMixin:
             "href": reverse_lazy("accounts:platform_settings"),
             "icon": "settings",
             "required_perms": ["accounts.change_platformsetting"],
+        },
+        {
+            "key": "otservers",
+            "label": _("OTServers"),
+            "href": reverse_lazy("accounts:otservers"),
+            "icon": "database",
+            "required_perms": ["accounts.view_otserver"],
         },
     ]
     active_menu_key = "overview"
@@ -677,6 +685,162 @@ class PlatformSettingsView(
         )
         messages.success(self.request, _("Platform settings updated successfully."))
         return response
+
+
+class OTServerListView(
+    DashboardNavigationMixin,
+    PaginationMixin,
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    TemplateView,
+):
+    template_name = "accounts/otservers.html"
+    permission_required = "accounts.view_otserver"
+    raise_exception = True
+    active_menu_key = "otservers"
+    page_size = 10
+
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context = super().get_context_data(**kwargs)
+        servers = OTServer.objects.order_by("name")
+        search = self.request.GET.get("q", "").strip()
+        environment = self.request.GET.get("environment", "").strip()
+        database_engine = self.request.GET.get("database_engine", "").strip()
+        status = self.request.GET.get("status", "").strip()
+
+        if search:
+            servers = servers.filter(name__icontains=search)
+        if environment:
+            servers = servers.filter(environment=environment)
+        if database_engine:
+            servers = servers.filter(database_engine=database_engine)
+        if status == "active":
+            servers = servers.filter(is_active=True)
+        elif status == "inactive":
+            servers = servers.filter(is_active=False)
+
+        context.update(self.paginate_queryset(servers, context_name="servers"))
+        context["filters"] = {
+            "q": search,
+            "environment": environment,
+            "database_engine": database_engine,
+            "status": status,
+        }
+        context["environment_choices"] = OTServer.Environment.choices
+        context["database_engine_choices"] = OTServer.DatabaseEngine.choices
+        context["can_create_otserver"] = self.request.user.has_perm(
+            "accounts.add_otserver"
+        )
+        context["can_edit_otserver"] = self.request.user.has_perm(
+            "accounts.change_otserver"
+        )
+        context["can_delete_otserver"] = self.request.user.has_perm(
+            "accounts.delete_otserver"
+        )
+        context["total_servers"] = OTServer.objects.count()
+        context["filtered_servers"] = context["paginator"].count
+        context["show_secondary_content"] = False
+        return context
+
+
+class OTServerCreateView(
+    DashboardNavigationMixin, LoginRequiredMixin, PermissionRequiredMixin, CreateView
+):
+    template_name = "accounts/otserver_form.html"
+    form_class = OTServerForm
+    permission_required = ("accounts.view_otserver", "accounts.add_otserver")
+    raise_exception = True
+    success_url = reverse_lazy("accounts:otservers")
+    active_menu_key = "otservers"
+
+    def form_valid(self, form: OTServerForm) -> HttpResponse:
+        response = super().form_valid(form)
+        log_audit_event(
+            request=self.request,
+            action="otserver.create",
+            target=form.instance.name,
+            details={
+                "environment": form.instance.environment,
+                "database_engine": form.instance.database_engine,
+                "db_host": form.instance.db_host,
+                "is_active": form.instance.is_active,
+            },
+        )
+        messages.success(self.request, _("OTServer created successfully."))
+        return response
+
+
+class OTServerDetailView(
+    DashboardNavigationMixin, LoginRequiredMixin, PermissionRequiredMixin, TemplateView
+):
+    template_name = "accounts/otserver_detail.html"
+    permission_required = "accounts.view_otserver"
+    raise_exception = True
+    active_menu_key = "otservers"
+
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context = super().get_context_data(**kwargs)
+        server = get_object_or_404(OTServer, pk=kwargs["pk"])
+        context["server"] = server
+        context["masked_db_password"] = "********"
+        context["masked_api_token"] = "********" if server.api_token else ""
+        context["can_edit_otserver"] = self.request.user.has_perm(
+            "accounts.change_otserver"
+        )
+        context["can_delete_otserver"] = self.request.user.has_perm(
+            "accounts.delete_otserver"
+        )
+        context["show_secondary_content"] = False
+        return context
+
+
+class OTServerUpdateView(
+    DashboardNavigationMixin, LoginRequiredMixin, PermissionRequiredMixin, UpdateView
+):
+    template_name = "accounts/otserver_form.html"
+    form_class = OTServerForm
+    model = OTServer
+    pk_url_kwarg = "pk"
+    permission_required = ("accounts.view_otserver", "accounts.change_otserver")
+    raise_exception = True
+    success_url = reverse_lazy("accounts:otservers")
+    active_menu_key = "otservers"
+
+    def form_valid(self, form: OTServerForm) -> HttpResponse:
+        response = super().form_valid(form)
+        log_audit_event(
+            request=self.request,
+            action="otserver.update",
+            target=form.instance.name,
+            details={
+                "environment": form.instance.environment,
+                "database_engine": form.instance.database_engine,
+                "db_host": form.instance.db_host,
+                "is_active": form.instance.is_active,
+            },
+        )
+        messages.success(self.request, _("OTServer updated successfully."))
+        return response
+
+
+class OTServerDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = ("accounts.view_otserver", "accounts.delete_otserver")
+    raise_exception = True
+
+    def post(
+        self, request: HttpRequest, *args: object, **kwargs: object
+    ) -> HttpResponse:
+        server = get_object_or_404(OTServer, pk=kwargs["pk"])
+        server_name = server.name
+        server.delete()
+        log_audit_event(
+            request=request,
+            action="otserver.delete",
+            target=server_name,
+            details={},
+        )
+        messages.success(request, _("OTServer removed successfully."))
+        return redirect("accounts:otservers")
 
 
 class AuditLogListView(
