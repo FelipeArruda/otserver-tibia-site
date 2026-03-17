@@ -1,0 +1,29 @@
+{% load i18n %}
+{% if is_paginated %}
+  <nav class="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2">
+    <p class="text-xs text-slate-500">
+      {% blocktrans with current=page_obj.number total=page_obj.paginator.num_pages %}Page {{ current }} of {{ total }}{% endblocktrans %}
+    </p>
+    <div class="flex flex-wrap items-center gap-1 text-sm">
+      {% if page_obj.has_previous %}
+        <a href="?page=1{% if pagination_query %}&{{ pagination_query }}{% endif %}" class="rounded-lg border border-slate-200 px-2.5 py-1 text-slate-700 hover:bg-slate-50">{% trans "First" %}</a>
+        <a href="?page={{ page_obj.previous_page_number }}{% if pagination_query %}&{{ pagination_query }}{% endif %}" class="rounded-lg border border-slate-200 px-2.5 py-1 text-slate-700 hover:bg-slate-50">{% trans "Previous" %}</a>
+      {% endif %}
+
+      {% for num in page_obj.paginator.page_range %}
+        {% if num >= page_obj.number|add:"-2" and num <= page_obj.number|add:"2" %}
+          {% if num == page_obj.number %}
+            <span class="rounded-lg bg-cyan-600 px-3 py-1 font-semibold text-white">{{ num }}</span>
+          {% else %}
+            <a href="?page={{ num }}{% if pagination_query %}&{{ pagination_query }}{% endif %}" class="rounded-lg border border-slate-200 px-3 py-1 text-slate-700 hover:bg-slate-50">{{ num }}</a>
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if pagination_query %}&{{ pagination_query }}{% endif %}" class="rounded-lg border border-slate-200 px-2.5 py-1 text-slate-700 hover:bg-slate-50">{% trans "Next" %}</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}{% if pagination_query %}&{{ pagination_query }}{% endif %}" class="rounded-lg border border-slate-200 px-2.5 py-1 text-slate-700 hover:bg-slate-50">{% trans "Last" %}</a>
+      {% endif %}
+    </div>
+  </nav>
+{% endif %}

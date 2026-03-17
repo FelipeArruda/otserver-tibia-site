@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from zoneinfo import ZoneInfoNotFoundError
+
 from django.conf import settings
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.db.utils import OperationalError, ProgrammingError
@@ -73,5 +75,11 @@ class PlatformDefaultsMiddleware:
     def _apply_timezone_from_platform() -> None:
         try:
             timezone.activate(PlatformSetting.get_solo().default_timezone)
-        except (OperationalError, ProgrammingError, RuntimeError):
+        except (
+            OperationalError,
+            ProgrammingError,
+            RuntimeError,
+            ValueError,
+            ZoneInfoNotFoundError,
+        ):
             timezone.activate(settings.TIME_ZONE)

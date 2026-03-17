@@ -1,0 +1,55 @@
+{% extends "accounts/dashboard_base.html" %}
+{% load i18n %}
+
+{% block page_title %}{{ role.name }}{% endblock %}
+{% block page_kicker %}RBAC{% endblock %}
+{% block page_heading %}{{ role.name }}{% endblock %}
+{% block page_description %}{% trans "Role details, permissions and assigned members." %}{% endblock %}
+
+{% block page_actions %}
+  <a href="{% url 'accounts:roles' %}" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">{% trans "Back to roles" %}</a>
+  {% if can_manage_roles %}
+    <a href="{% url 'accounts:role_update' role.pk %}" class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">{% trans "Edit role" %}</a>
+  {% endif %}
+{% endblock %}
+
+{% block primary_content %}
+  <section class="grid gap-4 lg:grid-cols-2">
+    <article class="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <h2 class="text-base font-bold text-slate-900">{% trans "Permissions" %}</h2>
+      <p class="mt-1 text-sm text-slate-500">{{ role.permissions.count }} {% trans "total" %}</p>
+      <ul class="mt-4 space-y-2 text-sm text-slate-700">
+        {% for permission_label in role_permissions_display %}
+          <li class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 break-words">{{ permission_label }}</li>
+        {% empty %}
+          <li class="text-slate-500">{% trans "No permissions assigned yet." %}</li>
+        {% endfor %}
+      </ul>
+    </article>
+
+    <article class="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <h2 class="text-base font-bold text-slate-900">{% trans "Members" %}</h2>
+      <p class="mt-1 text-sm text-slate-500">{{ role.user_set.count }} {% trans "assigned users" %}</p>
+      <ul class="mt-4 space-y-2 text-sm text-slate-700">
+        {% for member in role.user_set.all %}
+          <li class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 break-all">{{ member.email }}</li>
+        {% empty %}
+          <li class="text-slate-500">{% trans "No users assigned yet." %}</li>
+        {% endfor %}
+      </ul>
+    </article>
+  </section>
+{% endblock %}
+
+{% block secondary_content %}
+  {% if can_delete_roles %}
+    <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <h2 class="text-base font-bold text-slate-900">{% trans "Danger zone" %}</h2>
+      <p class="mt-2 text-sm text-slate-600">{% trans "Remove this role if it is no longer needed." %}</p>
+      <form method="post" action="{% url 'accounts:role_delete' role.pk %}" class="mt-4" onsubmit="return confirm('{% trans "Remove this role?" %}')">
+        {% csrf_token %}
+        <button type="submit" class="rounded-xl border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50">{% trans "Remove role" %}</button>
+      </form>
+    </article>
+  {% endif %}
+{% endblock %}

@@ -4,45 +4,110 @@
 {% block page_title %}{% trans "Roles & Groups" %}{% endblock %}
 {% block page_kicker %}RBAC{% endblock %}
 {% block page_heading %}{% trans "Roles & Groups" %}{% endblock %}
-{% block page_description %}{% trans "Manage platform roles and permission bundles." %}{% endblock %}
+{% block page_description %}{% trans "Manage role catalog with dedicated create, view, edit and remove flows." %}{% endblock %}
 
 {% block page_actions %}
-  <a href="{% url 'accounts:users' %}" class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">{% trans "User Management" %}</a>
+  {% if can_create_roles %}
+    <a href="{% url 'accounts:role_create' %}" class="rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500">{% trans "Add role" %}</a>
+  {% endif %}
 {% endblock %}
 
 {% block primary_content %}
-  <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-    {% for role in roles %}
-      <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-        <div class="flex items-start justify-between gap-2">
-          <h2 class="text-lg font-bold text-slate-900">{{ role.name }}</h2>
-          <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{{ role.permissions.count }}</span>
-        </div>
-        <p class="mt-1 text-sm text-slate-500">{% trans "permissions" %}</p>
-        <ul class="mt-3 space-y-1 text-sm text-slate-600">
-          {% for perm in role.permissions.all|slice:":6" %}
-            <li>- {{ perm.name }}</li>
-          {% empty %}
-            <li class="text-slate-400">{% trans "No permissions assigned yet." %}</li>
-          {% endfor %}
-          {% if role.permissions.count > 6 %}
-            <li class="pt-1 text-xs font-semibold uppercase tracking-wide text-cyan-700">+{{ role.permissions.count|add:"-6" }} {% trans "more" %}</li>
-          {% endif %}
-        </ul>
-      </article>
-    {% empty %}
-      <article class="col-span-full rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-200">
-        <p class="text-slate-500">{% trans "No roles created yet." %}</p>
-      </article>
-    {% endfor %}
+  <section class="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+    <form method="get" class="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)_minmax(0,.9fr)_auto_auto]">
+      <div>
+        <label for="role-filter-q" class="text-xs font-semibold uppercase tracking-[0.13em] text-slate-500">{% trans "Search role" %}</label>
+        <input
+          id="role-filter-q"
+          type="text"
+          name="q"
+          value="{{ role_filters.q }}"
+          placeholder="{% trans 'Type role name' %}"
+          class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100"
+        >
+      </div>
+      <div>
+        <label for="role-filter-members" class="text-xs font-semibold uppercase tracking-[0.13em] text-slate-500">{% trans "Members" %}</label>
+        <select id="role-filter-members" name="members" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100">
+          <option value="">{% trans "All" %}</option>
+          <option value="with" {% if role_filters.members == "with" %}selected{% endif %}>{% trans "With members" %}</option>
+          <option value="without" {% if role_filters.members == "without" %}selected{% endif %}>{% trans "Without members" %}</option>
+        </select>
+      </div>
+      <div>
+        <label for="role-filter-order" class="text-xs font-semibold uppercase tracking-[0.13em] text-slate-500">{% trans "Sort by" %}</label>
+        <select id="role-filter-order" name="order" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100">
+          <option value="name" {% if role_filters.order == "name" %}selected{% endif %}>{% trans "Name (A-Z)" %}</option>
+          <option value="name_desc" {% if role_filters.order == "name_desc" %}selected{% endif %}>{% trans "Name (Z-A)" %}</option>
+          <option value="permissions_desc" {% if role_filters.order == "permissions_desc" %}selected{% endif %}>{% trans "Most permissions" %}</option>
+          <option value="members_desc" {% if role_filters.order == "members_desc" %}selected{% endif %}>{% trans "Most members" %}</option>
+        </select>
+      </div>
+      <button type="submit" class="h-[42px] rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800">{% trans "Apply" %}</button>
+      <a href="{% url 'accounts:roles' %}" class="inline-flex h-[42px] items-center justify-center rounded-xl border border-slate-200 px-4 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50">{% trans "Clear" %}</a>
+    </form>
+    {% if active_filter_count %}
+      <p class="mt-2 text-xs font-semibold uppercase tracking-[0.13em] text-cyan-700">{{ active_filter_count }} {% trans "active filters" %}</p>
+    {% endif %}
   </section>
+
+  <section class="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-left text-sm">
+        <thead class="text-xs uppercase tracking-[0.13em] text-slate-500">
+          <tr>
+            <th class="px-3 py-3">{% trans "Role" %}</th>
+            <th class="px-3 py-3">{% trans "Permissions" %}</th>
+            <th class="px-3 py-3">{% trans "Members" %}</th>
+            <th class="px-3 py-3 text-right">{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 text-slate-700">
+          {% for role in roles %}
+            <tr>
+              <td class="px-3 py-3">
+                <p class="font-semibold text-slate-900">{{ role.name }}</p>
+              </td>
+              <td class="px-3 py-3">{{ role.permissions_count|default:role.permissions.count }}</td>
+              <td class="px-3 py-3">{{ role.members_count|default:role.user_set.count }}</td>
+              <td class="px-3 py-3">
+                <div class="flex flex-wrap justify-end gap-2">
+                  <a href="{% url 'accounts:role_detail' role.pk %}" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-cyan-300 hover:text-cyan-700">{% trans "View" %}</a>
+                  {% if can_manage_roles %}
+                    <a href="{% url 'accounts:role_update' role.pk %}" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-cyan-300 hover:text-cyan-700">{% trans "Edit" %}</a>
+                  {% endif %}
+                  {% if can_delete_roles %}
+                    <form method="post" action="{% url 'accounts:role_delete' role.pk %}" onsubmit="return confirm('{% trans "Remove this role?" %}')">
+                      {% csrf_token %}
+                      <button type="submit" class="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50">{% trans "Remove" %}</button>
+                    </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4" class="px-3 py-8 text-center text-slate-500">
+                {% if active_filter_count and total_roles %}
+                  {% trans "No roles match the selected filters." %}
+                {% else %}
+                  {% trans "No roles created yet." %}
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% include "accounts/_pagination.html" %}
 {% endblock %}
 
 {% block secondary_content %}
   <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
     <h2 class="text-base font-bold text-slate-900">{% trans "RBAC Summary" %}</h2>
     <p class="mt-2 text-sm text-slate-600">{% trans "Use groups to grant consistent permission bundles for your operation team." %}</p>
-    <p class="mt-3 text-2xl font-bold text-slate-900">{{ roles|length }}</p>
+    <p class="mt-3 text-2xl font-bold text-slate-900">{{ filtered_roles_count }}</p>
     <p class="text-xs uppercase tracking-[0.15em] text-slate-500">{% trans "Active role groups" %}</p>
   </article>
 {% endblock %}

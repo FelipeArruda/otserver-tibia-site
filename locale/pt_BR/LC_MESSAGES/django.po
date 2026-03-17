@@ -490,3 +490,165 @@ msgstr "Nenhum registro de auditoria encontrado."
 
 msgid "Settings"
 msgstr "Configurações"
+
+msgid "Platform settings updated successfully."
+msgstr "Configurações da plataforma atualizadas com sucesso."
+
+msgid "Role created successfully."
+msgstr "Papel criado com sucesso."
+
+msgid "Role updated successfully."
+msgstr "Papel atualizado com sucesso."
+
+msgid "Role removed successfully."
+msgstr "Papel removido com sucesso."
+
+msgid "Total users"
+msgstr "Total de usuários"
+
+msgid "Available roles"
+msgstr "Papéis disponíveis"
+
+msgid "Active filters"
+msgstr "Filtros ativos"
+
+msgid "Manage role catalog with dedicated create, view, edit and remove flows."
+msgstr "Gerencie o catálogo de papéis com fluxos dedicados para criar, visualizar, editar e remover."
+
+msgid "Add role"
+msgstr "Adicionar papel"
+
+msgid "Search role"
+msgstr "Buscar papel"
+
+msgid "Type role name"
+msgstr "Digite o nome do papel"
+
+msgid "Members"
+msgstr "Membros"
+
+msgid "All"
+msgstr "Todos"
+
+msgid "With members"
+msgstr "Com membros"
+
+msgid "Without members"
+msgstr "Sem membros"
+
+msgid "Sort by"
+msgstr "Ordenar por"
+
+msgid "Name (A-Z)"
+msgstr "Nome (A-Z)"
+
+msgid "Name (Z-A)"
+msgstr "Nome (Z-A)"
+
+msgid "Most permissions"
+msgstr "Mais permissões"
+
+msgid "Most members"
+msgstr "Mais membros"
+
+msgid "Apply"
+msgstr "Aplicar"
+
+msgid "Clear"
+msgstr "Limpar"
+
+msgid "active filters"
+msgstr "filtros ativos"
+
+msgid "Role"
+msgstr "Papel"
+
+msgid "View"
+msgstr "Visualizar"
+
+msgid "Remove this role?"
+msgstr "Remover este papel?"
+
+msgid "Remove"
+msgstr "Remover"
+
+msgid "No roles match the selected filters."
+msgstr "Nenhum papel corresponde aos filtros selecionados."
+
+msgid "Create role"
+msgstr "Criar papel"
+
+msgid "Define permissions and user assignment for this role."
+msgstr "Defina permissões e atribuição de usuários para este papel."
+
+msgid "Back to roles"
+msgstr "Voltar para papéis"
+
+msgid "Edit role"
+msgstr "Editar papel"
+
+msgid "Role details, permissions and assigned members."
+msgstr "Detalhes do papel, permissões e membros atribuídos."
+
+msgid "total"
+msgstr "total"
+
+msgid "assigned users"
+msgstr "usuários atribuídos"
+
+msgid "No users assigned yet."
+msgstr "Nenhum usuário atribuído ainda."
+
+msgid "Danger zone"
+msgstr "Zona de perigo"
+
+msgid "Remove this role if it is no longer needed."
+msgstr "Remova este papel se ele não for mais necessário."
+
+msgid "Remove role"
+msgstr "Remover papel"
+
+msgid "Role name"
+msgstr "Nome do papel"
+
+msgid "A role with this name already exists."
+msgstr "Já existe um papel com este nome."
+
+msgid "Can add %(model)s"
+msgstr "Pode adicionar %(model)s"
+
+msgid "Can change %(model)s"
+msgstr "Pode alterar %(model)s"
+
+msgid "Can delete %(model)s"
+msgstr "Pode excluir %(model)s"
+
+msgid "Can view %(model)s"
+msgstr "Pode visualizar %(model)s"
+
+msgid "Select a valid timezone."
+msgstr "Selecione um fuso horário válido."
+
+msgid "First"
+msgstr "Primeira"
+
+msgid "Previous"
+msgstr "Anterior"
+
+msgid "Next"
+msgstr "Próxima"
+
+msgid "Last"
+msgstr "Última"
+
+msgid "Page %(current)s of %(total)s"
+msgstr "Página %(current)s de %(total)s"
+
+msgid "Start date"
+msgstr "Data inicial"
+
+msgid "End date"
+msgstr "Data final"
+
+msgid "Start date cannot be after end date."
+msgstr "A data inicial não pode ser maior que a data final."

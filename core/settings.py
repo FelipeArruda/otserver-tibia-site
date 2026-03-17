@@ -11,10 +11,14 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+import warnings
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+DEFAULT_SECRET_KEY = (
+    "django-insecure-1rs^!@!o&6u5!(=^apuv#l^iv6oz=enmtl3s1%o9=r+oexg(d1"
+)
 
 
 def _load_local_env() -> None:
@@ -24,43 +28,30 @@ def _load_local_env() -> None:
 
     for raw_line in env_path.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
+        if not line or line.startswith("#"):
             continue
 
+        if line.startswith("export "):
+            line = line.removeprefix("export ").strip()
+        if "=" not in line:
+            continue
         key, value = line.split("=", 1)
         key = key.strip()
         value = value.strip().strip('"').strip("'")
         os.environ.setdefault(key, value)
 
 
-def _get_bool(name: str, default: bool) -> bool:
+def _env_bool(name: str, default: bool) -> bool:
     value = os.getenv(name)
     if value is None:
         return default
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
-def _get_allowed_hosts() -> list[str]:
-    hosts_raw = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
-    return [host.strip() for host in hosts_raw.split(",") if host.strip()]
-
-
-def _get_csrf_trusted_origins(allowed_hosts: list[str]) -> list[str]:
-    trusted_origins_raw = os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "")
-    explicit_origins = [
-        origin.strip() for origin in trusted_origins_raw.split(",") if origin.strip()
+def _env_csv(name: str, default: str) -> list[str]:
+    return [
+        item.strip() for item in os.getenv(name, default).split(",") if item.strip()
     ]
-    if explicit_origins:
-        return explicit_origins
-
-    # Fallback: build trusted origins from allowed hosts.
-    origins: list[str] = []
-    for host in allowed_hosts:
-        if host in {"localhost", "127.0.0.1"}:
-            origins.append(f"http://{host}")
-            continue
-        origins.append(f"https://{host}")
-    return origins
 
 
 _load_local_env()
@@ -69,17 +60,37 @@ _load_local_env()
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv(
-    "DJANGO_SECRET_KEY",
-    "django-insecure-1rs^!@!o&6u5!(=^apuv#l^iv6oz=enmtl3s1%o9=r+oexg(d1",
-)
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", DEFAULT_SECRET_KEY)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = _get_bool("DJANGO_DEBUG", True)
+DEBUG = _env_bool("DJANGO_DEBUG", True)
 
+if not DEBUG and SECRET_KEY == DEFAULT_SECRET_KEY:
+    warnings.warn(
+        "DJANGO_SECRET_KEY is using the default development value with DEBUG=False. "
+        "Set DJANGO_SECRET_KEY in environment for production.",
+        stacklevel=1,
+    )
 
-ALLOWED_HOSTS = _get_allowed_hosts()
-CSRF_TRUSTED_ORIGINS = _get_csrf_trusted_origins(ALLOWED_HOSTS)
+ALLOWED_HOSTS = _env_csv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
+explicit_csrf_trusted_origins = _env_csv("DJANGO_CSRF_TRUSTED_ORIGINS", "")
+if explicit_csrf_trusted_origins:
+    CSRF_TRUSTED_ORIGINS = explicit_csrf_trusted_origins
+else:
+    csrf_trusted_origins: list[str] = []
+    for host in ALLOWED_HOSTS:
+        if host in {"*", ""} or host.startswith("."):
+            warnings.warn(
+                f"Skipping invalid host '{host}' while deriving CSRF_TRUSTED_ORIGINS.",
+                stacklevel=1,
+            )
+            continue
+        if "://" in host:
+            csrf_trusted_origins.append(host.rstrip("/"))
+            continue
+        scheme = "http" if host in {"localhost", "127.0.0.1"} else "https"
+        csrf_trusted_origins.append(f"{scheme}://{host}")
+    CSRF_TRUSTED_ORIGINS = csrf_trusted_origins
 
 
 # Application definition
@@ -129,11 +140,13 @@ WSGI_APPLICATION = "core.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+DB_ENGINE = os.getenv("DJANGO_DB_ENGINE", "django.db.backends.sqlite3")
+DB_NAME_DEFAULT = str(BASE_DIR / "db.sqlite3") if DB_ENGINE.endswith("sqlite3") else ""
 
 DATABASES = {
     "default": {
-        "ENGINE": os.getenv("DJANGO_DB_ENGINE", "django.db.backends.sqlite3"),
-        "NAME": os.getenv("DJANGO_DB_NAME", str(BASE_DIR / "db.sqlite3")),
+        "ENGINE": DB_ENGINE,
+        "NAME": os.getenv("DJANGO_DB_NAME", DB_NAME_DEFAULT),
         "USER": os.getenv("DJANGO_DB_USER", ""),
         "PASSWORD": os.getenv("DJANGO_DB_PASSWORD", ""),
         "HOST": os.getenv("DJANGO_DB_HOST", ""),

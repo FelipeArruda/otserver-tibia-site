@@ -1,0 +1,89 @@
+{% extends "accounts/dashboard_base.html" %}
+{% load i18n %}
+
+{% block page_title %}{% if is_create %}{% trans "Create role" %}{% else %}{% trans "Edit role" %}{% endif %}{% endblock %}
+{% block page_kicker %}RBAC{% endblock %}
+{% block page_heading %}{% if is_create %}{% trans "Create role" %}{% else %}{% trans "Edit role" %}{% endif %}{% endblock %}
+{% block page_description %}{% trans "Define permissions and user assignment for this role." %}{% endblock %}
+
+{% block page_actions %}
+  <a href="{% url 'accounts:roles' %}" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">{% trans "Back to roles" %}</a>
+{% endblock %}
+
+{% block primary_content %}
+  <section class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+    <form method="post" class="space-y-5">
+      {% csrf_token %}
+
+      <div>
+        <label for="{{ form.name.id_for_label }}" class="text-sm font-semibold text-slate-700">{{ form.name.label }}</label>
+        {{ form.name }}
+        {% if form.name.errors %}<p class="mt-2 text-xs font-semibold text-rose-600">{{ form.name.errors|striptags }}</p>{% endif %}
+      </div>
+
+      <div>
+        <p class="text-sm font-semibold text-slate-700">{{ form.permissions.label }}</p>
+        <div class="mt-2 max-h-72 space-y-3 overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+          {% with selected_permissions=form.permissions.value %}
+            {% for permission_group in permission_groups %}
+              <fieldset class="rounded-xl border border-slate-200 bg-white p-3">
+                <legend class="px-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ permission_group.label }}</legend>
+                <div class="mt-2 grid gap-2 sm:grid-cols-2">
+                  {% for permission in permission_group.items %}
+                    <label class="inline-flex min-w-0 items-start gap-2 text-sm text-slate-700">
+                      <input
+                        type="checkbox"
+                        name="{{ form.permissions.html_name }}"
+                        value="{{ permission.pk }}"
+                        class="mt-0.5 h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                        {% if selected_permissions and permission.pk in selected_permissions or selected_permissions and permission.pk|stringformat:"s" in selected_permissions %}checked{% endif %}
+                      >
+                      <span class="min-w-0 break-words">{{ permission.label }}</span>
+                    </label>
+                  {% endfor %}
+                </div>
+              </fieldset>
+            {% endfor %}
+          {% endwith %}
+        </div>
+        {% if form.permissions.errors %}<p class="mt-2 text-xs font-semibold text-rose-600">{{ form.permissions.errors|striptags }}</p>{% endif %}
+      </div>
+
+      {% if form.members %}
+        <div>
+          <p class="text-sm font-semibold text-slate-700">{{ form.members.label }}</p>
+          <div class="mt-2 max-h-56 overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+            <div class="grid gap-2 sm:grid-cols-2">
+              {% with selected_members=form.members.value %}
+                {% for member in form.fields.members.queryset %}
+                  <label class="inline-flex min-w-0 items-start gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      name="{{ form.members.html_name }}"
+                      value="{{ member.pk }}"
+                      class="mt-0.5 h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                      {% if selected_members and member.pk in selected_members or selected_members and member.pk|stringformat:"s" in selected_members %}checked{% endif %}
+                    >
+                    <span class="min-w-0 break-all">{{ member.email }}</span>
+                  </label>
+                {% endfor %}
+              {% endwith %}
+            </div>
+          </div>
+          {% if form.members.errors %}<p class="mt-2 text-xs font-semibold text-rose-600">{{ form.members.errors|striptags }}</p>{% endif %}
+        </div>
+      {% endif %}
+
+      {% if form.non_field_errors %}
+        <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ form.non_field_errors|striptags }}</div>
+      {% endif %}
+
+      <div class="flex flex-wrap gap-2">
+        <button type="submit" class="rounded-xl bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-cyan-500">
+          {% if is_create %}{% trans "Create role" %}{% else %}{% trans "Save role changes" %}{% endif %}
+        </button>
+        <a href="{% if role %}{% url 'accounts:role_detail' role.pk %}{% else %}{% url 'accounts:roles' %}{% endif %}" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">{% trans "Cancel" %}</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}
