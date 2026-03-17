@@ -34,7 +34,7 @@ from accounts.forms import (
     SignUpForm,
 )
 from accounts.models import AuditLog, OTServer, PlatformSetting, User
-from accounts.services import log_audit_event
+from accounts.services import log_audit_event, test_otserver_connections
 
 
 class DashboardNavigationMixin:
@@ -753,6 +753,54 @@ class OTServerCreateView(
     success_url = reverse_lazy("accounts:otservers")
     active_menu_key = "otservers"
 
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context = super().get_context_data(**kwargs)
+        context["show_secondary_content"] = False
+        context["test_result"] = kwargs.get("test_result")
+        return context
+
+    def post(
+        self, request: HttpRequest, *args: object, **kwargs: object
+    ) -> HttpResponse:
+        self.object = None
+        if request.POST.get("action") != "test_connection":
+            return super().post(request, *args, **kwargs)
+
+        form = self.get_form()
+        if not form.is_valid():
+            messages.error(request, _("Fix the highlighted fields before testing."))
+            return self.render_to_response(self.get_context_data(form=form), status=400)
+
+        test_result = test_otserver_connections(
+            database_engine=form.cleaned_data["database_engine"],
+            db_host=form.cleaned_data["db_host"],
+            db_port=form.cleaned_data["db_port"],
+            db_name=form.cleaned_data["db_name"],
+            db_user=form.cleaned_data["db_user"],
+            db_password=form.cleaned_data["db_password"],
+            db_charset=form.cleaned_data["db_charset"],
+            db_use_ssl=form.cleaned_data["db_use_ssl"],
+            api_base_url=form.cleaned_data["api_base_url"],
+            api_token=form.cleaned_data["api_token"],
+        )
+        log_audit_event(
+            request=request,
+            action="otserver.connection_test",
+            target=form.cleaned_data["name"] or form.cleaned_data["db_host"],
+            details={
+                "success": test_result["success"],
+                "database_ok": test_result["database"]["ok"],
+                "api_ok": test_result["api"]["ok"],
+            },
+        )
+        if test_result["success"]:
+            messages.success(request, _("Connection test succeeded."))
+        else:
+            messages.error(request, _("Connection test failed."))
+        return self.render_to_response(
+            self.get_context_data(form=form, test_result=test_result)
+        )
+
     def form_valid(self, form: OTServerForm) -> HttpResponse:
         response = super().form_valid(form)
         log_audit_event(
@@ -805,6 +853,63 @@ class OTServerUpdateView(
     raise_exception = True
     success_url = reverse_lazy("accounts:otservers")
     active_menu_key = "otservers"
+
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context = super().get_context_data(**kwargs)
+        context["show_secondary_content"] = False
+        context["test_result"] = kwargs.get("test_result")
+        return context
+
+    def post(
+        self, request: HttpRequest, *args: object, **kwargs: object
+    ) -> HttpResponse:
+        self.object = self.get_object()
+        original_db_password = self.object.db_password
+        original_api_token = self.object.api_token
+        if request.POST.get("action") != "test_connection":
+            return super().post(request, *args, **kwargs)
+
+        form = self.get_form()
+        if not form.is_valid():
+            messages.error(request, _("Fix the highlighted fields before testing."))
+            return self.render_to_response(
+                self.get_context_data(object=self.object, form=form),
+                status=400,
+            )
+
+        db_password = form.cleaned_data["db_password"] or original_db_password
+        api_token = form.cleaned_data["api_token"] or original_api_token
+        test_result = test_otserver_connections(
+            database_engine=form.cleaned_data["database_engine"],
+            db_host=form.cleaned_data["db_host"],
+            db_port=form.cleaned_data["db_port"],
+            db_name=form.cleaned_data["db_name"],
+            db_user=form.cleaned_data["db_user"],
+            db_password=db_password,
+            db_charset=form.cleaned_data["db_charset"],
+            db_use_ssl=form.cleaned_data["db_use_ssl"],
+            api_base_url=form.cleaned_data["api_base_url"],
+            api_token=api_token,
+        )
+        log_audit_event(
+            request=request,
+            action="otserver.connection_test",
+            target=self.object.name,
+            details={
+                "success": test_result["success"],
+                "database_ok": test_result["database"]["ok"],
+                "api_ok": test_result["api"]["ok"],
+            },
+        )
+        if test_result["success"]:
+            messages.success(request, _("Connection test succeeded."))
+        else:
+            messages.error(request, _("Connection test failed."))
+        return self.render_to_response(
+            self.get_context_data(
+                object=self.object, form=form, test_result=test_result
+            )
+        )
 
     def form_valid(self, form: OTServerForm) -> HttpResponse:
         response = super().form_valid(form)

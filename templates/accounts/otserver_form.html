@@ -119,7 +119,34 @@
         <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ form.non_field_errors|striptags }}</div>
       {% endif %}
 
+      {% if test_result %}
+        <article class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm">
+          <h2 class="font-bold text-slate-900">{% trans "Connection test result" %}</h2>
+          <p class="mt-2 text-slate-700">
+            {% trans "Database" %}:
+            {% if test_result.database.ok %}
+              <span class="font-semibold text-emerald-700">{% trans "Success" %}</span>
+            {% else %}
+              <span class="font-semibold text-rose-700">{% trans "Failed" %}</span>
+            {% endif %}
+            - {{ test_result.database.message }}
+          </p>
+          <p class="mt-1 text-slate-700">
+            {% trans "API" %}:
+            {% if test_result.api.ok is None %}
+              <span class="font-semibold text-slate-600">{% trans "Skipped" %}</span>
+            {% elif test_result.api.ok %}
+              <span class="font-semibold text-emerald-700">{% trans "Success" %}</span>
+            {% else %}
+              <span class="font-semibold text-rose-700">{% trans "Failed" %}</span>
+            {% endif %}
+            - {{ test_result.api.message }}
+          </p>
+        </article>
+      {% endif %}
+
       <div class="flex flex-wrap gap-2">
+        <button type="submit" name="action" value="test_connection" class="rounded-xl border border-cyan-200 px-4 py-2.5 text-sm font-semibold text-cyan-700 hover:bg-cyan-50">{% trans "Test connection" %}</button>
         <button type="submit" class="rounded-xl bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-cyan-500">{% if object %}{% trans "Save changes" %}{% else %}{% trans "Create OTServer" %}{% endif %}</button>
         <a href="{% if object %}{% url 'accounts:otserver_detail' object.pk %}{% else %}{% url 'accounts:otservers' %}{% endif %}" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">{% trans "Cancel" %}</a>
       </div>
