@@ -76,7 +76,7 @@ Supported connections:
 
 OTServer fields:
 - Name
-- Tibia version (select list from `7.40` to `15.30`)
+- Tibia version (relational field to `TibiaVersion`, select list from `7.40` to `15.30`)
 - Environment
 - Database engine/host/port/name/user/password/charset/collation
 - SSL, monitor enabled, active

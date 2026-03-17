@@ -702,7 +702,7 @@ class OTServerListView(
 
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
         context = super().get_context_data(**kwargs)
-        servers = OTServer.objects.order_by("name")
+        servers = OTServer.objects.select_related("tibia_version").order_by("name")
         search = self.request.GET.get("q", "").strip()
         environment = self.request.GET.get("environment", "").strip()
         database_engine = self.request.GET.get("database_engine", "").strip()
@@ -753,7 +753,9 @@ class OTServerListConnectionTestView(LoginRequiredMixin, PermissionRequiredMixin
     def post(
         self, request: HttpRequest, *args: object, **kwargs: object
     ) -> HttpResponse:
-        server = get_object_or_404(OTServer, pk=kwargs["pk"])
+        server = get_object_or_404(
+            OTServer.objects.select_related("tibia_version"), pk=kwargs["pk"]
+        )
         test_result = check_otserver_connections(
             database_engine=server.database_engine,
             db_host=server.db_host,
@@ -863,7 +865,7 @@ class OTServerCreateView(
             action="otserver.create",
             target=form.instance.name,
             details={
-                "tibia_version": form.instance.tibia_version,
+                "tibia_version": form.instance.tibia_version_id,
                 "environment": form.instance.environment,
                 "database_engine": form.instance.database_engine,
                 "db_host": form.instance.db_host,
@@ -884,7 +886,9 @@ class OTServerDetailView(
 
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
         context = super().get_context_data(**kwargs)
-        server = get_object_or_404(OTServer, pk=kwargs["pk"])
+        server = get_object_or_404(
+            OTServer.objects.select_related("tibia_version"), pk=kwargs["pk"]
+        )
         context["server"] = server
         context["masked_db_password"] = "********"
         context["masked_api_token"] = "********" if server.api_token else ""
@@ -980,7 +984,7 @@ class OTServerUpdateView(
             action="otserver.update",
             target=form.instance.name,
             details={
-                "tibia_version": form.instance.tibia_version,
+                "tibia_version": form.instance.tibia_version_id,
                 "environment": form.instance.environment,
                 "database_engine": form.instance.database_engine,
                 "db_host": form.instance.db_host,

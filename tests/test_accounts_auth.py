@@ -717,7 +717,7 @@ def test_otserver_crud_flow_with_permissions() -> None:
     )
     assert create_response.status_code == 302
     server = OTServer.objects.get(name="Crystal Server")
-    assert server.tibia_version == "13.40"
+    assert server.tibia_version_id == "13.40"
     assert AuditLog.objects.filter(
         action="otserver.create", target="Crystal Server", actor=manager
     ).exists()
@@ -750,7 +750,7 @@ def test_otserver_crud_flow_with_permissions() -> None:
     )
     assert update_response.status_code == 302
     server.refresh_from_db()
-    assert server.tibia_version == "12.70"
+    assert server.tibia_version_id == "12.70"
     assert server.environment == "staging"
     assert server.database_engine == "mariadb"
     assert server.db_password.startswith("enc::")
@@ -875,7 +875,7 @@ def test_otserver_form_lists_tibia_versions_and_uses_default() -> None:
 
     assert create_without_explicit_version.status_code == 302
     created_server = OTServer.objects.get(name="VersionDefaultServer")
-    assert created_server.tibia_version == OTServer.DEFAULT_TIBIA_VERSION
+    assert created_server.tibia_version_id == "15.30"
 
 
 @pytest.mark.django_db

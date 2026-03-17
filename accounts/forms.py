@@ -9,7 +9,7 @@ from django.contrib.auth.forms import (
 from django.contrib.auth.models import Group, Permission
 from django.utils.translation import gettext_lazy as _
 
-from accounts.models import OTServer, PlatformSetting, User
+from accounts.models import OTServer, PlatformSetting, TibiaVersion, User
 
 BASE_INPUT_CLASSES = (
     "mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-slate-800 "
@@ -393,6 +393,11 @@ class OTServerForm(forms.ModelForm):
         self.fields["environment"].label = _("Environment")
         self.fields["tibia_version"].label = _("Tibia version")
         self.fields["tibia_version"].required = False
+        self.fields["tibia_version"].queryset = TibiaVersion.objects.filter(
+            is_supported=True
+        ).order_by("sort_order", "code")
+        self.fields["tibia_version"].empty_label = None
+        self.fields["tibia_version"].initial = TibiaVersion.DEFAULT_CODE
         self.fields["database_engine"].label = _("Database engine")
         self.fields["db_host"].label = _("Database host")
         self.fields["db_port"].label = _("Database port")
@@ -428,11 +433,11 @@ class OTServerForm(forms.ModelForm):
             raise forms.ValidationError(_("Select a valid timezone.")) from exc
         return timezone_name
 
-    def clean_tibia_version(self) -> str:
-        version = self.cleaned_data.get("tibia_version", "").strip()
-        if version:
+    def clean_tibia_version(self) -> TibiaVersion:
+        version = self.cleaned_data.get("tibia_version")
+        if isinstance(version, TibiaVersion):
             return version
-        return OTServer.DEFAULT_TIBIA_VERSION
+        return TibiaVersion.objects.get(pk=TibiaVersion.DEFAULT_CODE)
 
     def save(self, commit: bool = True) -> OTServer:
         current_server: OTServer | None = None
