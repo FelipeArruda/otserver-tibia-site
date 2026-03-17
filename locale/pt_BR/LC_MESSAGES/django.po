@@ -850,3 +850,172 @@ msgstr "Data final"
 
 msgid "Start date cannot be after end date."
 msgstr "A data inicial não pode ser maior que a data final."
+
+msgid "Browse all characters from your connected OTServers."
+msgstr "Navegue por todos os personagens dos seus OTServers conectados."
+
+msgid "Filtered characters"
+msgstr "Personagens filtrados"
+
+msgid "Online now"
+msgstr "Online agora"
+
+msgid "Offline now"
+msgstr "Offline agora"
+
+msgid "Active OT sources"
+msgstr "Fontes OT ativas"
+
+msgid "All OTServers"
+msgstr "Todos os OTServers"
+
+msgid "Search by character name"
+msgstr "Buscar por nome do personagem"
+
+msgid "All vocations"
+msgstr "Todas as vocações"
+
+msgid "Online"
+msgstr "Online"
+
+msgid "Offline"
+msgstr "Offline"
+
+msgid "Minimum level"
+msgstr "Level mínimo"
+
+msgid "Maximum level"
+msgstr "Level máximo"
+
+msgid "Loading..."
+msgstr "Carregando..."
+
+msgid "Some OTServers could not be queried."
+msgstr "Alguns OTServers não puderam ser consultados."
+
+msgid "No active OTServers configured."
+msgstr "Nenhum OTServer ativo configurado."
+
+msgid "Configure an OTServer connection to start importing characters."
+msgstr "Configure uma conexao de OTServer para comecar a importar personagens."
+
+msgid "Open OTServers"
+msgstr "Abrir OTServers"
+
+msgid "Character"
+msgstr "Personagem"
+
+msgid "Level"
+msgstr "Level"
+
+msgid "Updated at"
+msgstr "Atualizado em"
+
+msgid "Unknown"
+msgstr "Desconhecido"
+
+msgid "Character data is temporarily unavailable."
+msgstr "Os dados de personagens estao temporariamente indisponiveis."
+
+msgid "Try again in a few moments or verify OTServer connectivity."
+msgstr "Tente novamente em alguns instantes ou verifique a conectividade do OTServer."
+
+msgid "No characters found."
+msgstr "Nenhum personagem encontrado."
+
+msgid "Adjust your filters to find characters from your OTServers."
+msgstr "Ajuste seus filtros para encontrar personagens dos seus OTServers."
+
+msgid "Name (A-Z)"
+msgstr "Nome (A-Z)"
+
+msgid "Name (Z-A)"
+msgstr "Nome (Z-A)"
+
+msgid "Highest level"
+msgstr "Maior level"
+
+msgid "Lowest level"
+msgstr "Menor level"
+
+msgid "Most recently updated"
+msgstr "Atualizados mais recentemente"
+
+msgid "Least recently updated"
+msgstr "Atualizados menos recentemente"
+
+msgid "Players table not found."
+msgstr "Tabela de jogadores não encontrada."
+
+msgid "Column 'name' not found in players table."
+msgstr "Coluna 'name' não encontrada na tabela de jogadores."
+
+
+msgid "Cluster needs attention"
+msgstr "Cluster precisa de atenção"
+
+msgid "Registered users"
+msgstr "Usuários cadastrados"
+
+msgid "Total accounts in the platform."
+msgstr "Total de contas na plataforma."
+
+msgid "OTServers currently enabled."
+msgstr "OTServers atualmente habilitados."
+
+msgid "Audit events (24h)"
+msgstr "Eventos de auditoria (24h)"
+
+msgid "failed OT connection tests"
+msgstr "testes de conexão OT com falha"
+
+msgid "Latest platform event"
+msgstr "Último evento da plataforma"
+
+msgid "No audit events recorded yet."
+msgstr "Nenhum evento de auditoria registrado ainda."
+
+msgid "Open OTServers"
+msgstr "Abrir OTServers"
+
+msgid "Open characters"
+msgstr "Abrir personagens"
+
+msgid "Open users"
+msgstr "Abrir usuários"
+
+msgid "Open audit logs"
+msgstr "Abrir logs de auditoria"
+
+msgid "Total characters"
+msgstr "Personagens totais"
+
+msgid "Data from %(count)s/%(total)s active OT sources."
+msgstr "Dados de %(count)s/%(total)s fontes OT ativas."
+
+msgid "Online characters"
+msgstr "Personagens online"
+
+msgid "of tracked characters"
+msgstr "dos personagens monitorados"
+
+msgid "Offline characters"
+msgstr "Personagens offline"
+
+msgid "%(unknown)s with unknown status."
+msgstr "%(unknown)s com status desconhecido."
+
+msgid "All status values mapped correctly."
+msgstr "Todos os status foram mapeados corretamente."
+
+msgid "%(errors)s OT source(s) failed while loading character metrics."
+msgstr "%(errors)s fonte(s) OT falharam ao carregar as métricas de personagens."
+
+msgid "%(healthy)s/%(total)s OT sources healthy"
+msgstr "%(healthy)s/%(total)s fontes OT saudáveis"
+
+msgid "high-priority incidents"
+msgstr "incidentes de alta prioridade"
+
+msgid "Some services require attention. Review incidents and OT connectivity."
+msgstr "Alguns serviços precisam de atenção. Revise incidentes e conectividade dos OTs."

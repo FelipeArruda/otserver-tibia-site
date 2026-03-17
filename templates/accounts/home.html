@@ -7,29 +7,33 @@
 {% block page_description %}{% trans "Monitor realms, manage accounts and keep your Tibia operation stable from one place." %}{% endblock %}
 
 {% block page_actions %}
-  <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">{% trans "Server cluster healthy" %}</span>
+  <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">
+    {% if dashboard_healthy %}{% trans "Server cluster healthy" %}{% else %}{% trans "Cluster needs attention" %}{% endif %}
+  </span>
 {% endblock %}
 
 {% block primary_content %}
   <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
     <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
       <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{% trans "Online players" %}</p>
-      <p class="mt-3 text-3xl font-extrabold text-slate-900">214</p>
-      <p class="mt-2 text-sm text-emerald-600">+12 {% trans "in the last hour" %}</p>
+      <p class="mt-3 text-3xl font-extrabold text-slate-900">{{ home_metrics.online_characters }}</p>
+      <p class="mt-2 text-sm text-emerald-600">+{{ home_metrics.recent_online_delta }} {% trans "in the last hour" %}</p>
     </article>
     <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
       <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{% trans "Active realms" %}</p>
-      <p class="mt-3 text-3xl font-extrabold text-slate-900">3/3</p>
-      <p class="mt-2 text-sm text-slate-600">{% trans "Production, Test, and Event" %}</p>
+      <p class="mt-3 text-3xl font-extrabold text-slate-900">{{ home_metrics.active_servers }}/{{ home_metrics.total_servers }}</p>
+      <p class="mt-2 text-sm text-slate-600">
+        {% blocktrans with healthy=home_metrics.healthy_character_sources total=home_metrics.active_character_sources %}{{ healthy }}/{{ total }} OT sources healthy{% endblocktrans %}
+      </p>
     </article>
     <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
       <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{% trans "Pending tickets" %}</p>
-      <p class="mt-3 text-3xl font-extrabold text-slate-900">7</p>
-      <p class="mt-2 text-sm text-amber-600">{% trans "2 high-priority incidents" %}</p>
+      <p class="mt-3 text-3xl font-extrabold text-slate-900">{{ home_metrics.pending_incidents }}</p>
+      <p class="mt-2 text-sm text-amber-600">{{ home_metrics.failed_ot_tests_24h }} {% trans "high-priority incidents" %}</p>
     </article>
     <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
       <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{% trans "Next save-server" %}</p>
-      <p class="mt-3 text-3xl font-extrabold text-slate-900">03:00</p>
+      <p class="mt-3 text-3xl font-extrabold text-slate-900">{{ home_metrics.next_save_server|date:"H:i" }}</p>
       <p class="mt-2 text-sm text-slate-600">{% trans "Automated global save" %}</p>
     </article>
   </section>
@@ -38,9 +42,15 @@
     <article class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
       <h3 class="text-xl font-bold text-slate-900">{% trans "Operational feed" %}</h3>
       <ul class="mt-4 space-y-3 text-sm">
-        <li class="rounded-xl bg-slate-50 px-4 py-3"><span class="font-semibold text-emerald-700">{% trans "Realm online" %}:</span> {% trans "Astera realm responded in 86ms." %}</li>
-        <li class="rounded-xl bg-slate-50 px-4 py-3"><span class="font-semibold text-cyan-700">{% trans "Backup complete" %}:</span> {% trans "Characters and guilds backup finished successfully." %}</li>
-        <li class="rounded-xl bg-slate-50 px-4 py-3"><span class="font-semibold text-amber-700">{% trans "Warning" %}:</span> {% trans "High spawn load detected in Dragon Lair." %}</li>
+        {% for event in recent_audit_logs %}
+          <li class="rounded-xl bg-slate-50 px-4 py-3">
+            <span class="font-semibold text-cyan-700">{{ event.action }}:</span>
+            {{ event.target }}
+            <span class="text-slate-500">({{ event.created_at|date:"Y-m-d H:i" }})</span>
+          </li>
+        {% empty %}
+          <li class="rounded-xl bg-slate-50 px-4 py-3 text-slate-600">{% trans "No audit events recorded yet." %}</li>
+        {% endfor %}
       </ul>
     </article>
 
@@ -59,11 +69,17 @@
 {% block secondary_content %}
   <article class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
     <h3 class="text-base font-bold text-slate-900">{% trans "Operator status" %}</h3>
-    <p class="mt-2 text-sm text-slate-600">{% trans "All critical services are online and synchronized." %}</p>
+    <p class="mt-2 text-sm text-slate-600">
+      {% if dashboard_healthy %}
+        {% trans "All critical services are online and synchronized." %}
+      {% else %}
+        {% trans "Some services require attention. Review incidents and OT connectivity." %}
+      {% endif %}
+    </p>
     <div class="mt-3 space-y-2 text-sm">
-      <div class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"><span>{% trans "Login API" %}</span><span class="font-semibold text-emerald-600">OK</span></div>
-      <div class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"><span>{% trans "Game database" %}</span><span class="font-semibold text-emerald-600">OK</span></div>
-      <div class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"><span>{% trans "Webhook queue" %}</span><span class="font-semibold text-amber-600">DELAY</span></div>
+      <div class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"><span>{% trans "Login API" %}</span><span class="font-semibold {% if operator_status.login_api == 'ok' %}text-emerald-600{% else %}text-amber-600{% endif %}">{% if operator_status.login_api == "ok" %}OK{% else %}DELAY{% endif %}</span></div>
+      <div class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"><span>{% trans "Game database" %}</span><span class="font-semibold {% if operator_status.game_database == 'ok' %}text-emerald-600{% else %}text-amber-600{% endif %}">{% if operator_status.game_database == "ok" %}OK{% else %}DELAY{% endif %}</span></div>
+      <div class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"><span>{% trans "Webhook queue" %}</span><span class="font-semibold {% if operator_status.webhook_queue == 'ok' %}text-emerald-600{% else %}text-amber-600{% endif %}">{% if operator_status.webhook_queue == "ok" %}OK{% else %}DELAY{% endif %}</span></div>
     </div>
   </article>
 {% endblock %}
