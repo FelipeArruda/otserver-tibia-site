@@ -131,3 +131,65 @@ class AuditLog(models.Model):
         ordering = ["-created_at"]
         verbose_name = _("Audit log")
         verbose_name_plural = _("Audit logs")
+
+
+class OTServer(models.Model):
+    class Environment(models.TextChoices):
+        PRODUCTION = "production", _("Production")
+        STAGING = "staging", _("Staging")
+        DEVELOPMENT = "development", _("Development")
+
+    class DatabaseEngine(models.TextChoices):
+        MYSQL = "mysql", "MySQL"
+        MARIADB = "mariadb", "MariaDB"
+
+    name = models.CharField(max_length=120, unique=True, verbose_name=_("Name"))
+    environment = models.CharField(
+        max_length=20,
+        choices=Environment.choices,
+        default=Environment.PRODUCTION,
+        verbose_name=_("Environment"),
+    )
+    database_engine = models.CharField(
+        max_length=20,
+        choices=DatabaseEngine.choices,
+        default=DatabaseEngine.MYSQL,
+        verbose_name=_("Database engine"),
+    )
+    db_host = models.CharField(max_length=255, verbose_name=_("Database host"))
+    db_port = models.PositiveIntegerField(default=3306, verbose_name=_("Database port"))
+    db_name = models.CharField(max_length=128, verbose_name=_("Database name"))
+    db_user = models.CharField(max_length=128, verbose_name=_("Database user"))
+    db_password = models.CharField(max_length=255, verbose_name=_("Database password"))
+    db_charset = models.CharField(
+        max_length=64,
+        default="utf8mb4",
+        verbose_name=_("Database charset"),
+    )
+    db_collation = models.CharField(
+        max_length=64,
+        blank=True,
+        verbose_name=_("Database collation"),
+    )
+    db_use_ssl = models.BooleanField(default=False, verbose_name=_("Use SSL"))
+    api_base_url = models.URLField(blank=True, verbose_name=_("API base URL"))
+    api_token = models.CharField(
+        max_length=255, blank=True, verbose_name=_("API token")
+    )
+    timezone = models.CharField(
+        max_length=64, default="UTC", verbose_name=_("Timezone")
+    )
+    monitor_enabled = models.BooleanField(
+        default=True, verbose_name=_("Monitoring enabled")
+    )
+    is_active = models.BooleanField(default=True, verbose_name=_("Active"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created at"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated at"))
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = _("OTServer")
+        verbose_name_plural = _("OTServers")
+
+    def __str__(self) -> str:
+        return self.name

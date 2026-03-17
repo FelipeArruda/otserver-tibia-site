@@ -1,0 +1,94 @@
+{% extends "accounts/dashboard_base.html" %}
+{% load i18n %}
+
+{% block page_title %}{% trans "OTServers" %}{% endblock %}
+{% block page_kicker %}OTSERV{% endblock %}
+{% block page_heading %}{% trans "OTServers" %}{% endblock %}
+{% block page_description %}{% trans "Manage your Tibia OTServer connections and runtime profiles." %}{% endblock %}
+
+{% block page_actions %}
+  {% if can_create_otserver %}
+    <a href="{% url 'accounts:otserver_create' %}" class="rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500">{% trans "Add OTServer" %}</a>
+  {% endif %}
+{% endblock %}
+
+{% block primary_content %}
+  <section class="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+    <form method="get" class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+      <input name="q" value="{{ filters.q }}" placeholder="{% trans 'Search by name' %}" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100">
+      <select name="environment" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100">
+        <option value="">{% trans "All environments" %}</option>
+        {% for value, label in environment_choices %}
+          <option value="{{ value }}" {% if filters.environment == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <select name="database_engine" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100">
+        <option value="">{% trans "All databases" %}</option>
+        {% for value, label in database_engine_choices %}
+          <option value="{{ value }}" {% if filters.database_engine == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <select name="status" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100">
+        <option value="">{% trans "All statuses" %}</option>
+        <option value="active" {% if filters.status == "active" %}selected{% endif %}>{% trans "Active" %}</option>
+        <option value="inactive" {% if filters.status == "inactive" %}selected{% endif %}>{% trans "Inactive" %}</option>
+      </select>
+      <div class="grid grid-cols-2 gap-2">
+        <button type="submit" class="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">{% trans "Apply filters" %}</button>
+        <a href="{% url 'accounts:otservers' %}" class="rounded-xl border border-slate-200 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50">{% trans "Clear" %}</a>
+      </div>
+    </form>
+  </section>
+
+  <section class="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200 text-sm">
+        <thead class="bg-slate-50">
+          <tr>
+            <th class="px-4 py-3 text-left font-semibold text-slate-600">{% trans "Name" %}</th>
+            <th class="px-4 py-3 text-left font-semibold text-slate-600">{% trans "Environment" %}</th>
+            <th class="px-4 py-3 text-left font-semibold text-slate-600">{% trans "Database engine" %}</th>
+            <th class="px-4 py-3 text-left font-semibold text-slate-600">{% trans "Database host" %}</th>
+            <th class="px-4 py-3 text-left font-semibold text-slate-600">{% trans "Status" %}</th>
+            <th class="px-4 py-3 text-left font-semibold text-slate-600">{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for server in servers %}
+            <tr>
+              <td class="px-4 py-3 font-semibold text-slate-900">{{ server.name }}</td>
+              <td class="px-4 py-3 text-slate-700">{{ server.get_environment_display }}</td>
+              <td class="px-4 py-3 text-slate-700">{{ server.get_database_engine_display }}</td>
+              <td class="px-4 py-3 text-slate-700">{{ server.db_host }}:{{ server.db_port }}</td>
+              <td class="px-4 py-3">
+                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold {% if server.is_active %}bg-emerald-100 text-emerald-700{% else %}bg-slate-200 text-slate-600{% endif %}">
+                  {% if server.is_active %}{% trans "Active" %}{% else %}{% trans "Inactive" %}{% endif %}
+                </span>
+              </td>
+              <td class="px-4 py-3">
+                <div class="flex flex-wrap gap-2">
+                  <a href="{% url 'accounts:otserver_detail' server.pk %}" class="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50">{% trans "View" %}</a>
+                  {% if can_edit_otserver %}
+                    <a href="{% url 'accounts:otserver_update' server.pk %}" class="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50">{% trans "Edit" %}</a>
+                  {% endif %}
+                  {% if can_delete_otserver %}
+                    <form method="post" action="{% url 'accounts:otserver_delete' server.pk %}" class="inline">
+                      {% csrf_token %}
+                      <button type="submit" class="rounded-lg border border-rose-200 px-2.5 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50" onclick="return confirm('{% trans 'Remove this OTServer?' %}')">{% trans "Remove" %}</button>
+                    </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="px-4 py-8 text-center text-slate-500">{% trans "No OTServers found." %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {% include "accounts/_pagination.html" %}
+{% endblock %}
