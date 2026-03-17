@@ -1082,6 +1082,108 @@ def test_otserver_test_connection_update_uses_saved_secrets_and_logs() -> None:
 
 
 @pytest.mark.django_db
+def test_otserver_update_does_not_prefill_secret_fields_on_get() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="otserver-empty-secrets@example.com",
+        password="StrongPass123!",
+    )
+    manager.user_permissions.add(
+        Permission.objects.get(codename="view_otserver"),
+        Permission.objects.get(codename="change_otserver"),
+    )
+    server = OTServer.objects.create(
+        name="NoPrefillSecrets",
+        environment="production",
+        database_engine="mysql",
+        db_host="localhost",
+        db_port=3306,
+        db_name="otserv",
+        db_user="user",
+        db_password="stored-db-password",
+        api_token="stored-api-token",
+        timezone="UTC",
+    )
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+    response = client.get(reverse("accounts:otserver_update", args=[server.pk]))
+    content = response.content.decode("utf-8")
+
+    assert response.status_code == 200
+    assert 'name="db_password"' in content
+    assert 'name="api_token"' in content
+    assert "stored-db-password" not in content
+    assert "stored-api-token" not in content
+
+
+@pytest.mark.django_db
+def test_otserver_test_connection_keeps_used_secret_values_in_form() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="otserver-keep-secret@example.com",
+        password="StrongPass123!",
+    )
+    manager.user_permissions.add(
+        Permission.objects.get(codename="view_otserver"),
+        Permission.objects.get(codename="change_otserver"),
+    )
+    server = OTServer.objects.create(
+        name="KeepSecretAfterTest",
+        environment="production",
+        database_engine="mysql",
+        db_host="localhost",
+        db_port=3306,
+        db_name="otserv",
+        db_user="user",
+        db_password="stored-db-password",
+        api_token="stored-api-token",
+        timezone="UTC",
+    )
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+
+    from unittest.mock import patch
+
+    with patch("accounts.views.check_otserver_connections") as test_mock:
+        test_mock.return_value = {
+            "success": True,
+            "database": {"ok": True, "latency_ms": 12, "message": "db ok"},
+            "api": {"ok": True, "latency_ms": 19, "message": "api ok"},
+        }
+        response = client.post(
+            reverse("accounts:otserver_update", args=[server.pk]),
+            {
+                "name": "KeepSecretAfterTest",
+                "environment": "production",
+                "database_engine": "mysql",
+                "db_host": "localhost",
+                "db_port": 3306,
+                "db_name": "otserv",
+                "db_user": "user",
+                "db_password": "",
+                "db_charset": "utf8mb4",
+                "db_collation": "",
+                "db_use_ssl": "",
+                "api_base_url": "https://example.com/api",
+                "api_token": "",
+                "timezone": "UTC",
+                "monitor_enabled": "on",
+                "is_active": "on",
+                "action": "test_connection",
+            },
+        )
+
+    assert response.status_code == 200
+    content = response.content.decode("utf-8")
+    assert 'name="db_password"' in content
+    assert 'name="api_token"' in content
+    assert 'value="stored-db-password"' in content
+    assert 'value="stored-api-token"' in content
+
+
+@pytest.mark.django_db
 def test_otserver_secrets_are_encrypted_and_masked_on_detail() -> None:
     user_model = get_user_model()
     manager = user_model.objects.create_user(
@@ -1175,6 +1277,87 @@ def test_otserver_test_connection_requires_permissions() -> None:
         },
     )
     assert denied.status_code == 403
+
+
+@pytest.mark.django_db
+def test_otserver_list_test_connection_requires_change_permission() -> None:
+    user_model = get_user_model()
+    user = user_model.objects.create_user(
+        email="otserver-list-test-denied@example.com", password="StrongPass123!"
+    )
+    user.user_permissions.add(Permission.objects.get(codename="view_otserver"))
+    server = OTServer.objects.create(
+        name="ListDenied",
+        environment="production",
+        database_engine="mysql",
+        db_host="localhost",
+        db_port=3306,
+        db_name="otserv",
+        db_user="otserv_user",
+        db_password="Secret123!",
+        timezone="UTC",
+    )
+
+    client = Client()
+    assert client.login(username=user.email, password="StrongPass123!")
+    denied = client.post(
+        reverse("accounts:otserver_test_connection", args=[server.pk]),
+        {"next": reverse("accounts:otservers")},
+    )
+    assert denied.status_code == 403
+
+
+@pytest.mark.django_db
+def test_otserver_list_test_connection_logs_and_redirects_to_filtered_list() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="otserver-list-test@example.com", password="StrongPass123!"
+    )
+    manager.user_permissions.add(
+        Permission.objects.get(codename="view_otserver"),
+        Permission.objects.get(codename="change_otserver"),
+    )
+    server = OTServer.objects.create(
+        name="ListConnectionTest",
+        environment="production",
+        database_engine="mysql",
+        db_host="localhost",
+        db_port=3306,
+        db_name="otserv",
+        db_user="otserv_user",
+        db_password="Secret123!",
+        api_token="api-token",
+        timezone="UTC",
+    )
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+
+    from unittest.mock import patch
+
+    with patch("accounts.views.check_otserver_connections") as test_mock:
+        test_mock.return_value = {
+            "success": True,
+            "database": {"ok": True, "latency_ms": 8, "message": "db ok"},
+            "api": {"ok": True, "latency_ms": 13, "message": "api ok"},
+        }
+        response = client.post(
+            reverse("accounts:otserver_test_connection", args=[server.pk]),
+            {"next": f"{reverse('accounts:otservers')}?q=ListConnectionTest"},
+        )
+
+    assert response.status_code == 302
+    assert response.url == f"{reverse('accounts:otservers')}?q=ListConnectionTest"
+    called_kwargs = test_mock.call_args.kwargs
+    assert called_kwargs["db_password"] == "Secret123!"
+    assert called_kwargs["api_token"] == "api-token"
+    audit_entry = AuditLog.objects.get(
+        action="otserver.connection_test",
+        target="ListConnectionTest",
+        actor=manager,
+    )
+    assert audit_entry.details["source"] == "list"
+    assert audit_entry.details["success"] is True
 
 
 def test_otserver_connection_service_handles_success(

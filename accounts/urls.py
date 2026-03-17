@@ -13,6 +13,7 @@ from accounts.views import (
     OTServerCreateView,
     OTServerDeleteView,
     OTServerDetailView,
+    OTServerListConnectionTestView,
     OTServerListView,
     OTServerUpdateView,
     PlatformSettingsView,
@@ -66,6 +67,11 @@ urlpatterns = [
     path("roles/<int:pk>/edit/", RoleUpdateView.as_view(), name="role_update"),
     path("roles/<int:pk>/delete/", RoleDeleteView.as_view(), name="role_delete"),
     path("otservers/", OTServerListView.as_view(), name="otservers"),
+    path(
+        "otservers/<int:pk>/test-connection/",
+        OTServerListConnectionTestView.as_view(),
+        name="otserver_test_connection",
+    ),
     path("otservers/new/", OTServerCreateView.as_view(), name="otserver_create"),
     path("otservers/<int:pk>/", OTServerDetailView.as_view(), name="otserver_detail"),
     path(

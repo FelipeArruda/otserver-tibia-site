@@ -737,10 +737,65 @@ class OTServerListView(
         context["can_delete_otserver"] = self.request.user.has_perm(
             "accounts.delete_otserver"
         )
+        context["can_test_otserver"] = self.request.user.has_perm(
+            "accounts.change_otserver"
+        )
         context["total_servers"] = OTServer.objects.count()
         context["filtered_servers"] = context["paginator"].count
         context["show_secondary_content"] = False
         return context
+
+
+class OTServerListConnectionTestView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = ("accounts.view_otserver", "accounts.change_otserver")
+    raise_exception = True
+
+    def post(
+        self, request: HttpRequest, *args: object, **kwargs: object
+    ) -> HttpResponse:
+        server = get_object_or_404(OTServer, pk=kwargs["pk"])
+        test_result = check_otserver_connections(
+            database_engine=server.database_engine,
+            db_host=server.db_host,
+            db_port=server.db_port,
+            db_name=server.db_name,
+            db_user=server.db_user,
+            db_password=server.get_db_password(),
+            db_charset=server.db_charset,
+            db_use_ssl=server.db_use_ssl,
+            api_base_url=server.api_base_url,
+            api_token=server.get_api_token(),
+        )
+        log_audit_event(
+            request=request,
+            action="otserver.connection_test",
+            target=server.name,
+            details={
+                "source": "list",
+                "success": test_result["success"],
+                "database_ok": test_result["database"]["ok"],
+                "api_ok": test_result["api"]["ok"],
+            },
+        )
+        if test_result["success"]:
+            messages.success(
+                request,
+                _("Connection test for %(name)s succeeded.") % {"name": server.name},
+            )
+        else:
+            messages.error(
+                request,
+                _("Connection test for %(name)s failed.") % {"name": server.name},
+            )
+
+        next_url = request.POST.get("next", "")
+        if not url_has_allowed_host_and_scheme(
+            url=next_url,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+        ):
+            next_url = reverse_lazy("accounts:otservers")
+        return redirect(next_url)
 
 
 class OTServerCreateView(
@@ -869,7 +924,13 @@ class OTServerUpdateView(
         if request.POST.get("action") != "test_connection":
             return super().post(request, *args, **kwargs)
 
-        form = self.get_form()
+        form_data = request.POST.copy()
+        if not form_data.get("db_password"):
+            form_data["db_password"] = original_db_password
+        if not form_data.get("api_token"):
+            form_data["api_token"] = original_api_token
+
+        form = self.form_class(form_data, instance=self.object)
         if not form.is_valid():
             messages.error(request, _("Fix the highlighted fields before testing."))
             return self.render_to_response(
@@ -877,8 +938,8 @@ class OTServerUpdateView(
                 status=400,
             )
 
-        db_password = form.cleaned_data["db_password"] or original_db_password
-        api_token = form.cleaned_data["api_token"] or original_api_token
+        db_password = form.cleaned_data["db_password"]
+        api_token = form.cleaned_data["api_token"]
         test_result = check_otserver_connections(
             database_engine=form.cleaned_data["database_engine"],
             db_host=form.cleaned_data["db_host"],

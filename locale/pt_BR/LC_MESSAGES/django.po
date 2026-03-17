@@ -725,6 +725,9 @@ msgstr "Testar conexão"
 msgid "Testing connection..."
 msgstr "Testando conexão..."
 
+msgid "Testing..."
+msgstr "Testando..."
+
 msgid "All statuses"
 msgstr "Todos os status"
 
@@ -787,6 +790,12 @@ msgstr "Conexão com banco realizada com sucesso."
 
 msgid "PyMySQL dependency is not installed."
 msgstr "Dependência PyMySQL não está instalada."
+
+msgid "Connection test for %(name)s succeeded."
+msgstr "Teste de conexão para %(name)s realizado com sucesso."
+
+msgid "Connection test for %(name)s failed."
+msgstr "Teste de conexão para %(name)s falhou."
 
 msgid "A role with this name already exists."
 msgstr "Já existe um papel com este nome."
