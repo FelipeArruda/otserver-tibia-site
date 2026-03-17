@@ -378,16 +378,10 @@ class OTServerForm(forms.ModelForm):
             "db_user": forms.TextInput(attrs={"class": BASE_INPUT_CLASSES}),
             "db_charset": forms.TextInput(attrs={"class": BASE_INPUT_CLASSES}),
             "db_collation": forms.TextInput(attrs={"class": BASE_INPUT_CLASSES}),
-            "db_use_ssl": forms.CheckboxInput(
-                attrs={"class": "h-4 w-4 rounded border-slate-300 text-cyan-600"}
-            ),
+            "db_use_ssl": forms.CheckboxInput(attrs={"class": "peer sr-only"}),
             "api_base_url": forms.URLInput(attrs={"class": BASE_INPUT_CLASSES}),
-            "monitor_enabled": forms.CheckboxInput(
-                attrs={"class": "h-4 w-4 rounded border-slate-300 text-cyan-600"}
-            ),
-            "is_active": forms.CheckboxInput(
-                attrs={"class": "h-4 w-4 rounded border-slate-300 text-cyan-600"}
-            ),
+            "monitor_enabled": forms.CheckboxInput(attrs={"class": "peer sr-only"}),
+            "is_active": forms.CheckboxInput(attrs={"class": "peer sr-only"}),
         }
 
     def __init__(self, *args: object, **kwargs: object) -> None:

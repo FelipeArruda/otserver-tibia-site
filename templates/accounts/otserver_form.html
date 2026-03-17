@@ -100,18 +100,30 @@
         </div>
       </div>
 
-      <div class="grid gap-5 sm:grid-cols-3">
-        <label class="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
-          {{ form.db_use_ssl }}
-          {{ form.db_use_ssl.label }}
+      <div class="grid gap-3 sm:grid-cols-3">
+        <label class="flex cursor-pointer items-center justify-between rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 hover:border-cyan-200 hover:bg-cyan-50/40">
+          <span class="text-sm font-semibold text-slate-700">{{ form.db_use_ssl.label }}</span>
+          <span class="relative inline-flex items-center">
+            {{ form.db_use_ssl }}
+            <span class="h-6 w-11 rounded-full bg-slate-300 transition peer-focus:ring-4 peer-focus:ring-cyan-100 peer-checked:bg-cyan-500"></span>
+            <span class="pointer-events-none absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5"></span>
+          </span>
         </label>
-        <label class="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
-          {{ form.monitor_enabled }}
-          {{ form.monitor_enabled.label }}
+        <label class="flex cursor-pointer items-center justify-between rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 hover:border-cyan-200 hover:bg-cyan-50/40">
+          <span class="text-sm font-semibold text-slate-700">{{ form.monitor_enabled.label }}</span>
+          <span class="relative inline-flex items-center">
+            {{ form.monitor_enabled }}
+            <span class="h-6 w-11 rounded-full bg-slate-300 transition peer-focus:ring-4 peer-focus:ring-cyan-100 peer-checked:bg-cyan-500"></span>
+            <span class="pointer-events-none absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5"></span>
+          </span>
         </label>
-        <label class="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
-          {{ form.is_active }}
-          {{ form.is_active.label }}
+        <label class="flex cursor-pointer items-center justify-between rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 hover:border-cyan-200 hover:bg-cyan-50/40">
+          <span class="text-sm font-semibold text-slate-700">{{ form.is_active.label }}</span>
+          <span class="relative inline-flex items-center">
+            {{ form.is_active }}
+            <span class="h-6 w-11 rounded-full bg-slate-300 transition peer-focus:ring-4 peer-focus:ring-cyan-100 peer-checked:bg-cyan-500"></span>
+            <span class="pointer-events-none absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5"></span>
+          </span>
         </label>
       </div>
 
