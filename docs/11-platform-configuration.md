@@ -13,7 +13,7 @@ Permission: `accounts.change_platformsetting`
 Supported fields:
 - Platform name
 - Default language (`en`, `pt-br`)
-- Default timezone
+- Default timezone (IANA list, e.g. `America/Sao_Paulo`)
 - Primary color (hex `#RRGGBB`)
 - Logo URL
 
@@ -21,6 +21,8 @@ Behavior:
 - Values are persisted in a singleton model (`PlatformSetting`).
 - Saving language updates current session/cookie immediately.
 - New sessions without user preference use global default language.
+- Timezone field is validated against IANA database (`zoneinfo`).
+- Platform timezone is activated globally by middleware and applied where date/time rendering is needed (e.g. audit logs).
 
 ## User language preference
 Route: `POST /accounts/language/`  
@@ -70,3 +72,6 @@ python scripts/compile_messages.py
 python manage.py check
 pytest -q
 ```
+
+Detailed guide:
+- See `docs/12-i18n-translation-guide.md`

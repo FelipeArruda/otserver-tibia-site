@@ -1,8 +1,10 @@
+from datetime import date
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, Permission
 from django.contrib.auth.views import (
     LoginView,
     PasswordResetCompleteView,
@@ -10,6 +12,8 @@ from django.contrib.auth.views import (
     PasswordResetDoneView,
     PasswordResetView,
 )
+from django.core.paginator import Paginator
+from django.db.models import Count
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
@@ -25,6 +29,7 @@ from accounts.forms import (
     EmailAuthenticationForm,
     ForgotPasswordForm,
     PlatformSettingForm,
+    RoleManagementForm,
     SignUpForm,
 )
 from accounts.models import AuditLog, PlatformSetting, User
@@ -36,7 +41,7 @@ class DashboardNavigationMixin:
         {
             "key": "overview",
             "label": _("Overview"),
-            "href": "#",
+            "href": reverse_lazy("accounts:home"),
             "icon": "home",
         },
         {
@@ -117,6 +122,25 @@ class DashboardNavigationMixin:
             return True
 
         return all(has_perm(perm) for perm in required_perms)
+
+
+class PaginationMixin:
+    page_size = 10
+
+    def paginate_queryset(
+        self, queryset: object, *, context_name: str
+    ) -> dict[str, object]:
+        paginator = Paginator(queryset, self.page_size)
+        page_obj = paginator.get_page(self.request.GET.get("page"))
+        params = self.request.GET.copy()
+        params.pop("page", None)
+        return {
+            context_name: page_obj.object_list,
+            "page_obj": page_obj,
+            "paginator": paginator,
+            "is_paginated": page_obj.has_other_pages(),
+            "pagination_query": params.urlencode(),
+        }
 
 
 class AccountHomeView(DashboardNavigationMixin, LoginRequiredMixin, TemplateView):
@@ -207,7 +231,11 @@ class ForgotPasswordCompleteView(PasswordResetCompleteView):
 
 
 class UserManagementView(
-    DashboardNavigationMixin, LoginRequiredMixin, PermissionRequiredMixin, TemplateView
+    DashboardNavigationMixin,
+    PaginationMixin,
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    TemplateView,
 ):
     template_name = "accounts/users.html"
     permission_required = "accounts.view_user"
@@ -236,7 +264,9 @@ class UserManagementView(
         if group:
             users = users.filter(groups__name=group).distinct()
 
-        context["users"] = users
+        pagination = self.paginate_queryset(users, context_name="users")
+        context.update(pagination)
+        context["total_users"] = pagination["paginator"].count
         context["groups"] = Group.objects.order_by("name")
         context["filters"] = {
             "q": search,
@@ -247,8 +277,52 @@ class UserManagementView(
         return context
 
 
+class RolePermissionContextMixin:
+    @staticmethod
+    def _permission_label(permission: Permission) -> str:
+        action, _separator, _model_codename = permission.codename.partition("_")
+        model_class = permission.content_type.model_class()
+        if model_class is None:
+            return permission.name
+
+        model_label = str(model_class._meta.verbose_name)
+        if action == "add":
+            return _("Can add %(model)s") % {"model": model_label}
+        if action == "change":
+            return _("Can change %(model)s") % {"model": model_label}
+        if action == "delete":
+            return _("Can delete %(model)s") % {"model": model_label}
+        if action == "view":
+            return _("Can view %(model)s") % {"model": model_label}
+        return permission.name
+
+    @classmethod
+    def get_permission_groups(cls) -> list[dict[str, object]]:
+        permissions = Permission.objects.select_related("content_type").order_by(
+            "content_type__app_label", "name"
+        )
+        groups: dict[str, list[dict[str, object]]] = {}
+        for permission in permissions:
+            app_label = permission.content_type.app_label.replace("_", " ").title()
+            groups.setdefault(app_label, []).append(
+                {
+                    "pk": permission.pk,
+                    "label": cls._permission_label(permission),
+                }
+            )
+        return [{"label": label, "items": items} for label, items in groups.items()]
+
+    def can_manage_members(self) -> bool:
+        return self.request.user.has_perm("accounts.change_user")
+
+
 class RoleManagementView(
-    DashboardNavigationMixin, LoginRequiredMixin, PermissionRequiredMixin, TemplateView
+    DashboardNavigationMixin,
+    PaginationMixin,
+    RolePermissionContextMixin,
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    TemplateView,
 ):
     template_name = "accounts/roles.html"
     permission_required = "auth.view_group"
@@ -257,10 +331,221 @@ class RoleManagementView(
 
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
         context = super().get_context_data(**kwargs)
-        context["roles"] = Group.objects.prefetch_related("permissions").order_by(
-            "name"
+        base_roles = Group.objects.prefetch_related("permissions", "user_set").annotate(
+            members_count=Count("user", distinct=True),
+            permissions_count=Count("permissions", distinct=True),
         )
+        roles = base_roles
+        search = self.request.GET.get("q", "").strip()
+        members = self.request.GET.get("members", "").strip()
+        order = self.request.GET.get("order", "name").strip()
+        allowed_members_filters = {"with", "without"}
+        selected_members = members if members in allowed_members_filters else ""
+
+        if search:
+            roles = roles.filter(name__icontains=search)
+        if selected_members == "with":
+            roles = roles.filter(members_count__gt=0)
+        elif selected_members == "without":
+            roles = roles.filter(members_count=0)
+
+        ordering_map = {
+            "name": "name",
+            "name_desc": "-name",
+            "permissions_desc": "-permissions_count",
+            "members_desc": "-members_count",
+        }
+        selected_order = order if order in ordering_map else "name"
+        roles = roles.order_by(ordering_map[selected_order], "name")
+
+        pagination = self.paginate_queryset(roles, context_name="roles")
+        context.update(pagination)
+        context["total_roles"] = base_roles.count()
+        context["filtered_roles_count"] = pagination["paginator"].count
+        context["role_filters"] = {
+            "q": search,
+            "members": selected_members,
+            "order": selected_order,
+        }
+        context["active_filter_count"] = sum(
+            bool(value)
+            for value in (
+                search,
+                selected_members,
+                selected_order if selected_order != "name" else "",
+            )
+        )
+        context["can_create_roles"] = self.request.user.has_perm("auth.add_group")
+        context["can_manage_roles"] = self.request.user.has_perm("auth.change_group")
+        context["can_delete_roles"] = self.request.user.has_perm("auth.delete_group")
         return context
+
+
+class RoleCreateView(
+    DashboardNavigationMixin,
+    RolePermissionContextMixin,
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    TemplateView,
+):
+    template_name = "accounts/role_form.html"
+    permission_required = ("auth.view_group", "auth.add_group")
+    raise_exception = True
+    active_menu_key = "groups"
+
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context = super().get_context_data(**kwargs)
+        context["form"] = kwargs.get("form") or RoleManagementForm(
+            prefix="role",
+            can_manage_members=self.can_manage_members(),
+        )
+        context["permission_groups"] = self.get_permission_groups()
+        context["is_create"] = True
+        return context
+
+    def get(
+        self, request: HttpRequest, *args: object, **kwargs: object
+    ) -> HttpResponse:
+        del args, kwargs
+        return self.render_to_response(self.get_context_data())
+
+    def post(
+        self, request: HttpRequest, *args: object, **kwargs: object
+    ) -> HttpResponse:
+        del args, kwargs
+        form = RoleManagementForm(
+            request.POST,
+            prefix="role",
+            can_manage_members=self.can_manage_members(),
+        )
+        if not form.is_valid():
+            return self.render_to_response(self.get_context_data(form=form), status=400)
+
+        role = form.save()
+        log_audit_event(
+            request=request,
+            action="role.create",
+            target=role.name,
+            details={
+                "permissions_count": role.permissions.count(),
+                "members_count": role.user_set.count(),
+            },
+        )
+        messages.success(request, _("Role created successfully."))
+        return redirect("accounts:roles")
+
+
+class RoleDetailView(
+    DashboardNavigationMixin,
+    RolePermissionContextMixin,
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    TemplateView,
+):
+    template_name = "accounts/role_detail.html"
+    permission_required = "auth.view_group"
+    raise_exception = True
+    active_menu_key = "groups"
+
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context = super().get_context_data(**kwargs)
+        role = get_object_or_404(
+            Group.objects.prefetch_related("permissions", "user_set"), pk=kwargs["pk"]
+        )
+        context["role"] = role
+        context["role_permissions_display"] = [
+            self._permission_label(permission) for permission in role.permissions.all()
+        ]
+        context["can_manage_roles"] = self.request.user.has_perm("auth.change_group")
+        context["can_delete_roles"] = self.request.user.has_perm("auth.delete_group")
+        return context
+
+
+class RoleUpdateView(
+    DashboardNavigationMixin,
+    RolePermissionContextMixin,
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    TemplateView,
+):
+    template_name = "accounts/role_form.html"
+    permission_required = ("auth.view_group", "auth.change_group")
+    raise_exception = True
+    active_menu_key = "groups"
+
+    def _get_role(self, pk: int) -> Group:
+        return get_object_or_404(Group, pk=pk)
+
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context = super().get_context_data(**kwargs)
+        role = kwargs.get("role")
+        if not isinstance(role, Group):
+            role = self._get_role(kwargs["pk"])
+        context["role"] = role
+        context["form"] = kwargs.get("form") or RoleManagementForm(
+            instance=role,
+            prefix="role",
+            can_manage_members=self.can_manage_members(),
+        )
+        context["permission_groups"] = self.get_permission_groups()
+        context["is_create"] = False
+        return context
+
+    def get(
+        self, request: HttpRequest, *args: object, **kwargs: object
+    ) -> HttpResponse:
+        del request, args
+        return self.render_to_response(self.get_context_data(**kwargs))
+
+    def post(
+        self, request: HttpRequest, *args: object, **kwargs: object
+    ) -> HttpResponse:
+        del args
+        role = self._get_role(kwargs["pk"])
+        form = RoleManagementForm(
+            request.POST,
+            instance=role,
+            prefix="role",
+            can_manage_members=self.can_manage_members(),
+        )
+        if not form.is_valid():
+            return self.render_to_response(
+                self.get_context_data(role=role, form=form),
+                status=400,
+            )
+
+        updated_role = form.save()
+        log_audit_event(
+            request=request,
+            action="role.update",
+            target=updated_role.name,
+            details={
+                "permissions_count": updated_role.permissions.count(),
+                "members_count": updated_role.user_set.count(),
+            },
+        )
+        messages.success(request, _("Role updated successfully."))
+        return redirect("accounts:role_detail", pk=updated_role.pk)
+
+
+class RoleDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = ("auth.view_group", "auth.delete_group")
+    raise_exception = True
+
+    def post(
+        self, request: HttpRequest, *args: object, **kwargs: object
+    ) -> HttpResponse:
+        role = get_object_or_404(Group, pk=kwargs["pk"])
+        role_name = role.name
+        role.delete()
+        log_audit_event(
+            request=request,
+            action="role.delete",
+            target=role_name,
+            details={},
+        )
+        messages.success(request, _("Role removed successfully."))
+        return redirect("accounts:roles")
 
 
 class UserCreateView(
@@ -382,7 +667,11 @@ class PlatformSettingsView(
 
 
 class AuditLogListView(
-    DashboardNavigationMixin, LoginRequiredMixin, PermissionRequiredMixin, TemplateView
+    DashboardNavigationMixin,
+    PaginationMixin,
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    TemplateView,
 ):
     template_name = "accounts/audit_logs.html"
     permission_required = "accounts.view_auditlog"
@@ -391,19 +680,47 @@ class AuditLogListView(
 
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
         context = super().get_context_data(**kwargs)
+        context["show_secondary_content"] = False
         search = self.request.GET.get("q", "").strip()
         action = self.request.GET.get("action", "").strip()
+        start_date_raw = self.request.GET.get("start_date", "").strip()
+        end_date_raw = self.request.GET.get("end_date", "").strip()
+
+        start_date = self._parse_iso_date(start_date_raw)
+        end_date = self._parse_iso_date(end_date_raw)
+
         logs = AuditLog.objects.select_related("actor")
         if search:
             logs = logs.filter(target__icontains=search)
         if action:
             logs = logs.filter(action=action)
+        if start_date:
+            logs = logs.filter(created_at__date__gte=start_date)
+        if end_date:
+            logs = logs.filter(created_at__date__lte=end_date)
+        if start_date and end_date and start_date > end_date:
+            messages.error(self.request, _("Start date cannot be after end date."))
+            logs = AuditLog.objects.none()
 
-        context["logs"] = logs[:100]
+        context.update(self.paginate_queryset(logs, context_name="logs"))
         context["actions"] = (
             AuditLog.objects.order_by("action")
             .values_list("action", flat=True)
             .distinct()
         )
-        context["filters"] = {"q": search, "action": action}
+        context["filters"] = {
+            "q": search,
+            "action": action,
+            "start_date": start_date_raw,
+            "end_date": end_date_raw,
+        }
         return context
+
+    @staticmethod
+    def _parse_iso_date(value: str) -> date | None:
+        if not value:
+            return None
+        try:
+            return date.fromisoformat(value)
+        except ValueError:
+            return None

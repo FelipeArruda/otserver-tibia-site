@@ -1,3 +1,6 @@
+from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
@@ -5,9 +8,11 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core import mail
 from django.test import Client, override_settings
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
+from accounts.forms import PlatformSettingForm
 from accounts.models import AuditLog, PlatformSetting
 
 
@@ -227,6 +232,414 @@ def test_default_roles_are_seeded() -> None:
 
 
 @pytest.mark.django_db
+def test_roles_list_filters_by_name_and_members() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="roles-filter@example.com",
+        password="StrongPass123!",
+    )
+    manager.user_permissions.add(Permission.objects.get(codename="view_group"))
+
+    with_members = Group.objects.create(name="Alpha Team")
+    without_members = Group.objects.create(name="Zulu Team")
+    with_members.user_set.add(manager)
+    del without_members
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+
+    search_response = client.get(reverse("accounts:roles"), {"q": "Alpha"})
+    search_content = search_response.content.decode("utf-8")
+    assert "Alpha Team" in search_content
+    assert "Zulu Team" not in search_content
+
+    members_response = client.get(reverse("accounts:roles"), {"members": "with"})
+    members_content = members_response.content.decode("utf-8")
+    assert "Alpha Team" in members_content
+    assert "Zulu Team" not in members_content
+
+    without_members_response = client.get(
+        reverse("accounts:roles"), {"members": "without"}
+    )
+    without_members_content = without_members_response.content.decode("utf-8")
+    assert "Alpha Team" not in without_members_content
+    assert "Zulu Team" in without_members_content
+
+
+@pytest.mark.django_db
+def test_roles_list_orders_by_permissions_desc() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="roles-order@example.com",
+        password="StrongPass123!",
+    )
+    manager.user_permissions.add(Permission.objects.get(codename="view_group"))
+
+    low_role = Group.objects.create(name="Low Perm")
+    high_role = Group.objects.create(name="High Perm")
+    high_role.permissions.add(
+        Permission.objects.get(codename="view_user"),
+        Permission.objects.get(codename="change_user"),
+    )
+    low_role.permissions.add(Permission.objects.get(codename="view_user"))
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+    response = client.get(reverse("accounts:roles"), {"order": "permissions_desc"})
+    content = response.content.decode("utf-8")
+
+    assert response.status_code == 200
+    assert content.find("High Perm") < content.find("Low Perm")
+
+
+@pytest.mark.django_db
+def test_roles_list_orders_by_members_and_falls_back_on_invalid_order() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="roles-order-members@example.com",
+        password="StrongPass123!",
+    )
+    manager.user_permissions.add(Permission.objects.get(codename="view_group"))
+
+    Group.objects.create(name="A Role")
+    role_b = Group.objects.create(name="B Role")
+    Group.objects.create(name="C Role")
+    role_b.user_set.add(manager)
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+
+    members_order_response = client.get(
+        reverse("accounts:roles"), {"order": "members_desc"}
+    )
+    members_content = members_order_response.content.decode("utf-8")
+    assert members_order_response.status_code == 200
+    assert members_content.find("B Role") < members_content.find("A Role")
+
+    name_desc_response = client.get(reverse("accounts:roles"), {"order": "name_desc"})
+    name_desc_content = name_desc_response.content.decode("utf-8")
+    assert name_desc_response.status_code == 200
+    assert name_desc_content.find("C Role") < name_desc_content.find("A Role")
+
+    invalid_order_response = client.get(reverse("accounts:roles"), {"order": "invalid"})
+    invalid_order_content = invalid_order_response.content.decode("utf-8")
+    assert invalid_order_response.status_code == 200
+    assert invalid_order_content.find("A Role") < invalid_order_content.find("C Role")
+
+
+@pytest.mark.django_db
+def test_roles_list_is_paginated_and_keeps_filters_in_links() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="roles-pagination@example.com",
+        password="StrongPass123!",
+    )
+    manager.user_permissions.add(Permission.objects.get(codename="view_group"))
+
+    for index in range(15):
+        Group.objects.create(name=f"PaginatedRole{index:02d}")
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+    response = client.get(reverse("accounts:roles"), {"q": "PaginatedRole"})
+
+    assert response.status_code == 200
+    assert response.context["is_paginated"] is True
+    assert response.context["paginator"].per_page == 10
+    assert len(response.context["roles"]) == 10
+    assert "?page=2&q=PaginatedRole" in response.content.decode("utf-8")
+
+    second_page = client.get(
+        reverse("accounts:roles"), {"q": "PaginatedRole", "page": 2}
+    )
+    assert second_page.status_code == 200
+    assert len(second_page.context["roles"]) == 5
+
+
+@pytest.mark.django_db
+def test_role_create_requires_add_group_permission() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="role-creator-denied@example.com",
+        password="StrongPass123!",
+    )
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+
+    denied = client.post(
+        reverse("accounts:role_create"),
+        {
+            "role-name": "Content Team",
+            "role-permissions": [Permission.objects.get(codename="view_user").pk],
+        },
+    )
+    assert denied.status_code == 403
+
+    manager.user_permissions.add(
+        Permission.objects.get(codename="add_group"),
+        Permission.objects.get(codename="view_group"),
+    )
+    allowed = client.post(
+        reverse("accounts:role_create"),
+        {
+            "role-name": "Content Team",
+            "role-permissions": [Permission.objects.get(codename="view_user").pk],
+        },
+    )
+    assert allowed.status_code == 302
+    assert Group.objects.filter(name="Content Team").exists()
+    assert AuditLog.objects.filter(action="role.create", target="Content Team").exists()
+
+
+@pytest.mark.django_db
+def test_role_create_get_requires_permissions() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="role-create-get@example.com",
+        password="StrongPass123!",
+    )
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+
+    denied = client.get(reverse("accounts:role_create"))
+    assert denied.status_code == 403
+
+    manager.user_permissions.add(
+        Permission.objects.get(codename="view_group"),
+        Permission.objects.get(codename="add_group"),
+    )
+    allowed = client.get(reverse("accounts:role_create"))
+    assert allowed.status_code == 200
+
+
+@pytest.mark.django_db
+def test_role_create_page_is_translated_in_portuguese() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="role-create-lang@example.com",
+        password="StrongPass123!",
+    )
+    manager.user_permissions.add(
+        Permission.objects.get(codename="view_group"),
+        Permission.objects.get(codename="add_group"),
+    )
+
+    client = Client()
+    client.post(reverse("set_language"), {"language": "pt-br", "next": "/"})
+    assert client.login(username=manager.email, password="StrongPass123!")
+    response = client.get(reverse("accounts:role_create"))
+    content = response.content.decode("utf-8")
+
+    assert response.status_code == 200
+    assert "Criar papel" in content
+    assert "Voltar para papéis" in content
+    assert "Pode visualizar" in content
+
+
+@pytest.mark.django_db
+def test_role_create_shows_inline_error_for_duplicate_name() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="role-creator-duplicate@example.com",
+        password="StrongPass123!",
+    )
+    manager.user_permissions.add(
+        Permission.objects.get(codename="view_group"),
+        Permission.objects.get(codename="add_group"),
+    )
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+    response = client.post(
+        reverse("accounts:role_create"),
+        {
+            "role-name": "owner",
+            "role-permissions": [Permission.objects.get(codename="view_user").pk],
+        },
+    )
+
+    assert response.status_code == 400
+    assert "A role with this name already exists." in response.content.decode("utf-8")
+
+
+@pytest.mark.django_db
+def test_role_create_shows_inline_error_for_invalid_permission() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="role-creator-invalid-perm@example.com",
+        password="StrongPass123!",
+    )
+    manager.user_permissions.add(
+        Permission.objects.get(codename="view_group"),
+        Permission.objects.get(codename="add_group"),
+    )
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+    response = client.post(
+        reverse("accounts:role_create"),
+        {
+            "role-name": "Role Invalid Perm",
+            "role-permissions": ["999999"],
+        },
+    )
+
+    assert response.status_code == 400
+    assert "Select a valid choice." in response.content.decode("utf-8")
+
+
+@pytest.mark.django_db
+def test_role_update_updates_permissions_and_members() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="role-editor@example.com",
+        password="StrongPass123!",
+    )
+    member = user_model.objects.create_user(
+        email="member@example.com",
+        password="StrongPass123!",
+    )
+    role = Group.objects.create(name="Ops")
+    role.permissions.add(Permission.objects.get(codename="view_group"))
+
+    manager.user_permissions.add(
+        Permission.objects.get(codename="view_group"),
+        Permission.objects.get(codename="change_group"),
+        Permission.objects.get(codename="change_user"),
+    )
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+
+    response = client.post(
+        reverse("accounts:role_update", kwargs={"pk": role.pk}),
+        {
+            "role-name": "Operations",
+            "role-permissions": [Permission.objects.get(codename="view_user").pk],
+            "role-members": [member.pk],
+        },
+    )
+
+    assert response.status_code == 302
+    role.refresh_from_db()
+    assert role.name == "Operations"
+    assert role.permissions.filter(codename="view_user").exists()
+    assert role.user_set.filter(email=member.email).exists()
+    assert AuditLog.objects.filter(action="role.update", target="Operations").exists()
+
+
+@pytest.mark.django_db
+def test_role_update_without_change_user_does_not_change_members() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="role-editor-limited@example.com",
+        password="StrongPass123!",
+    )
+    current_member = user_model.objects.create_user(
+        email="current-member@example.com",
+        password="StrongPass123!",
+    )
+    other_member = user_model.objects.create_user(
+        email="other-member@example.com",
+        password="StrongPass123!",
+    )
+    role = Group.objects.create(name="Viewer Ops")
+    role.user_set.add(current_member)
+
+    manager.user_permissions.add(
+        Permission.objects.get(codename="view_group"),
+        Permission.objects.get(codename="change_group"),
+    )
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+
+    response = client.post(
+        reverse("accounts:role_update", kwargs={"pk": role.pk}),
+        {
+            "role-name": "Viewer Ops",
+            "role-permissions": [],
+            "role-members": [other_member.pk],
+        },
+    )
+
+    assert response.status_code == 302
+    role.refresh_from_db()
+    assert role.user_set.filter(email=current_member.email).exists()
+    assert not role.user_set.filter(email=other_member.email).exists()
+
+
+@pytest.mark.django_db
+def test_role_update_get_requires_permissions() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="role-update-get@example.com",
+        password="StrongPass123!",
+    )
+    role = Group.objects.create(name="Role Update Get")
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+
+    denied = client.get(reverse("accounts:role_update", kwargs={"pk": role.pk}))
+    assert denied.status_code == 403
+
+    manager.user_permissions.add(
+        Permission.objects.get(codename="view_group"),
+        Permission.objects.get(codename="change_group"),
+    )
+    allowed = client.get(reverse("accounts:role_update", kwargs={"pk": role.pk}))
+    assert allowed.status_code == 200
+
+
+@pytest.mark.django_db
+def test_role_detail_requires_view_group_permission() -> None:
+    user_model = get_user_model()
+    user = user_model.objects.create_user(
+        email="role-detail@example.com",
+        password="StrongPass123!",
+    )
+    role = Group.objects.create(name="Role Detail")
+
+    client = Client()
+    assert client.login(username=user.email, password="StrongPass123!")
+
+    denied = client.get(reverse("accounts:role_detail", kwargs={"pk": role.pk}))
+    assert denied.status_code == 403
+
+    user.user_permissions.add(Permission.objects.get(codename="view_group"))
+    allowed = client.get(reverse("accounts:role_detail", kwargs={"pk": role.pk}))
+    assert allowed.status_code == 200
+    assert "Role Detail" in allowed.content.decode("utf-8")
+
+
+@pytest.mark.django_db
+def test_role_delete_requires_delete_group_permission() -> None:
+    user_model = get_user_model()
+    user = user_model.objects.create_user(
+        email="role-delete@example.com",
+        password="StrongPass123!",
+    )
+    role = Group.objects.create(name="Role Delete")
+
+    client = Client()
+    assert client.login(username=user.email, password="StrongPass123!")
+
+    denied = client.post(reverse("accounts:role_delete", kwargs={"pk": role.pk}))
+    assert denied.status_code == 403
+    assert Group.objects.filter(pk=role.pk).exists()
+
+    user.user_permissions.add(
+        Permission.objects.get(codename="view_group"),
+        Permission.objects.get(codename="delete_group"),
+    )
+    allowed = client.post(reverse("accounts:role_delete", kwargs={"pk": role.pk}))
+    assert allowed.status_code == 302
+    assert not Group.objects.filter(pk=role.pk).exists()
+    assert AuditLog.objects.filter(action="role.delete", target="Role Delete").exists()
+
+
+@pytest.mark.django_db
 def test_user_create_route_requires_add_user_permission() -> None:
     user_model = get_user_model()
     manager = user_model.objects.create_user(
@@ -340,6 +753,35 @@ def test_user_filters_by_status_and_search() -> None:
 
 
 @pytest.mark.django_db
+def test_users_list_is_paginated_and_keeps_filters_in_links() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="users-pagination@example.com", password="StrongPass123!"
+    )
+    manager.user_permissions.add(Permission.objects.get(codename="view_user"))
+
+    for index in range(15):
+        user_model.objects.create_user(
+            email=f"pag-user-{index:02d}@example.com",
+            password="StrongPass123!",
+        )
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+    response = client.get(reverse("accounts:users"), {"q": "pag-user"})
+
+    assert response.status_code == 200
+    assert response.context["is_paginated"] is True
+    assert response.context["paginator"].per_page == 10
+    assert len(response.context["users"]) == 10
+    assert "?page=2&q=pag-user" in response.content.decode("utf-8")
+
+    second_page = client.get(reverse("accounts:users"), {"q": "pag-user", "page": 2})
+    assert second_page.status_code == 200
+    assert len(second_page.context["users"]) == 5
+
+
+@pytest.mark.django_db
 def test_platform_settings_route_requires_change_permission() -> None:
     user_model = get_user_model()
     manager = user_model.objects.create_user(
@@ -390,6 +832,89 @@ def test_platform_settings_can_be_updated() -> None:
     assert platform_settings.primary_color == "#0ea5e9"
     assert client.session.get("django_language") == "pt-br"
     assert response.cookies["django_language"].value == "pt-br"
+
+
+@pytest.mark.django_db
+def test_platform_settings_form_lists_timezones() -> None:
+    form = PlatformSettingForm(instance=PlatformSetting.get_solo())
+    choices = {value for value, _label in form.fields["default_timezone"].choices}
+    rendered = str(form["default_timezone"])
+
+    assert "America/Sao_Paulo" in choices
+    assert "UTC" in choices
+    assert rendered.count("<option") > 10
+
+
+@pytest.mark.django_db
+def test_platform_settings_form_falls_back_when_timezone_database_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("accounts.forms.available_timezones", lambda: set())
+    form = PlatformSettingForm(instance=PlatformSetting.get_solo())
+    choices = {value for value, _label in form.fields["default_timezone"].choices}
+
+    assert "UTC" in choices
+    assert "America/Sao_Paulo" in choices
+
+
+@pytest.mark.django_db
+def test_platform_settings_form_uses_utc_when_stored_timezone_is_blank() -> None:
+    platform_settings = PlatformSetting.get_solo()
+    platform_settings.default_timezone = ""
+    platform_settings.save(update_fields=["default_timezone"])
+
+    form = PlatformSettingForm(instance=platform_settings)
+    choices = {value for value, _label in form.fields["default_timezone"].choices}
+
+    assert form.initial["default_timezone"] == "UTC"
+    assert "UTC" in choices
+
+
+@pytest.mark.django_db
+def test_platform_settings_rejects_invalid_timezone() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="platform-invalid-timezone@example.com",
+        password="StrongPass123!",
+    )
+    manager.user_permissions.add(
+        Permission.objects.get(codename="change_platformsetting")
+    )
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+    response = client.post(
+        reverse("accounts:platform_settings"),
+        {
+            "platform_name": "Painel OTServ BR",
+            "default_language": "pt-br",
+            "default_timezone": "Invalid/Timezone",
+            "primary_color": "#0ea5e9",
+            "logo_url": "https://example.com/logo.png",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.context is not None
+    assert "default_timezone" in response.context["form"].errors
+
+
+@pytest.mark.django_db
+def test_platform_default_timezone_is_applied_globally() -> None:
+    user_model = get_user_model()
+    user_model.objects.create_user(
+        email="timezone-user@example.com", password="StrongPass123!"
+    )
+
+    platform_settings = PlatformSetting.get_solo()
+    platform_settings.default_timezone = "America/Sao_Paulo"
+    platform_settings.save(update_fields=["default_timezone"])
+
+    client = Client()
+    response = client.get(reverse("accounts:login"))
+
+    assert response.status_code == 200
+    assert timezone.get_current_timezone_name() == "America/Sao_Paulo"
 
 
 @pytest.mark.django_db
@@ -484,6 +1009,130 @@ def test_audit_route_requires_view_permission() -> None:
     user.user_permissions.add(Permission.objects.get(codename="view_auditlog"))
     allowed = client.get(reverse("accounts:audit_logs"))
     assert allowed.status_code == 200
+
+
+@pytest.mark.django_db
+def test_audit_logs_are_paginated_and_keep_filter_links() -> None:
+    user_model = get_user_model()
+    auditor = user_model.objects.create_user(
+        email="auditor-pagination@example.com", password="StrongPass123!"
+    )
+    auditor.user_permissions.add(Permission.objects.get(codename="view_auditlog"))
+
+    for index in range(13):
+        AuditLog.objects.create(
+            actor=auditor,
+            action="audit.page",
+            target=f"paginated-target-{index}",
+            details={},
+        )
+    for index in range(3):
+        AuditLog.objects.create(
+            actor=auditor,
+            action="audit.other",
+            target=f"other-target-{index}",
+            details={},
+        )
+
+    client = Client()
+    assert client.login(username=auditor.email, password="StrongPass123!")
+    response = client.get(reverse("accounts:audit_logs"), {"action": "audit.page"})
+
+    assert response.status_code == 200
+    assert response.context["is_paginated"] is True
+    assert response.context["paginator"].per_page == 10
+    assert response.context["show_secondary_content"] is False
+    assert len(response.context["logs"]) == 10
+    assert all(entry.action == "audit.page" for entry in response.context["logs"])
+    content = response.content.decode("utf-8")
+    assert "?page=2&action=audit.page" in content
+    assert f'href="{reverse("accounts:audit_logs")}"' in content
+    assert ">Clear<" in content
+    assert "xl:grid-cols-1" in content
+
+    second_page = client.get(
+        reverse("accounts:audit_logs"), {"action": "audit.page", "page": 2}
+    )
+    assert second_page.status_code == 200
+    assert len(second_page.context["logs"]) == 3
+    assert all(entry.action == "audit.page" for entry in second_page.context["logs"])
+
+
+@pytest.mark.django_db
+def test_audit_logs_filter_by_date_range() -> None:
+    user_model = get_user_model()
+    auditor = user_model.objects.create_user(
+        email="auditor-date-range@example.com", password="StrongPass123!"
+    )
+    auditor.user_permissions.add(Permission.objects.get(codename="view_auditlog"))
+
+    old_log = AuditLog.objects.create(
+        actor=auditor,
+        action="audit.range",
+        target="old-target",
+        details={},
+    )
+    mid_log = AuditLog.objects.create(
+        actor=auditor,
+        action="audit.range",
+        target="mid-target",
+        details={},
+    )
+    new_log = AuditLog.objects.create(
+        actor=auditor,
+        action="audit.range",
+        target="new-target",
+        details={},
+    )
+
+    now = datetime.now(dt_timezone.utc)
+    AuditLog.objects.filter(pk=old_log.pk).update(created_at=now - timedelta(days=5))
+    AuditLog.objects.filter(pk=mid_log.pk).update(created_at=now - timedelta(days=2))
+    AuditLog.objects.filter(pk=new_log.pk).update(created_at=now)
+
+    start_date = (now - timedelta(days=3)).date().isoformat()
+    end_date = (now - timedelta(days=1)).date().isoformat()
+
+    client = Client()
+    assert client.login(username=auditor.email, password="StrongPass123!")
+    response = client.get(
+        reverse("accounts:audit_logs"),
+        {"action": "audit.range", "start_date": start_date, "end_date": end_date},
+    )
+    content = response.content.decode("utf-8")
+
+    assert response.status_code == 200
+    assert "mid-target" in content
+    assert "old-target" not in content
+    assert "new-target" not in content
+
+
+@pytest.mark.django_db
+def test_audit_logs_invalid_date_range_returns_empty_and_message() -> None:
+    user_model = get_user_model()
+    auditor = user_model.objects.create_user(
+        email="auditor-invalid-range@example.com", password="StrongPass123!"
+    )
+    auditor.user_permissions.add(Permission.objects.get(codename="view_auditlog"))
+    AuditLog.objects.create(
+        actor=auditor,
+        action="audit.invalid-range",
+        target="target",
+        details={},
+    )
+
+    client = Client()
+    assert client.login(username=auditor.email, password="StrongPass123!")
+    response = client.get(
+        reverse("accounts:audit_logs"),
+        {"start_date": "2026-03-10", "end_date": "2026-03-01"},
+    )
+    content = response.content.decode("utf-8")
+
+    assert response.status_code == 200
+    assert "Start date cannot be after end date." in content
+    assert "No audit records found." in content
+    assert len(response.context["logs"]) == 0
 
 
 @pytest.mark.django_db

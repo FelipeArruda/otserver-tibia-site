@@ -1,5 +1,5 @@
 {% extends "accounts/dashboard_base.html" %}
-{% load i18n %}
+{% load i18n tz %}
 
 {% block page_title %}{% trans "Audit Logs" %}{% endblock %}
 {% block page_kicker %}SECURITY{% endblock %}
@@ -8,7 +8,7 @@
 
 {% block primary_content %}
   <section class="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-    <form method="get" class="grid gap-3 md:grid-cols-3">
+    <form method="get" class="grid gap-3 md:grid-cols-2 xl:grid-cols-[repeat(4,minmax(0,1fr))_auto_auto]">
       <input name="q" value="{{ filters.q }}" placeholder="{% trans 'Search by target' %}" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100">
       <select name="action" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100">
         <option value="">{% trans "All actions" %}</option>
@@ -16,7 +16,10 @@
           <option value="{{ action_name }}" {% if filters.action == action_name %}selected{% endif %}>{{ action_name }}</option>
         {% endfor %}
       </select>
+      <input type="date" name="start_date" value="{{ filters.start_date }}" placeholder="{% trans 'Start date' %}" aria-label="{% trans 'Start date' %}" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100">
+      <input type="date" name="end_date" value="{{ filters.end_date }}" placeholder="{% trans 'End date' %}" aria-label="{% trans 'End date' %}" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100">
       <button type="submit" class="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">{% trans "Apply filters" %}</button>
+      <a href="{% url 'accounts:audit_logs' %}" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50">{% trans "Clear" %}</a>
     </form>
   </section>
 
@@ -35,7 +38,7 @@
         <tbody class="divide-y divide-slate-100">
           {% for entry in logs %}
             <tr>
-              <td class="px-4 py-3 text-slate-600">{{ entry.created_at|date:"Y-m-d H:i:s" }}</td>
+              <td class="px-4 py-3 text-slate-600">{{ entry.created_at|localtime|date:"Y-m-d H:i:s" }}</td>
               <td class="px-4 py-3 font-medium text-slate-900">{% if entry.actor %}{{ entry.actor.email }}{% else %}{% trans "System" %}{% endif %}</td>
               <td class="px-4 py-3 text-slate-700">{{ entry.action }}</td>
               <td class="px-4 py-3 text-slate-700">{{ entry.target }}</td>
@@ -50,4 +53,5 @@
       </table>
     </div>
   </section>
+  {% include "accounts/_pagination.html" %}
 {% endblock %}

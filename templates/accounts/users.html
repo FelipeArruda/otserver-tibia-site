@@ -17,7 +17,7 @@
   <section class="grid gap-4 sm:grid-cols-3">
     <article class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
       <p class="text-xs uppercase tracking-[0.15em] text-slate-500">{% trans "Total users" %}</p>
-      <p class="mt-2 text-2xl font-bold text-slate-900">{{ users|length }}</p>
+      <p class="mt-2 text-2xl font-bold text-slate-900">{{ total_users }}</p>
     </article>
     <article class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
       <p class="text-xs uppercase tracking-[0.15em] text-slate-500">{% trans "Available roles" %}</p>
@@ -110,6 +110,7 @@
       </table>
     </div>
   </section>
+  {% include "accounts/_pagination.html" %}
 {% endblock %}
 
 {% block secondary_content %}
