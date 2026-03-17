@@ -820,6 +820,7 @@ class CharacterListView(
         context["total_online"] = sum(
             character.get("is_online") is True for character in all_filtered_characters
         )
+        context["total_offline"] = context["total_characters"] - context["total_online"]
         context["source_count"] = len(context["otserver_choices"])
         return context
 

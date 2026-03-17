@@ -88,7 +88,7 @@ Implementar a funcionalidade de listagem de personagens vindos dos OTs conectado
   - [x] `ruff check .`
   - [x] `ruff format --check .`
   - [x] `python manage.py makemigrations --check --dry-run`
-  - [ ] `pytest -q` (bloqueado por permissao do banco MySQL para criar `test_crystalserver`)
+  - [x] `pytest -q`
 
 ## Critérios de aceite
 - [x] O menu "Personagens" exibe todos os personagens dos OTs disponíveis.
@@ -96,5 +96,5 @@ Implementar a funcionalidade de listagem de personagens vindos dos OTs conectado
 - [x] Tela mantém padrão profissional, amigável, acessível e responsivo.
 - [x] Todos os textos estão traduzidos e preparados para i18n.
 - [x] Regras de acesso/permissão estão corretas.
-- [ ] Cobertura de testes contempla fluxos críticos e passa localmente. (parcial: novos testes adicionados; suíte completa bloqueada por banco)
+- [x] Cobertura de testes contempla fluxos críticos e passa localmente.
 - [x] Nenhuma regressão relevante nos módulos existentes.
