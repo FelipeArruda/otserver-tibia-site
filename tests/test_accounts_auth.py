@@ -13,7 +13,7 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
 from accounts.forms import PlatformSettingForm
-from accounts.models import AuditLog, PlatformSetting
+from accounts.models import AuditLog, OTServer, PlatformSetting
 
 
 @pytest.mark.django_db
@@ -638,6 +638,244 @@ def test_role_detail_requires_view_group_permission() -> None:
     allowed = client.get(reverse("accounts:role_detail", kwargs={"pk": role.pk}))
     assert allowed.status_code == 200
     assert "Role Detail" in allowed.content.decode("utf-8")
+
+
+@pytest.mark.django_db
+def test_otservers_route_requires_view_permission() -> None:
+    user_model = get_user_model()
+    user = user_model.objects.create_user(
+        email="otservers-view@example.com", password="StrongPass123!"
+    )
+
+    client = Client()
+    assert client.login(username=user.email, password="StrongPass123!")
+    denied = client.get(reverse("accounts:otservers"))
+    assert denied.status_code == 403
+
+    user.user_permissions.add(Permission.objects.get(codename="view_otserver"))
+    allowed = client.get(reverse("accounts:otservers"))
+    assert allowed.status_code == 200
+
+
+@pytest.mark.django_db
+def test_otserver_crud_flow_with_permissions() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="otserver-crud@example.com", password="StrongPass123!"
+    )
+    manager.user_permissions.add(
+        Permission.objects.get(codename="view_otserver"),
+        Permission.objects.get(codename="add_otserver"),
+        Permission.objects.get(codename="change_otserver"),
+        Permission.objects.get(codename="delete_otserver"),
+    )
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+
+    create_response = client.post(
+        reverse("accounts:otserver_create"),
+        {
+            "name": "Crystal Server",
+            "environment": "production",
+            "database_engine": "mysql",
+            "db_host": "localhost",
+            "db_port": 3306,
+            "db_name": "otserv",
+            "db_user": "otserv_user",
+            "db_password": "Secret123!",
+            "db_charset": "utf8mb4",
+            "db_collation": "utf8mb4_unicode_ci",
+            "db_use_ssl": "on",
+            "api_base_url": "https://example.com/api",
+            "api_token": "token-1",
+            "timezone": "UTC",
+            "monitor_enabled": "on",
+            "is_active": "on",
+        },
+    )
+    assert create_response.status_code == 302
+    server = OTServer.objects.get(name="Crystal Server")
+
+    detail_response = client.get(reverse("accounts:otserver_detail", args=[server.pk]))
+    assert detail_response.status_code == 200
+    assert "Crystal Server" in detail_response.content.decode("utf-8")
+
+    update_response = client.post(
+        reverse("accounts:otserver_update", args=[server.pk]),
+        {
+            "name": "Crystal Server",
+            "environment": "staging",
+            "database_engine": "mariadb",
+            "db_host": "127.0.0.1",
+            "db_port": 3307,
+            "db_name": "otserv_staging",
+            "db_user": "otserv_user2",
+            "db_password": "",
+            "db_charset": "utf8mb4",
+            "db_collation": "",
+            "db_use_ssl": "",
+            "api_base_url": "",
+            "api_token": "",
+            "timezone": "America/Sao_Paulo",
+            "monitor_enabled": "on",
+            "is_active": "on",
+        },
+    )
+    assert update_response.status_code == 302
+    server.refresh_from_db()
+    assert server.environment == "staging"
+    assert server.database_engine == "mariadb"
+    assert server.db_password == "Secret123!"
+
+    delete_response = client.post(reverse("accounts:otserver_delete", args=[server.pk]))
+    assert delete_response.status_code == 302
+    assert not OTServer.objects.filter(pk=server.pk).exists()
+
+
+@pytest.mark.django_db
+def test_otserver_create_requires_view_and_add_permissions() -> None:
+    user_model = get_user_model()
+    user = user_model.objects.create_user(
+        email="otserver-create-perm@example.com", password="StrongPass123!"
+    )
+    user.user_permissions.add(Permission.objects.get(codename="add_otserver"))
+
+    client = Client()
+    assert client.login(username=user.email, password="StrongPass123!")
+    denied = client.get(reverse("accounts:otserver_create"))
+    assert denied.status_code == 403
+
+    user.user_permissions.add(Permission.objects.get(codename="view_otserver"))
+    allowed = client.get(reverse("accounts:otserver_create"))
+    assert allowed.status_code == 200
+
+
+@pytest.mark.django_db
+def test_otserver_update_delete_require_view_with_mutation_permissions() -> None:
+    user_model = get_user_model()
+    user = user_model.objects.create_user(
+        email="otserver-mutate-perm@example.com", password="StrongPass123!"
+    )
+    user.user_permissions.add(
+        Permission.objects.get(codename="change_otserver"),
+        Permission.objects.get(codename="delete_otserver"),
+    )
+    server = OTServer.objects.create(
+        name="NoViewPermission",
+        environment="production",
+        database_engine="mysql",
+        db_host="localhost",
+        db_port=3306,
+        db_name="otserv",
+        db_user="user",
+        db_password="secret",
+        timezone="UTC",
+    )
+
+    client = Client()
+    assert client.login(username=user.email, password="StrongPass123!")
+
+    denied_update = client.get(reverse("accounts:otserver_update", args=[server.pk]))
+    denied_delete = client.post(reverse("accounts:otserver_delete", args=[server.pk]))
+    assert denied_update.status_code == 403
+    assert denied_delete.status_code == 403
+
+
+@pytest.mark.django_db
+def test_otserver_create_requires_db_password() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="otserver-password-required@example.com",
+        password="StrongPass123!",
+    )
+    manager.user_permissions.add(
+        Permission.objects.get(codename="view_otserver"),
+        Permission.objects.get(codename="add_otserver"),
+    )
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+    response = client.post(
+        reverse("accounts:otserver_create"),
+        {
+            "name": "NoPasswordServer",
+            "environment": "production",
+            "database_engine": "mysql",
+            "db_host": "localhost",
+            "db_port": 3306,
+            "db_name": "otserv",
+            "db_user": "otserv_user",
+            "db_password": "",
+            "db_charset": "utf8mb4",
+            "db_collation": "",
+            "db_use_ssl": "",
+            "api_base_url": "",
+            "api_token": "",
+            "timezone": "UTC",
+            "monitor_enabled": "on",
+            "is_active": "on",
+        },
+    )
+    assert response.status_code == 200
+    assert "db_password" in response.context["form"].errors
+    assert not OTServer.objects.filter(name="NoPasswordServer").exists()
+
+
+@pytest.mark.django_db
+def test_otserver_list_filters_and_pagination() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="otserver-filter@example.com",
+        password="StrongPass123!",
+    )
+    manager.user_permissions.add(Permission.objects.get(codename="view_otserver"))
+
+    for index in range(12):
+        OTServer.objects.create(
+            name=f"Server-{index}",
+            environment="production" if index % 2 == 0 else "staging",
+            database_engine="mysql" if index % 2 == 0 else "mariadb",
+            db_host="localhost",
+            db_port=3306,
+            db_name=f"db_{index}",
+            db_user="root",
+            db_password="secret",
+            timezone="UTC",
+            is_active=index % 3 != 0,
+        )
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+    response = client.get(
+        reverse("accounts:otservers"),
+        {"environment": "production", "database_engine": "mysql"},
+    )
+
+    assert response.status_code == 200
+    assert response.context["is_paginated"] is False
+    assert all(
+        server.environment == "production" for server in response.context["servers"]
+    )
+    assert all(
+        server.database_engine == "mysql" for server in response.context["servers"]
+    )
+
+    paginated_response = client.get(reverse("accounts:otservers"), {"page": 2})
+    assert paginated_response.status_code == 200
+    assert paginated_response.context["is_paginated"] is True
+    assert paginated_response.context["paginator"].per_page == 10
+
+    pagination_with_filters = client.get(
+        reverse("accounts:otservers"),
+        {"environment": "production", "database_engine": "mysql", "page": 1},
+    )
+    assert (
+        "environment=production" in pagination_with_filters.context["pagination_query"]
+    )
+    assert (
+        "database_engine=mysql" in pagination_with_filters.context["pagination_query"]
+    )
 
 
 @pytest.mark.django_db

@@ -9,7 +9,7 @@ from django.contrib.auth.forms import (
 from django.contrib.auth.models import Group, Permission
 from django.utils.translation import gettext_lazy as _
 
-from accounts.models import PlatformSetting, User
+from accounts.models import OTServer, PlatformSetting, User
 
 BASE_INPUT_CLASSES = (
     "mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-slate-800 "
@@ -318,3 +318,123 @@ class RoleManagementForm(forms.ModelForm):
         if members is not None:
             role.user_set.set(members)
         return role
+
+
+class OTServerForm(forms.ModelForm):
+    timezone = forms.ChoiceField(
+        choices=(),
+        widget=forms.Select(attrs={"class": BASE_INPUT_CLASSES}),
+    )
+    db_password = forms.CharField(
+        label=_("Database password"),
+        required=True,
+        widget=forms.PasswordInput(
+            render_value=False,
+            attrs={
+                "class": BASE_INPUT_CLASSES,
+                "placeholder": _("Keep current password"),
+            },
+        ),
+    )
+    api_token = forms.CharField(
+        label=_("API token"),
+        required=False,
+        widget=forms.PasswordInput(
+            render_value=False,
+            attrs={
+                "class": BASE_INPUT_CLASSES,
+                "placeholder": _("Keep current token"),
+            },
+        ),
+    )
+
+    class Meta:
+        model = OTServer
+        fields = (
+            "name",
+            "environment",
+            "database_engine",
+            "db_host",
+            "db_port",
+            "db_name",
+            "db_user",
+            "db_password",
+            "db_charset",
+            "db_collation",
+            "db_use_ssl",
+            "api_base_url",
+            "api_token",
+            "timezone",
+            "monitor_enabled",
+            "is_active",
+        )
+        widgets = {
+            "name": forms.TextInput(attrs={"class": BASE_INPUT_CLASSES}),
+            "environment": forms.Select(attrs={"class": BASE_INPUT_CLASSES}),
+            "database_engine": forms.Select(attrs={"class": BASE_INPUT_CLASSES}),
+            "db_host": forms.TextInput(attrs={"class": BASE_INPUT_CLASSES}),
+            "db_port": forms.NumberInput(attrs={"class": BASE_INPUT_CLASSES, "min": 1}),
+            "db_name": forms.TextInput(attrs={"class": BASE_INPUT_CLASSES}),
+            "db_user": forms.TextInput(attrs={"class": BASE_INPUT_CLASSES}),
+            "db_charset": forms.TextInput(attrs={"class": BASE_INPUT_CLASSES}),
+            "db_collation": forms.TextInput(attrs={"class": BASE_INPUT_CLASSES}),
+            "db_use_ssl": forms.CheckboxInput(
+                attrs={"class": "h-4 w-4 rounded border-slate-300 text-cyan-600"}
+            ),
+            "api_base_url": forms.URLInput(attrs={"class": BASE_INPUT_CLASSES}),
+            "monitor_enabled": forms.CheckboxInput(
+                attrs={"class": "h-4 w-4 rounded border-slate-300 text-cyan-600"}
+            ),
+            "is_active": forms.CheckboxInput(
+                attrs={"class": "h-4 w-4 rounded border-slate-300 text-cyan-600"}
+            ),
+        }
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields["timezone"].choices = PlatformSettingForm._build_timezone_choices()
+
+        self.fields["environment"].label = _("Environment")
+        self.fields["database_engine"].label = _("Database engine")
+        self.fields["db_host"].label = _("Database host")
+        self.fields["db_port"].label = _("Database port")
+        self.fields["db_name"].label = _("Database name")
+        self.fields["db_user"].label = _("Database user")
+        self.fields["db_charset"].label = _("Database charset")
+        self.fields["db_collation"].label = _("Database collation")
+        self.fields["db_use_ssl"].label = _("Use SSL")
+        self.fields["api_base_url"].label = _("API base URL")
+        self.fields["monitor_enabled"].label = _("Monitoring enabled")
+        self.fields["is_active"].label = _("Active")
+
+        if self.instance.pk:
+            self.fields["db_password"].required = False
+            self.fields["db_password"].help_text = _(
+                "Leave blank to keep the current password."
+            )
+            self.fields["api_token"].help_text = _(
+                "Leave blank to keep the current token."
+            )
+
+    def clean_timezone(self) -> str:
+        timezone_name = self.cleaned_data["timezone"]
+        try:
+            ZoneInfo(timezone_name)
+        except ZoneInfoNotFoundError as exc:
+            raise forms.ValidationError(_("Select a valid timezone.")) from exc
+        return timezone_name
+
+    def save(self, commit: bool = True) -> OTServer:
+        current_server: OTServer | None = None
+        if self.instance.pk:
+            current_server = OTServer.objects.filter(pk=self.instance.pk).first()
+
+        otserver = super().save(commit=False)
+        if current_server is not None:
+            if not self.cleaned_data.get("db_password"):
+                otserver.db_password = current_server.db_password
+            if not self.cleaned_data.get("api_token"):
+                otserver.api_token = current_server.api_token
+        if commit:
+            otserver.save()
+        return otserver
