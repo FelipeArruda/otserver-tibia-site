@@ -140,6 +140,7 @@ def test_home_shows_admin_menus_when_user_has_permissions() -> None:
     content = response.content.decode("utf-8")
 
     assert response.status_code == 200
+    assert 'data-testid="settings-group"' in content
     assert "User Management" in content
     assert "Roles &amp; Groups" in content
     assert reverse("accounts:users") in content
@@ -159,10 +160,30 @@ def test_home_hides_admin_menus_without_permissions() -> None:
     content = response.content.decode("utf-8")
 
     assert response.status_code == 200
+    assert 'data-testid="settings-group"' not in content
     assert "User Management" not in content
     assert "Roles &amp; Groups" not in content
     assert reverse("accounts:users") not in content
     assert reverse("accounts:roles") not in content
+
+
+@pytest.mark.django_db
+def test_home_shows_settings_group_when_one_settings_item_is_allowed() -> None:
+    user_model = get_user_model()
+    user = user_model.objects.create_user(
+        email="settings-group@example.com", password="StrongPass123!"
+    )
+    user.user_permissions.add(Permission.objects.get(codename="view_user"))
+
+    client = Client()
+    assert client.login(username=user.email, password="StrongPass123!")
+    response = client.get(reverse("accounts:home"))
+    content = response.content.decode("utf-8")
+
+    assert response.status_code == 200
+    assert 'data-testid="settings-group"' in content
+    assert "User Management" in content
+    assert "Roles &amp; Groups" not in content
 
 
 @pytest.mark.django_db

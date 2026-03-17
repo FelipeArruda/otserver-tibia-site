@@ -32,7 +32,7 @@ from accounts.services import log_audit_event
 
 
 class DashboardNavigationMixin:
-    menu_items = [
+    main_menu_items = [
         {
             "key": "overview",
             "label": _("Overview"),
@@ -52,6 +52,15 @@ class DashboardNavigationMixin:
             "icon": "shield",
         },
         {
+            "key": "audit",
+            "label": _("Audit Logs"),
+            "href": reverse_lazy("accounts:audit_logs"),
+            "icon": "list",
+            "required_perms": ["accounts.view_auditlog"],
+        },
+    ]
+    settings_menu_items = [
+        {
             "key": "users",
             "label": _("User Management"),
             "href": reverse_lazy("accounts:users"),
@@ -66,13 +75,6 @@ class DashboardNavigationMixin:
             "required_perms": ["auth.view_group"],
         },
         {
-            "key": "audit",
-            "label": _("Audit Logs"),
-            "href": reverse_lazy("accounts:audit_logs"),
-            "icon": "list",
-            "required_perms": ["accounts.view_auditlog"],
-        },
-        {
             "key": "settings",
             "label": _("Platform Settings"),
             "href": reverse_lazy("accounts:platform_settings"),
@@ -84,11 +86,20 @@ class DashboardNavigationMixin:
 
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
         context = super().get_context_data(**kwargs)
-        context["menu_items"] = [
+        context["main_menu_items"] = [
             item
-            for item in self.menu_items
+            for item in self.main_menu_items
             if self._can_view_item(self.request.user, item)
         ]
+        context["settings_menu_items"] = [
+            item
+            for item in self.settings_menu_items
+            if self._can_view_item(self.request.user, item)
+        ]
+        context["show_settings_group"] = bool(context["settings_menu_items"])
+        context["settings_active"] = self.active_menu_key in {
+            item["key"] for item in context["settings_menu_items"]
+        }
         context["active_menu_key"] = self.active_menu_key
         return context
 
