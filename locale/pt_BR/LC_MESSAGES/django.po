@@ -850,3 +850,102 @@ msgstr "Data final"
 
 msgid "Start date cannot be after end date."
 msgstr "A data inicial não pode ser maior que a data final."
+
+msgid "Browse all characters from your connected OTServers."
+msgstr "Navegue por todos os personagens dos seus OTServers conectados."
+
+msgid "Filtered characters"
+msgstr "Personagens filtrados"
+
+msgid "Online now"
+msgstr "Online agora"
+
+msgid "Offline now"
+msgstr "Offline agora"
+
+msgid "Active OT sources"
+msgstr "Fontes OT ativas"
+
+msgid "All OTServers"
+msgstr "Todos os OTServers"
+
+msgid "Search by character name"
+msgstr "Buscar por nome do personagem"
+
+msgid "All vocations"
+msgstr "Todas as vocacoes"
+
+msgid "Online"
+msgstr "Online"
+
+msgid "Offline"
+msgstr "Offline"
+
+msgid "Minimum level"
+msgstr "Level minimo"
+
+msgid "Maximum level"
+msgstr "Level maximo"
+
+msgid "Loading..."
+msgstr "Carregando..."
+
+msgid "Some OTServers could not be queried."
+msgstr "Alguns OTServers nao puderam ser consultados."
+
+msgid "No active OTServers configured."
+msgstr "Nenhum OTServer ativo configurado."
+
+msgid "Configure an OTServer connection to start importing characters."
+msgstr "Configure uma conexao de OTServer para comecar a importar personagens."
+
+msgid "Open OTServers"
+msgstr "Abrir OTServers"
+
+msgid "Character"
+msgstr "Personagem"
+
+msgid "Level"
+msgstr "Level"
+
+msgid "Updated at"
+msgstr "Atualizado em"
+
+msgid "Unknown"
+msgstr "Desconhecido"
+
+msgid "Character data is temporarily unavailable."
+msgstr "Os dados de personagens estao temporariamente indisponiveis."
+
+msgid "Try again in a few moments or verify OTServer connectivity."
+msgstr "Tente novamente em alguns instantes ou verifique a conectividade do OTServer."
+
+msgid "No characters found."
+msgstr "Nenhum personagem encontrado."
+
+msgid "Adjust your filters to find characters from your OTServers."
+msgstr "Ajuste seus filtros para encontrar personagens dos seus OTServers."
+
+msgid "Name (A-Z)"
+msgstr "Nome (A-Z)"
+
+msgid "Name (Z-A)"
+msgstr "Nome (Z-A)"
+
+msgid "Highest level"
+msgstr "Maior level"
+
+msgid "Lowest level"
+msgstr "Menor level"
+
+msgid "Most recently updated"
+msgstr "Atualizados mais recentemente"
+
+msgid "Least recently updated"
+msgstr "Atualizados menos recentemente"
+
+msgid "Players table not found."
+msgstr "Tabela de jogadores nao encontrada."
+
+msgid "Column 'name' not found in players table."
+msgstr "Coluna 'name' nao encontrada na tabela de jogadores."

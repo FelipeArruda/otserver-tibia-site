@@ -34,7 +34,11 @@ from accounts.forms import (
     SignUpForm,
 )
 from accounts.models import AuditLog, OTServer, PlatformSetting, User
-from accounts.services import check_otserver_connections, log_audit_event
+from accounts.services import (
+    check_otserver_connections,
+    list_otserver_characters,
+    log_audit_event,
+)
 
 
 class DashboardNavigationMixin:
@@ -54,8 +58,9 @@ class DashboardNavigationMixin:
         {
             "key": "characters",
             "label": _("Characters"),
-            "href": "#",
+            "href": reverse_lazy("accounts:characters"),
             "icon": "shield",
+            "required_perms": ["accounts.view_otserver"],
         },
         {
             "key": "audit",
@@ -744,6 +749,86 @@ class OTServerListView(
         context["filtered_servers"] = context["paginator"].count
         context["show_secondary_content"] = False
         return context
+
+
+class CharacterListView(
+    DashboardNavigationMixin,
+    PaginationMixin,
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    TemplateView,
+):
+    template_name = "accounts/characters.html"
+    permission_required = "accounts.view_otserver"
+    raise_exception = True
+    active_menu_key = "characters"
+    page_size = 20
+
+    ORDERING_CHOICES = (
+        ("name_asc", _("Name (A-Z)")),
+        ("name_desc", _("Name (Z-A)")),
+        ("level_desc", _("Highest level")),
+        ("level_asc", _("Lowest level")),
+        ("updated_desc", _("Most recently updated")),
+        ("updated_asc", _("Least recently updated")),
+    )
+
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context = super().get_context_data(**kwargs)
+        context["show_secondary_content"] = False
+
+        available_servers = list(OTServer.objects.order_by("name"))
+        selected_otserver = self.request.GET.get("otserver", "").strip()
+        search = self.request.GET.get("q", "").strip()
+        selected_vocation = self.request.GET.get("vocation", "").strip()
+        selected_status = self.request.GET.get("status", "").strip()
+        selected_order = self.request.GET.get("order", "name_asc").strip()
+        min_level = self._parse_level(self.request.GET.get("min_level", ""))
+        max_level = self._parse_level(self.request.GET.get("max_level", ""))
+
+        characters_result = list_otserver_characters(
+            servers=available_servers,
+            search=search,
+            otserver_pk=selected_otserver,
+            vocation=selected_vocation,
+            min_level=min_level,
+            max_level=max_level,
+            status=selected_status,
+            order=selected_order,
+        )
+        all_filtered_characters = characters_result["characters"]
+
+        context.update(
+            self.paginate_queryset(all_filtered_characters, context_name="characters")
+        )
+        context["filters"] = {
+            "otserver": selected_otserver,
+            "q": search,
+            "vocation": selected_vocation,
+            "status": selected_status,
+            "order": selected_order,
+            "min_level": self.request.GET.get("min_level", "").strip(),
+            "max_level": self.request.GET.get("max_level", "").strip(),
+        }
+        context["order_choices"] = self.ORDERING_CHOICES
+        context["otserver_choices"] = [
+            server for server in available_servers if server.is_active
+        ]
+        context["vocation_choices"] = characters_result["available_vocations"]
+        context["source_errors"] = characters_result["errors"]
+        context["total_characters"] = len(all_filtered_characters)
+        context["total_online"] = sum(
+            character.get("is_online") is True for character in all_filtered_characters
+        )
+        context["source_count"] = len(context["otserver_choices"])
+        return context
+
+    @staticmethod
+    def _parse_level(value: str) -> int | None:
+        try:
+            return int(value.strip())
+        except (TypeError, ValueError):
+            return None
 
 
 class OTServerListConnectionTestView(LoginRequiredMixin, PermissionRequiredMixin, View):
