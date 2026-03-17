@@ -144,6 +144,18 @@ WSGI_APPLICATION = "core.wsgi.application"
 DB_ENGINE = os.getenv("DJANGO_DB_ENGINE", "django.db.backends.sqlite3")
 DB_NAME_DEFAULT = str(BASE_DIR / "db.sqlite3") if DB_ENGINE.endswith("sqlite3") else ""
 
+if DB_ENGINE.endswith("mysql"):
+    try:
+        import MySQLdb  # type: ignore  # noqa: F401
+    except ModuleNotFoundError:
+        import pymysql
+
+        # Django >= 5.2 checks mysqlclient minimum version.
+        # When using PyMySQL as MySQLdb fallback, align reported version.
+        pymysql.version_info = (2, 2, 1, "final", 0)
+        pymysql.__version__ = "2.2.1"
+        pymysql.install_as_MySQLdb()
+
 DATABASES = {
     "default": {
         "ENGINE": DB_ENGINE,

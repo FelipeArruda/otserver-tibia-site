@@ -25,6 +25,11 @@ ruff check .
 pytest -q
 ```
 
+## CI and Docker behavior
+- Docker image builds (`Dockerfile.linux` and `Dockerfile.windows`) run `python scripts/compile_messages.py`.
+- CI (`quality.yml` and `release.yml`) recompiles catalogs and fails if `locale` changes are detected (`git diff --exit-code -- locale`).
+- Keep `django.po` and `django.mo` committed together to avoid pipeline failures.
+
 ## Dynamic permission labels
 Role screens render permission labels from codename pattern (`add/change/delete/view`) and model verbose name.
 

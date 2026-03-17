@@ -5,6 +5,7 @@ import urllib.request
 from time import perf_counter
 
 from django.http import HttpRequest
+from django.utils.translation import gettext as _
 
 from accounts.models import AuditLog, User
 
@@ -42,21 +43,21 @@ def check_otserver_connections(
     db_result: dict[str, object] = {
         "ok": False,
         "latency_ms": None,
-        "message": "Database connection failed.",
+        "message": _("Database connection failed."),
     }
     api_result: dict[str, object] = {
         "ok": None,
         "latency_ms": None,
-        "message": "API test skipped.",
+        "message": _("API test skipped."),
     }
 
     try:
         import pymysql
     except Exception:
-        db_result["message"] = "PyMySQL dependency is not installed."
+        db_result["message"] = _("PyMySQL dependency is not installed.")
     else:
         if database_engine not in {"mysql", "mariadb"}:
-            db_result["message"] = "Unsupported database engine."
+            db_result["message"] = _("Unsupported database engine.")
         else:
             connect_kwargs = {
                 "host": db_host,
@@ -81,7 +82,7 @@ def check_otserver_connections(
                 db_result = {
                     "ok": True,
                     "latency_ms": db_latency,
-                    "message": "Database connection succeeded.",
+                    "message": _("Database connection succeeded."),
                 }
             except Exception as exc:
                 db_result["message"] = str(exc)[:240]

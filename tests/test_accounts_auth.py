@@ -782,6 +782,51 @@ def test_otserver_create_requires_view_and_add_permissions() -> None:
 
 
 @pytest.mark.django_db
+def test_otserver_form_is_translated_in_portuguese() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="otserver-lang@example.com", password="StrongPass123!"
+    )
+    manager.user_permissions.add(
+        Permission.objects.get(codename="view_otserver"),
+        Permission.objects.get(codename="add_otserver"),
+    )
+
+    client = Client()
+    client.post(reverse("set_language"), {"language": "pt-br", "next": "/"})
+    assert client.login(username=manager.email, password="StrongPass123!")
+    response = client.get(reverse("accounts:otserver_create"))
+    content = response.content.decode("utf-8")
+
+    assert response.status_code == 200
+    assert "Nome" in content
+    assert "Testar conexão" in content
+
+
+@pytest.mark.django_db
+def test_otserver_form_shows_loading_state_markup_for_connection_test() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="otserver-loading@example.com", password="StrongPass123!"
+    )
+    manager.user_permissions.add(
+        Permission.objects.get(codename="view_otserver"),
+        Permission.objects.get(codename="add_otserver"),
+    )
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+    response = client.get(reverse("accounts:otserver_create"))
+    content = response.content.decode("utf-8")
+
+    assert response.status_code == 200
+    assert "data-test-connection-button" in content
+    assert "data-test-connection-spinner" in content
+    assert "data-test-connection-loading-label" in content
+    assert "Testing connection..." in content
+
+
+@pytest.mark.django_db
 def test_otserver_update_delete_require_view_with_mutation_permissions() -> None:
     user_model = get_user_model()
     user = user_model.objects.create_user(

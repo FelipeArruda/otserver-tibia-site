@@ -9,6 +9,7 @@ COPY requirements.txt /app/requirements.txt
 RUN python -m pip install --upgrade pip; pip install --no-cache-dir -r /app/requirements.txt
 
 COPY . /app
+RUN python scripts/compile_messages.py
 
 EXPOSE 8000
 
