@@ -278,6 +278,14 @@ class UserManagementView(
 
 
 class RolePermissionContextMixin:
+    APP_LABEL_TRANSLATIONS = {
+        "accounts": _("Accounts"),
+        "admin": _("Administration"),
+        "auth": _("Authentication"),
+        "contenttypes": _("Content types"),
+        "sessions": _("Sessions"),
+    }
+
     @staticmethod
     def _permission_label(permission: Permission) -> str:
         action, _separator, _model_codename = permission.codename.partition("_")
@@ -303,7 +311,12 @@ class RolePermissionContextMixin:
         )
         groups: dict[str, list[dict[str, object]]] = {}
         for permission in permissions:
-            app_label = permission.content_type.app_label.replace("_", " ").title()
+            raw_app_label = permission.content_type.app_label
+            app_label = str(
+                cls.APP_LABEL_TRANSLATIONS.get(
+                    raw_app_label, raw_app_label.replace("_", " ").title()
+                )
+            )
             groups.setdefault(app_label, []).append(
                 {
                     "pk": permission.pk,

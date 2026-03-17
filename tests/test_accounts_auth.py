@@ -593,6 +593,33 @@ def test_role_update_get_requires_permissions() -> None:
 
 
 @pytest.mark.django_db
+def test_role_update_page_is_translated_in_portuguese() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="role-update-i18n@example.com",
+        password="StrongPass123!",
+    )
+    role = Group.objects.create(name="Role i18n")
+    manager.user_permissions.add(
+        Permission.objects.get(codename="view_group"),
+        Permission.objects.get(codename="change_group"),
+    )
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+    client.post(reverse("set_language"), {"language": "pt-br", "next": "/"})
+    response = client.get(reverse("accounts:role_update", kwargs={"pk": role.pk}))
+    content = response.content.decode("utf-8")
+
+    assert response.status_code == 200
+    assert "Editar papel" in content
+    assert "Voltar para papéis" in content
+    assert "Permissões" in content
+    assert "Salvar alterações do papel" in content
+    assert "Contas" in content
+
+
+@pytest.mark.django_db
 def test_role_detail_requires_view_group_permission() -> None:
     user_model = get_user_model()
     user = user_model.objects.create_user(
