@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from django.conf import settings
 from django.contrib import messages
@@ -13,11 +13,12 @@ from django.contrib.auth.views import (
     PasswordResetView,
 )
 from django.core.paginator import Paginator
+from django.db import connections
 from django.db.models import Count
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
-from django.utils import translation
+from django.utils import timezone, translation
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext_lazy as _
 from django.views import View
@@ -158,6 +159,61 @@ class PaginationMixin:
 
 class AccountHomeView(DashboardNavigationMixin, LoginRequiredMixin, TemplateView):
     template_name = "accounts/home.html"
+
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context = super().get_context_data(**kwargs)
+
+        now = timezone.now()
+        last_24h = now - timedelta(hours=24)
+        total_users = User.objects.count()
+        total_servers = OTServer.objects.count()
+        active_servers = OTServer.objects.filter(is_active=True).count()
+        audit_events_24h = AuditLog.objects.filter(created_at__gte=last_24h).count()
+        latest_audit_event = AuditLog.objects.select_related("actor").first()
+        recent_audit_logs = list(
+            AuditLog.objects.select_related("actor").order_by("-created_at")[:4]
+        )
+        recent_ot_tests = list(
+            AuditLog.objects.filter(
+                action="otserver.connection_test", created_at__gte=last_24h
+            ).order_by("-created_at")[:50]
+        )
+        failed_ot_tests_24h = sum(
+            bool(entry.details.get("success") is False) for entry in recent_ot_tests
+        )
+
+        database_ok = True
+        try:
+            connections["default"].ensure_connection()
+        except Exception:
+            database_ok = False
+
+        context["show_secondary_content"] = False
+        context["home_metrics"] = {
+            "total_users": total_users,
+            "active_servers": active_servers,
+            "total_servers": total_servers,
+            "audit_events_24h": audit_events_24h,
+            "latest_event_at": latest_audit_event.created_at
+            if latest_audit_event
+            else None,
+            "latest_event_action": latest_audit_event.action
+            if latest_audit_event
+            else "",
+            "failed_ot_tests_24h": failed_ot_tests_24h,
+            "database_ok": database_ok,
+        }
+        context["recent_audit_logs"] = recent_audit_logs
+        context["dashboard_healthy"] = database_ok and failed_ot_tests_24h == 0
+        context["can_view_users"] = self.request.user.has_perm("accounts.view_user")
+        context["can_view_otservers"] = self.request.user.has_perm(
+            "accounts.view_otserver"
+        )
+        context["can_view_characters"] = self.request.user.has_perm(
+            "accounts.view_otserver"
+        )
+        context["can_view_audit"] = self.request.user.has_perm("accounts.view_auditlog")
+        return context
 
 
 class SignUpView(CreateView):

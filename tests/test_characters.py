@@ -136,7 +136,12 @@ def test_characters_page_is_translated_to_portuguese() -> None:
     with patch("accounts.views.list_otserver_characters") as list_mock:
         list_mock.return_value = {
             "characters": [],
-            "errors": [],
+            "errors": [
+                {
+                    "otserver_name": "Coolify-dev",
+                    "message": "Tabela de jogadores não encontrada.",
+                }
+            ],
             "available_vocations": [],
         }
         response = client.get(reverse("accounts:characters"))
@@ -145,3 +150,5 @@ def test_characters_page_is_translated_to_portuguese() -> None:
     assert response.status_code == 200
     assert "Personagens" in content
     assert "Aplicar filtros" in content
+    assert "Todas as vocações" in content
+    assert "não puderam ser consultados" in content

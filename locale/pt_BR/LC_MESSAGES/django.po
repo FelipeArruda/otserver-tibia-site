@@ -873,7 +873,7 @@ msgid "Search by character name"
 msgstr "Buscar por nome do personagem"
 
 msgid "All vocations"
-msgstr "Todas as vocacoes"
+msgstr "Todas as vocações"
 
 msgid "Online"
 msgstr "Online"
@@ -882,16 +882,16 @@ msgid "Offline"
 msgstr "Offline"
 
 msgid "Minimum level"
-msgstr "Level minimo"
+msgstr "Level mínimo"
 
 msgid "Maximum level"
-msgstr "Level maximo"
+msgstr "Level máximo"
 
 msgid "Loading..."
 msgstr "Carregando..."
 
 msgid "Some OTServers could not be queried."
-msgstr "Alguns OTServers nao puderam ser consultados."
+msgstr "Alguns OTServers não puderam ser consultados."
 
 msgid "No active OTServers configured."
 msgstr "Nenhum OTServer ativo configurado."
@@ -945,7 +945,44 @@ msgid "Least recently updated"
 msgstr "Atualizados menos recentemente"
 
 msgid "Players table not found."
-msgstr "Tabela de jogadores nao encontrada."
+msgstr "Tabela de jogadores não encontrada."
 
 msgid "Column 'name' not found in players table."
-msgstr "Coluna 'name' nao encontrada na tabela de jogadores."
+msgstr "Coluna 'name' não encontrada na tabela de jogadores."
+
+
+msgid "Cluster needs attention"
+msgstr "Cluster precisa de atenção"
+
+msgid "Registered users"
+msgstr "Usuários cadastrados"
+
+msgid "Total accounts in the platform."
+msgstr "Total de contas na plataforma."
+
+msgid "OTServers currently enabled."
+msgstr "OTServers atualmente habilitados."
+
+msgid "Audit events (24h)"
+msgstr "Eventos de auditoria (24h)"
+
+msgid "failed OT connection tests"
+msgstr "testes de conexão OT com falha"
+
+msgid "Latest platform event"
+msgstr "Último evento da plataforma"
+
+msgid "No audit events recorded yet."
+msgstr "Nenhum evento de auditoria registrado ainda."
+
+msgid "Open OTServers"
+msgstr "Abrir OTServers"
+
+msgid "Open characters"
+msgstr "Abrir personagens"
+
+msgid "Open users"
+msgstr "Abrir usuários"
+
+msgid "Open audit logs"
+msgstr "Abrir logs de auditoria"
