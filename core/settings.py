@@ -61,6 +61,7 @@ _load_local_env()
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", DEFAULT_SECRET_KEY)
+OTSERVER_SECRETS_KEY = os.getenv("OTSERVER_SECRETS_KEY", "")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = _env_bool("DJANGO_DEBUG", True)
@@ -142,6 +143,18 @@ WSGI_APPLICATION = "core.wsgi.application"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 DB_ENGINE = os.getenv("DJANGO_DB_ENGINE", "django.db.backends.sqlite3")
 DB_NAME_DEFAULT = str(BASE_DIR / "db.sqlite3") if DB_ENGINE.endswith("sqlite3") else ""
+
+if DB_ENGINE.endswith("mysql"):
+    try:
+        import MySQLdb  # type: ignore  # noqa: F401
+    except ModuleNotFoundError:
+        import pymysql
+
+        # Django >= 5.2 checks mysqlclient minimum version.
+        # When using PyMySQL as MySQLdb fallback, align reported version.
+        pymysql.version_info = (2, 2, 1, "final", 0)
+        pymysql.__version__ = "2.2.1"
+        pymysql.install_as_MySQLdb()
 
 DATABASES = {
     "default": {

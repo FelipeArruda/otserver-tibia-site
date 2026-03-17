@@ -33,6 +33,11 @@ jobs:
       - name: PEP style (Ruff format check)
         run: ruff format --check .
 
+      - name: Verify compiled translations
+        run: |
+          python scripts/compile_messages.py
+          git diff --exit-code -- locale
+
       - name: Django migrations check
         run: python manage.py makemigrations --check --dry-run
 

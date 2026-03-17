@@ -416,6 +416,12 @@ class OTServerForm(forms.ModelForm):
                 "Leave blank to keep the current token."
             )
 
+        # Keep secret inputs filled only after explicit "test_connection" submit.
+        # This allows test -> save flows without forcing users to type secrets again.
+        if self.is_bound and self.data.get("action") == "test_connection":
+            self.fields["db_password"].widget.render_value = True
+            self.fields["api_token"].widget.render_value = True
+
     def clean_timezone(self) -> str:
         timezone_name = self.cleaned_data["timezone"]
         try:

@@ -632,6 +632,171 @@ msgstr "Tipos de conteúdo"
 msgid "Sessions"
 msgstr "Sessões"
 
+msgid "OTServers"
+msgstr "OTServers"
+
+msgid "Name"
+msgstr "Nome"
+
+msgid "Manage your Tibia OTServer connections and runtime profiles."
+msgstr "Gerencie conexões e perfis de execução dos seus OTServers Tibia."
+
+msgid "Add OTServer"
+msgstr "Adicionar OTServer"
+
+msgid "Search by name"
+msgstr "Buscar por nome"
+
+msgid "All environments"
+msgstr "Todos os ambientes"
+
+msgid "All databases"
+msgstr "Todos os bancos"
+
+msgid "No OTServers found."
+msgstr "Nenhum OTServer encontrado."
+
+msgid "Edit OTServer"
+msgstr "Editar OTServer"
+
+msgid "Create OTServer"
+msgstr "Criar OTServer"
+
+msgid "Configure OTServer runtime profile and database settings."
+msgstr "Configure o perfil de execução do OTServer e as configurações de banco."
+
+msgid "Back to OTServers"
+msgstr "Voltar para OTServers"
+
+msgid "Review OTServer configuration and connection metadata."
+msgstr "Revise as configurações do OTServer e os metadados de conexão."
+
+msgid "Remove this OTServer?"
+msgstr "Remover este OTServer?"
+
+msgid "Keep current password"
+msgstr "Manter senha atual"
+
+msgid "Keep current token"
+msgstr "Manter token atual"
+
+msgid "Leave blank to keep the current password."
+msgstr "Deixe em branco para manter a senha atual."
+
+msgid "Leave blank to keep the current token."
+msgstr "Deixe em branco para manter o token atual."
+
+msgid "Fix the highlighted fields before testing."
+msgstr "Corrija os campos destacados antes de testar."
+
+msgid "Connection test succeeded."
+msgstr "Teste de conexão realizado com sucesso."
+
+msgid "Connection test failed."
+msgstr "Teste de conexão falhou."
+
+msgid "OTServer created successfully."
+msgstr "OTServer criado com sucesso."
+
+msgid "OTServer updated successfully."
+msgstr "OTServer atualizado com sucesso."
+
+msgid "OTServer removed successfully."
+msgstr "OTServer removido com sucesso."
+
+msgid "Connection test result"
+msgstr "Resultado do teste de conexão"
+
+msgid "Success"
+msgstr "Sucesso"
+
+msgid "Failed"
+msgstr "Falhou"
+
+msgid "API"
+msgstr "API"
+
+msgid "Skipped"
+msgstr "Ignorado"
+
+msgid "Test connection"
+msgstr "Testar conexão"
+
+msgid "Testing connection..."
+msgstr "Testando conexão..."
+
+msgid "Testing..."
+msgstr "Testando..."
+
+msgid "All statuses"
+msgstr "Todos os status"
+
+msgid "Environment"
+msgstr "Ambiente"
+
+msgid "Production"
+msgstr "Produção"
+
+msgid "Staging"
+msgstr "Homologação"
+
+msgid "Development"
+msgstr "Desenvolvimento"
+
+msgid "Database engine"
+msgstr "Motor do banco"
+
+msgid "Database host"
+msgstr "Host do banco"
+
+msgid "Database port"
+msgstr "Porta do banco"
+
+msgid "Database name"
+msgstr "Nome do banco"
+
+msgid "Database user"
+msgstr "Usuário do banco"
+
+msgid "Database password"
+msgstr "Senha do banco"
+
+msgid "Database charset"
+msgstr "Charset do banco"
+
+msgid "Database collation"
+msgstr "Collation do banco"
+
+msgid "Use SSL"
+msgstr "Usar SSL"
+
+msgid "Monitoring enabled"
+msgstr "Monitoramento habilitado"
+
+msgid "Timezone"
+msgstr "Fuso horário"
+
+msgid "Database connection failed."
+msgstr "Falha na conexão com banco."
+
+msgid "API test skipped."
+msgstr "Teste de API ignorado."
+
+msgid "Unsupported database engine."
+msgstr "Motor de banco não suportado."
+
+msgid "Database connection succeeded."
+msgstr "Conexão com banco realizada com sucesso."
+
+msgid "PyMySQL dependency is not installed."
+msgstr "Dependência PyMySQL não está instalada."
+
+msgid "Connection test for %(name)s succeeded."
+msgstr "Teste de conexão para %(name)s realizado com sucesso."
+
+msgid "Connection test for %(name)s failed."
+msgstr "Teste de conexão para %(name)s falhou."
+
 msgid "A role with this name already exists."
 msgstr "Já existe um papel com este nome."
 
