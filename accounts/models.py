@@ -135,6 +135,22 @@ class AuditLog(models.Model):
         verbose_name_plural = _("Audit logs")
 
 
+class TibiaVersion(models.Model):
+    DEFAULT_CODE = "15.30"
+
+    code = models.CharField(max_length=10, primary_key=True, verbose_name=_("Version"))
+    sort_order = models.PositiveIntegerField(default=0)
+    is_supported = models.BooleanField(default=True, verbose_name=_("Supported"))
+
+    class Meta:
+        ordering = ["sort_order", "code"]
+        verbose_name = _("Tibia version")
+        verbose_name_plural = _("Tibia versions")
+
+    def __str__(self) -> str:
+        return self.code
+
+
 class OTServer(models.Model):
     class Environment(models.TextChoices):
         PRODUCTION = "production", _("Production")
@@ -146,6 +162,13 @@ class OTServer(models.Model):
         MARIADB = "mariadb", "MariaDB"
 
     name = models.CharField(max_length=120, unique=True, verbose_name=_("Name"))
+    tibia_version = models.ForeignKey(
+        TibiaVersion,
+        on_delete=models.PROTECT,
+        related_name="otservers",
+        default=TibiaVersion.DEFAULT_CODE,
+        verbose_name=_("Tibia version"),
+    )
     environment = models.CharField(
         max_length=20,
         choices=Environment.choices,

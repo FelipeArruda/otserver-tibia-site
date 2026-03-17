@@ -638,6 +638,18 @@ msgstr "OTServers"
 msgid "Name"
 msgstr "Nome"
 
+msgid "Tibia version"
+msgstr "Versão do Tibia"
+
+msgid "Tibia versions"
+msgstr "Versões do Tibia"
+
+msgid "Version"
+msgstr "Versão"
+
+msgid "Supported"
+msgstr "Suportada"
+
 msgid "Manage your Tibia OTServer connections and runtime profiles."
 msgstr "Gerencie conexões e perfis de execução dos seus OTServers Tibia."
 

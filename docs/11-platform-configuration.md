@@ -74,8 +74,16 @@ Supported connections:
 - MySQL
 - MariaDB
 
+OTServer fields:
+- Name
+- Tibia version (relational field to `TibiaVersion`, select list from `7.40` to `15.30`)
+- Environment
+- Database engine/host/port/name/user/password/charset/collation
+- SSL, monitor enabled, active
+- API base URL and API token
+
 Connection test flow:
-- Available on create/edit OTServer form.
+- Available on create/edit OTServer form and OTServer list.
 - Executes DB connectivity check (`SELECT 1`) and optional API health request.
 - Does not persist OTServer data when action is `test_connection`.
 - Writes audit event `otserver.connection_test`.
