@@ -487,3 +487,6 @@ msgstr "Sistema"
 
 msgid "No audit records found."
 msgstr "Nenhum registro de auditoria encontrado."
+
+msgid "Settings"
+msgstr "Configurações"

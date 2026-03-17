@@ -48,9 +48,7 @@ def _get_allowed_hosts() -> list[str]:
 def _get_csrf_trusted_origins(allowed_hosts: list[str]) -> list[str]:
     trusted_origins_raw = os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "")
     explicit_origins = [
-        origin.strip()
-        for origin in trusted_origins_raw.split(",")
-        if origin.strip()
+        origin.strip() for origin in trusted_origins_raw.split(",") if origin.strip()
     ]
     if explicit_origins:
         return explicit_origins
