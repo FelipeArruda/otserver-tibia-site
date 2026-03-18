@@ -40,7 +40,6 @@ from accounts.models import (
     OTServer,
     PlatformSetting,
     TibiaVacation,
-    TibiaVersion,
     User,
 )
 from accounts.services import (
@@ -1327,21 +1326,27 @@ class TibiaVacationListView(
         context = super().get_context_data(**kwargs)
         language = (translation.get_language() or "").lower()
         is_pt = language.startswith("pt")
-        queryset = TibiaVacation.objects.select_related("tibia_version").order_by(
-            "tibia_version_id",
-            "vocation_id",
+        queryset = (
+            TibiaVacation.objects.select_related("otserver", "tibia_version")
+            .filter(otserver__isnull=False)
+            .order_by(
+                "otserver__name",
+                "vocation_id",
+            )
         )
         search = self.request.GET.get("q", "").strip()
-        version = self.request.GET.get("version", "").strip()
+        otserver = self.request.GET.get("otserver", "").strip()
 
         if search:
             queryset = queryset.filter(name__icontains=search)
-        if version:
-            queryset = queryset.filter(tibia_version_id=version)
+        if otserver:
+            queryset = queryset.filter(otserver_id=otserver)
 
         context.update(self.paginate_queryset(queryset, context_name="vacations"))
-        context["filters"] = {"q": search, "version": version}
-        context["version_choices"] = TibiaVersion.objects.order_by("sort_order", "code")
+        context["filters"] = {"q": search, "otserver": otserver}
+        context["otserver_choices"] = OTServer.objects.select_related(
+            "tibia_version"
+        ).order_by("name")
         context["can_add_vacation"] = self.request.user.has_perm(
             "accounts.add_tibiavacation"
         )
@@ -1359,9 +1364,7 @@ class TibiaVacationListView(
                 else "Manage vocation translations by Tibia version."
             ),
             "add_button": "Adicionar vocação" if is_pt else "Add vocation",
-            "all_versions": "Todas as versões do Tibia"
-            if is_pt
-            else "All Tibia versions",
+            "all_otservers": "Todos os OTServers" if is_pt else "All OTServers",
             "vocation_id": "ID da vocação" if is_pt else "Vocation ID",
             "name_pt": "Nome (Português)" if is_pt else "Name (Portuguese)",
             "description_label": "Descrição" if is_pt else "Description",
@@ -1394,9 +1397,9 @@ class TibiaVacationCreateView(
         context["vocation_ui"] = {
             "title": "Nova vocação" if is_pt else "New vocation",
             "description": (
-                "Mantenha registros de tradução de vocações por versão do Tibia."
+                "Mantenha registros de tradução de vocações por OTServer."
                 if is_pt
-                else "Maintain vocation translation records per Tibia version."
+                else "Maintain vocation translation records per OTServer."
             ),
             "back": "Voltar para vocações" if is_pt else "Back to vocations",
         }
@@ -1453,9 +1456,9 @@ class TibiaVacationUpdateView(
         context["vocation_ui"] = {
             "title": "Editar vocação" if is_pt else "Edit vocation",
             "description": (
-                "Mantenha registros de tradução de vocações por versão do Tibia."
+                "Mantenha registros de tradução de vocações por OTServer."
                 if is_pt
-                else "Maintain vocation translation records per Tibia version."
+                else "Maintain vocation translation records per OTServer."
             ),
             "back": "Voltar para vocações" if is_pt else "Back to vocations",
         }

@@ -16,9 +16,9 @@
       {% csrf_token %}
 
       <label class="block">
-        <span class="text-sm font-semibold text-slate-700">{{ form.tibia_version.label }}</span>
-        {{ form.tibia_version }}
-        {% if form.tibia_version.errors %}<p class="mt-1 text-xs text-rose-600">{{ form.tibia_version.errors|join:", " }}</p>{% endif %}
+        <span class="text-sm font-semibold text-slate-700">{{ form.otserver.label }}</span>
+        {{ form.otserver }}
+        {% if form.otserver.errors %}<p class="mt-1 text-xs text-rose-600">{{ form.otserver.errors|join:", " }}</p>{% endif %}
       </label>
 
       <label class="block">

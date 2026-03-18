@@ -460,7 +460,7 @@ class TibiaVacationForm(forms.ModelForm):
     class Meta:
         model = TibiaVacation
         fields = (
-            "tibia_version",
+            "otserver",
             "vocation_id",
             "name",
             "description",
@@ -471,7 +471,7 @@ class TibiaVacationForm(forms.ModelForm):
             "client_id",
         )
         widgets = {
-            "tibia_version": forms.Select(attrs={"class": BASE_INPUT_CLASSES}),
+            "otserver": forms.Select(attrs={"class": BASE_INPUT_CLASSES}),
             "vocation_id": forms.NumberInput(
                 attrs={"class": BASE_INPUT_CLASSES, "min": 0}
             ),
@@ -490,13 +490,13 @@ class TibiaVacationForm(forms.ModelForm):
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)
-        self.fields["tibia_version"].queryset = TibiaVersion.objects.order_by(
-            "sort_order", "code"
-        )
-        self.fields["tibia_version"].empty_label = None
+        self.fields["otserver"].queryset = OTServer.objects.select_related(
+            "tibia_version"
+        ).order_by("name")
+        self.fields["otserver"].empty_label = None
         language = (translation.get_language() or "").lower()
         if language.startswith("pt"):
-            self.fields["tibia_version"].label = "Versão do Tibia"
+            self.fields["otserver"].label = "OTServer"
             self.fields["vocation_id"].label = "ID da vocação"
             self.fields["name"].label = "Nome"
             self.fields["description"].label = "Descrição"
@@ -508,13 +508,13 @@ class TibiaVacationForm(forms.ModelForm):
 
     def clean(self) -> dict[str, object]:
         cleaned_data = super().clean()
-        version = cleaned_data.get("tibia_version")
+        otserver = cleaned_data.get("otserver")
         vocation_id = cleaned_data.get("vocation_id")
-        if not version or vocation_id is None:
+        if not otserver or vocation_id is None:
             return cleaned_data
 
         duplicate = TibiaVacation.objects.filter(
-            tibia_version=version,
+            otserver=otserver,
             vocation_id=vocation_id,
         )
         if self.instance.pk:
@@ -522,9 +522,9 @@ class TibiaVacationForm(forms.ModelForm):
         if duplicate.exists():
             language = (translation.get_language() or "").lower()
             message = (
-                "Já existe uma vocação com este ID para a versão selecionada."
+                "Já existe uma vocação com este ID para o OTServer selecionado."
                 if language.startswith("pt")
-                else "A vocation with this ID already exists for the selected version."
+                else "A vocation with this ID already exists for the selected OTServer."
             )
             self.add_error("vocation_id", message)
         return cleaned_data

@@ -16,10 +16,10 @@
   <section class="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
     <form method="get" class="grid gap-3 md:grid-cols-3">
       <input name="q" value="{{ filters.q }}" placeholder="{% trans 'Search by name' %}" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100">
-      <select name="version" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100">
-        <option value="">{{ vocation_ui.all_versions }}</option>
-        {% for version in version_choices %}
-          <option value="{{ version.code }}" {% if filters.version == version.code %}selected{% endif %}>{{ version.code }}</option>
+      <select name="otserver" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100">
+        <option value="">{{ vocation_ui.all_otservers }}</option>
+        {% for server in otserver_choices %}
+          <option value="{{ server.pk }}" {% if filters.otserver == server.pk|stringformat:"s" %}selected{% endif %}>{{ server.name }} ({{ server.tibia_version_id }})</option>
         {% endfor %}
       </select>
       <div class="grid grid-cols-2 gap-2">
@@ -34,6 +34,7 @@
       <table class="min-w-full divide-y divide-slate-200 text-sm">
         <thead class="bg-slate-50">
           <tr>
+            <th class="px-4 py-3 text-left font-semibold text-slate-600">{% trans "OTServer" %}</th>
             <th class="px-4 py-3 text-left font-semibold text-slate-600">{% trans "Version" %}</th>
             <th class="px-4 py-3 text-left font-semibold text-slate-600">{{ vocation_ui.vocation_id }}</th>
             <th class="px-4 py-3 text-left font-semibold text-slate-600">{% trans "Name" %}</th>
@@ -45,6 +46,7 @@
         <tbody class="divide-y divide-slate-100">
           {% for vacation in vacations %}
             <tr>
+              <td class="px-4 py-3 text-slate-700">{{ vacation.otserver.name }}</td>
               <td class="px-4 py-3 text-slate-700">{{ vacation.tibia_version_id }}</td>
               <td class="px-4 py-3 text-slate-700">{{ vacation.vocation_id }}</td>
               <td class="px-4 py-3 font-semibold text-slate-900">{{ vacation.name }}</td>
@@ -66,7 +68,7 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="6" class="px-4 py-8 text-center text-slate-500">{{ vocation_ui.none_found }}</td>
+              <td colspan="7" class="px-4 py-8 text-center text-slate-500">{{ vocation_ui.none_found }}</td>
             </tr>
           {% endfor %}
         </tbody>

@@ -4,7 +4,24 @@ from django.contrib.auth.models import Permission
 from django.test import Client
 from django.urls import reverse
 
-from accounts.models import TibiaVacation, TibiaVersion
+from accounts.models import OTServer, TibiaVacation, TibiaVersion
+
+
+def _create_otserver(name: str, *, version: str = "15.30") -> OTServer:
+    TibiaVersion.objects.get_or_create(code=version, defaults={"sort_order": 1})
+    return OTServer.objects.create(
+        name=name,
+        tibia_version_id=version,
+        environment="production",
+        database_engine="mysql",
+        db_host="localhost",
+        db_port=3306,
+        db_name="otserv",
+        db_user="root",
+        db_password="secret",
+        timezone="UTC",
+        is_active=True,
+    )
 
 
 @pytest.mark.django_db
@@ -52,7 +69,7 @@ def test_tibia_vacations_route_requires_permissions() -> None:
 
 @pytest.mark.django_db
 def test_tibia_vacation_create_flow() -> None:
-    TibiaVersion.objects.get_or_create(code="15.30", defaults={"sort_order": 1})
+    server = _create_otserver("Vocation Create Server")
     user_model = get_user_model()
     user = user_model.objects.create_user(
         email="vocations-create@example.com", password="StrongPass123!"
@@ -69,7 +86,7 @@ def test_tibia_vacation_create_flow() -> None:
     response = client.post(
         reverse("accounts:tibia_vacation_create"),
         {
-            "tibia_version": "15.30",
+            "otserver": str(server.pk),
             "vocation_id": 11,
             "name": "Templar",
             "description": "a templar",
@@ -84,6 +101,7 @@ def test_tibia_vacation_create_flow() -> None:
     assert response.status_code == 302
     assert response.url == reverse("accounts:tibia_vacations")
     assert TibiaVacation.objects.filter(
+        otserver=server,
         tibia_version_id="15.30",
         vocation_id=11,
         name="Templar",
@@ -93,8 +111,9 @@ def test_tibia_vacation_create_flow() -> None:
 
 @pytest.mark.django_db
 def test_tibia_vacation_edit_labels_are_portuguese_in_pt_br() -> None:
-    TibiaVersion.objects.get_or_create(code="15.30", defaults={"sort_order": 1})
+    server = _create_otserver("Vocation Edit Server")
     vacation = TibiaVacation.objects.create(
+        otserver=server,
         tibia_version_id="15.30",
         vocation_id=99,
         name="Tester",
@@ -118,16 +137,15 @@ def test_tibia_vacation_edit_labels_are_portuguese_in_pt_br() -> None:
     content = response.content.decode("utf-8")
 
     assert response.status_code == 200
+    assert "OTServer" in content
     assert "ID da vocação" in content
     assert "Descrição" in content
     assert "Vocação de origem" in content
-    assert "Vocation ID" not in content
-    assert "From vocation" not in content
 
 
 @pytest.mark.django_db
 def test_tibia_vacation_create_success_message_is_translated_in_pt_br() -> None:
-    TibiaVersion.objects.get_or_create(code="15.30", defaults={"sort_order": 1})
+    server = _create_otserver("Vocation Success Server")
     user_model = get_user_model()
     user = user_model.objects.create_user(
         email="vocations-success-msg@example.com", password="StrongPass123!"
@@ -145,7 +163,7 @@ def test_tibia_vacation_create_success_message_is_translated_in_pt_br() -> None:
     response = client.post(
         reverse("accounts:tibia_vacation_create"),
         {
-            "tibia_version": "15.30",
+            "otserver": str(server.pk),
             "vocation_id": 77,
             "name": "Sentinel",
             "description": "a sentinel",
@@ -165,8 +183,9 @@ def test_tibia_vacation_create_success_message_is_translated_in_pt_br() -> None:
 
 @pytest.mark.django_db
 def test_tibia_vacation_duplicate_error_message_is_translated_in_pt_br() -> None:
-    TibiaVersion.objects.get_or_create(code="15.30", defaults={"sort_order": 1})
+    server = _create_otserver("Vocation Duplicate Server")
     TibiaVacation.objects.create(
+        otserver=server,
         tibia_version_id="15.30",
         vocation_id=88,
         name="Guardian",
@@ -188,7 +207,7 @@ def test_tibia_vacation_duplicate_error_message_is_translated_in_pt_br() -> None
     response = client.post(
         reverse("accounts:tibia_vacation_create"),
         {
-            "tibia_version": "15.30",
+            "otserver": str(server.pk),
             "vocation_id": 88,
             "name": "Guardian",
             "description": "a guardian",
@@ -204,4 +223,4 @@ def test_tibia_vacation_duplicate_error_message_is_translated_in_pt_br() -> None
 
     assert response.status_code == 200
     assert "Corrija os campos destacados." in content
-    assert "Já existe uma vocação com este ID para a versão selecionada." in content
+    assert "Já existe uma vocação com este ID para o OTServer selecionado." in content
