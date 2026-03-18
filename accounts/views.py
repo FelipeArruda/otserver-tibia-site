@@ -52,19 +52,6 @@ class DashboardNavigationMixin:
             "icon": "home",
         },
         {
-            "key": "realm_status",
-            "label": _("Realm Status"),
-            "href": "#",
-            "icon": "globe",
-        },
-        {
-            "key": "characters",
-            "label": _("Characters"),
-            "href": reverse_lazy("accounts:characters"),
-            "icon": "shield",
-            "required_perms": ["accounts.view_otserver"],
-        },
-        {
             "key": "audit",
             "label": _("Audit Logs"),
             "href": reverse_lazy("accounts:audit_logs"),
@@ -72,11 +59,24 @@ class DashboardNavigationMixin:
             "required_perms": ["accounts.view_auditlog"],
         },
         {
-            "key": "otservers",
-            "label": _("OTServers"),
-            "href": reverse_lazy("accounts:otservers"),
-            "icon": "database",
+            "key": "otservers_group",
+            "label": "OTServers Management",
+            "icon": "server_manage",
             "required_perms": ["accounts.view_otserver"],
+            "children": [
+                {
+                    "key": "otservers",
+                    "label": _("OTServers"),
+                    "href": reverse_lazy("accounts:otservers"),
+                    "icon": "database",
+                },
+                {
+                    "key": "characters",
+                    "label": _("Characters"),
+                    "href": reverse_lazy("accounts:characters"),
+                    "icon": "shield",
+                },
+            ],
         },
     ]
     settings_menu_items = [
@@ -106,11 +106,7 @@ class DashboardNavigationMixin:
 
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
         context = super().get_context_data(**kwargs)
-        context["main_menu_items"] = [
-            item
-            for item in self.main_menu_items
-            if self._can_view_item(self.request.user, item)
-        ]
+        context["main_menu_items"] = self._visible_menu_items(self.main_menu_items)
         context["settings_menu_items"] = [
             item
             for item in self.settings_menu_items
@@ -137,6 +133,44 @@ class DashboardNavigationMixin:
             return True
 
         return all(has_perm(perm) for perm in required_perms)
+
+    def _visible_menu_items(
+        self, items: list[dict[str, object]]
+    ) -> list[dict[str, object]]:
+        visible_items: list[dict[str, object]] = []
+
+        for item in items:
+            if not self._can_view_item(self.request.user, item):
+                continue
+
+            visible_item = dict(item)
+            if visible_item.get("key") == "otservers_group":
+                language = translation.get_language() or ""
+                visible_item["label"] = (
+                    "Gestão de OTServers"
+                    if language.lower().startswith("pt")
+                    else "OTServers Management"
+                )
+            raw_children = item.get("children", [])
+            children = (
+                self._visible_menu_items(raw_children)
+                if isinstance(raw_children, list)
+                else []
+            )
+            if raw_children and not children:
+                continue
+            if children:
+                visible_item["children"] = children
+
+            is_active_self = visible_item.get("key") == self.active_menu_key
+            has_active_child = any(child.get("is_active") for child in children)
+            visible_item["is_active_self"] = is_active_self
+            visible_item["has_active_child"] = has_active_child
+            visible_item["is_active"] = is_active_self or has_active_child
+            visible_item["is_open"] = bool(children and visible_item["is_active"])
+            visible_items.append(visible_item)
+
+        return visible_items
 
 
 class PaginationMixin:
