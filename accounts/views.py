@@ -33,14 +33,27 @@ from accounts.forms import (
     PlatformSettingForm,
     RoleManagementForm,
     SignUpForm,
+    TibiaVacationForm,
 )
-from accounts.models import AuditLog, OTServer, PlatformSetting, User
+from accounts.models import (
+    AuditLog,
+    OTServer,
+    PlatformSetting,
+    TibiaVacation,
+    TibiaVersion,
+    User,
+)
 from accounts.services import (
     check_otserver_connections,
     list_otserver_characters,
     log_audit_event,
     summarize_otserver_characters,
 )
+
+
+def _localized_text(*, en: str, pt: str) -> str:
+    language = (translation.get_language() or "").lower()
+    return pt if language.startswith("pt") else en
 
 
 class DashboardNavigationMixin:
@@ -75,6 +88,13 @@ class DashboardNavigationMixin:
                     "label": _("Characters"),
                     "href": reverse_lazy("accounts:characters"),
                     "icon": "shield",
+                },
+                {
+                    "key": "tibia_vacations",
+                    "label": _("Vocations"),
+                    "href": reverse_lazy("accounts:tibia_vacations"),
+                    "icon": "list",
+                    "required_perms": ["accounts.view_tibiavacation"],
                 },
             ],
         },
@@ -150,6 +170,11 @@ class DashboardNavigationMixin:
                     "Gestão de OTServers"
                     if language.lower().startswith("pt")
                     else "OTServers Management"
+                )
+            if visible_item.get("key") == "tibia_vacations":
+                language = translation.get_language() or ""
+                visible_item["label"] = (
+                    "Vocações" if language.lower().startswith("pt") else "Vocations"
                 )
             raw_children = item.get("children", [])
             children = (
@@ -906,6 +931,8 @@ class CharacterListView(
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
         context = super().get_context_data(**kwargs)
         context["show_secondary_content"] = False
+        language = (translation.get_language() or "").lower()
+        is_pt = language.startswith("pt")
 
         available_servers = list(OTServer.objects.order_by("name"))
         selected_otserver = self.request.GET.get("otserver", "").strip()
@@ -952,6 +979,10 @@ class CharacterListView(
         )
         context["total_offline"] = context["total_characters"] - context["total_online"]
         context["source_count"] = len(context["otserver_choices"])
+        context["characters_ui"] = {
+            "name_label": "Nome" if is_pt else "Character",
+            "vocation_label": "Vocação" if is_pt else "Vocation",
+        }
         return context
 
     @staticmethod
@@ -1229,6 +1260,209 @@ class OTServerDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
         )
         messages.success(request, _("OTServer removed successfully."))
         return redirect("accounts:otservers")
+
+
+class TibiaVacationListView(
+    DashboardNavigationMixin,
+    PaginationMixin,
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    TemplateView,
+):
+    template_name = "accounts/tibia_vacations.html"
+    permission_required = ("accounts.view_otserver", "accounts.view_tibiavacation")
+    raise_exception = True
+    active_menu_key = "tibia_vacations"
+    page_size = 15
+
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context = super().get_context_data(**kwargs)
+        language = (translation.get_language() or "").lower()
+        is_pt = language.startswith("pt")
+        queryset = TibiaVacation.objects.select_related("tibia_version").order_by(
+            "tibia_version_id",
+            "vocation_id",
+        )
+        search = self.request.GET.get("q", "").strip()
+        version = self.request.GET.get("version", "").strip()
+
+        if search:
+            queryset = queryset.filter(name__icontains=search)
+        if version:
+            queryset = queryset.filter(tibia_version_id=version)
+
+        context.update(self.paginate_queryset(queryset, context_name="vacations"))
+        context["filters"] = {"q": search, "version": version}
+        context["version_choices"] = TibiaVersion.objects.order_by("sort_order", "code")
+        context["can_add_vacation"] = self.request.user.has_perm(
+            "accounts.add_tibiavacation"
+        )
+        context["can_change_vacation"] = self.request.user.has_perm(
+            "accounts.change_tibiavacation"
+        )
+        context["can_delete_vacation"] = self.request.user.has_perm(
+            "accounts.delete_tibiavacation"
+        )
+        context["vocation_ui"] = {
+            "title": "Vocações" if is_pt else "Vocations",
+            "description": (
+                "Gerencie traduções de vocações por versão do Tibia."
+                if is_pt
+                else "Manage vocation translations by Tibia version."
+            ),
+            "add_button": "Adicionar vocação" if is_pt else "Add vocation",
+            "all_versions": "Todas as versões do Tibia" if is_pt else "All Tibia versions",
+            "vocation_id": "ID da vocação" if is_pt else "Vocation ID",
+            "name_pt": "Nome (Português)" if is_pt else "Name (Portuguese)",
+            "description_label": "Descrição" if is_pt else "Description",
+            "actions": "Ações" if is_pt else "Actions",
+            "none_found": "Nenhuma vocação encontrada." if is_pt else "No vocations found.",
+            "remove_confirm": "Remover esta vocação?" if is_pt else "Remove this vocation?",
+        }
+        context["show_secondary_content"] = False
+        return context
+
+
+class TibiaVacationCreateView(
+    DashboardNavigationMixin, LoginRequiredMixin, PermissionRequiredMixin, CreateView
+):
+    template_name = "accounts/tibia_vacation_form.html"
+    form_class = TibiaVacationForm
+    permission_required = ("accounts.view_otserver", "accounts.add_tibiavacation")
+    raise_exception = True
+    success_url = reverse_lazy("accounts:tibia_vacations")
+    active_menu_key = "tibia_vacations"
+
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context = super().get_context_data(**kwargs)
+        language = (translation.get_language() or "").lower()
+        is_pt = language.startswith("pt")
+        context["vocation_ui"] = {
+            "title": "Nova vocação" if is_pt else "New vocation",
+            "description": (
+                "Mantenha registros de tradução de vocações por versão do Tibia."
+                if is_pt
+                else "Maintain vocation translation records per Tibia version."
+            ),
+            "back": "Voltar para vocações" if is_pt else "Back to vocations",
+        }
+        context["show_secondary_content"] = False
+        return context
+
+    def form_valid(self, form: TibiaVacationForm) -> HttpResponse:
+        response = super().form_valid(form)
+        log_audit_event(
+            request=self.request,
+            action="tibia_vacation.create",
+            target=f"{form.instance.tibia_version_id}:{form.instance.vocation_id}",
+            details={
+                "name": form.instance.name,
+                "name_pt_br": form.instance.name_pt_br,
+            },
+        )
+        messages.success(
+            self.request,
+            _localized_text(
+                en="Vocation created successfully.",
+                pt="Vocação criada com sucesso.",
+            ),
+        )
+        return response
+
+    def form_invalid(self, form: TibiaVacationForm) -> HttpResponse:
+        messages.error(
+            self.request,
+            _localized_text(
+                en="Please correct the highlighted fields.",
+                pt="Corrija os campos destacados.",
+            ),
+        )
+        return super().form_invalid(form)
+
+
+class TibiaVacationUpdateView(
+    DashboardNavigationMixin, LoginRequiredMixin, PermissionRequiredMixin, UpdateView
+):
+    template_name = "accounts/tibia_vacation_form.html"
+    form_class = TibiaVacationForm
+    model = TibiaVacation
+    pk_url_kwarg = "pk"
+    permission_required = ("accounts.view_otserver", "accounts.change_tibiavacation")
+    raise_exception = True
+    success_url = reverse_lazy("accounts:tibia_vacations")
+    active_menu_key = "tibia_vacations"
+
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context = super().get_context_data(**kwargs)
+        language = (translation.get_language() or "").lower()
+        is_pt = language.startswith("pt")
+        context["vocation_ui"] = {
+            "title": "Editar vocação" if is_pt else "Edit vocation",
+            "description": (
+                "Mantenha registros de tradução de vocações por versão do Tibia."
+                if is_pt
+                else "Maintain vocation translation records per Tibia version."
+            ),
+            "back": "Voltar para vocações" if is_pt else "Back to vocations",
+        }
+        context["show_secondary_content"] = False
+        return context
+
+    def form_valid(self, form: TibiaVacationForm) -> HttpResponse:
+        response = super().form_valid(form)
+        log_audit_event(
+            request=self.request,
+            action="tibia_vacation.update",
+            target=f"{form.instance.tibia_version_id}:{form.instance.vocation_id}",
+            details={
+                "name": form.instance.name,
+                "name_pt_br": form.instance.name_pt_br,
+            },
+        )
+        messages.success(
+            self.request,
+            _localized_text(
+                en="Vocation updated successfully.",
+                pt="Vocação atualizada com sucesso.",
+            ),
+        )
+        return response
+
+    def form_invalid(self, form: TibiaVacationForm) -> HttpResponse:
+        messages.error(
+            self.request,
+            _localized_text(
+                en="Please correct the highlighted fields.",
+                pt="Corrija os campos destacados.",
+            ),
+        )
+        return super().form_invalid(form)
+
+
+class TibiaVacationDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = ("accounts.view_otserver", "accounts.delete_tibiavacation")
+    raise_exception = True
+
+    def post(
+        self, request: HttpRequest, *args: object, **kwargs: object
+    ) -> HttpResponse:
+        vacation = get_object_or_404(TibiaVacation, pk=kwargs["pk"])
+        target = f"{vacation.tibia_version_id}:{vacation.vocation_id}"
+        vacation.delete()
+        log_audit_event(
+            request=request,
+            action="tibia_vacation.delete",
+            target=target,
+            details={},
+        )
+        messages.success(
+            request,
+            _localized_text(
+                en="Vocation removed successfully.",
+                pt="Vocação removida com sucesso.",
+            ),
+        )
+        return redirect("accounts:tibia_vacations")
 
 
 class AuditLogListView(

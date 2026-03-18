@@ -152,3 +152,42 @@ def test_characters_page_is_translated_to_portuguese() -> None:
     assert "Aplicar filtros" in content
     assert "Todas as vocações" in content
     assert "não puderam ser consultados" in content
+
+
+@pytest.mark.django_db
+def test_characters_table_headers_use_nome_and_vocacao_in_portuguese() -> None:
+    user_model = get_user_model()
+    user = user_model.objects.create_user(
+        email="characters-headers-pt@example.com", password="StrongPass123!"
+    )
+    user.user_permissions.add(Permission.objects.get(codename="view_otserver"))
+
+    OTServer.objects.create(
+        name="Atlas",
+        environment="production",
+        database_engine="mysql",
+        db_host="localhost",
+        db_port=3306,
+        db_name="otserv",
+        db_user="root",
+        db_password="secret",
+        timezone="UTC",
+        is_active=True,
+    )
+
+    client = Client()
+    client.post(reverse("set_language"), {"language": "pt-br", "next": "/"})
+    assert client.login(username=user.email, password="StrongPass123!")
+
+    with patch("accounts.views.list_otserver_characters") as list_mock:
+        list_mock.return_value = {
+            "characters": [_build_character(2)],
+            "errors": [],
+            "available_vocations": ["Knight"],
+        }
+        response = client.get(reverse("accounts:characters"))
+
+    content = response.content.decode("utf-8")
+    assert response.status_code == 200
+    assert "Nome" in content
+    assert "Vocação" in content
