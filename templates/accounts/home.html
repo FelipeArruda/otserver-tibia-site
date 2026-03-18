@@ -42,11 +42,22 @@
     <article class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
       <h3 class="text-xl font-bold text-slate-900">{% trans "Operational feed" %}</h3>
       <ul class="mt-4 space-y-3 text-sm">
-        {% for event in recent_audit_logs %}
+        {% for event in operational_events %}
           <li class="rounded-xl bg-slate-50 px-4 py-3">
-            <span class="font-semibold text-cyan-700">{{ event.action }}:</span>
-            {{ event.target }}
-            <span class="text-slate-500">({{ event.created_at|date:"Y-m-d H:i" }})</span>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="min-w-0">
+                <p class="font-semibold text-slate-900">{{ event.title }}</p>
+                <p class="text-slate-600">{{ event.target }}</p>
+              </div>
+              <div class="flex items-center gap-2">
+                {% if event.status_label %}
+                  <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold {% if event.status == 'success' %}bg-emerald-100 text-emerald-700{% elif event.status == 'error' %}bg-rose-100 text-rose-700{% else %}bg-slate-200 text-slate-700{% endif %}">
+                    {{ event.status_label }}
+                  </span>
+                {% endif %}
+                <span class="text-xs text-slate-500">{{ event.created_at|date:"Y-m-d H:i" }}</span>
+              </div>
+            </div>
           </li>
         {% empty %}
           <li class="rounded-xl bg-slate-50 px-4 py-3 text-slate-600">{% trans "No audit events recorded yet." %}</li>
