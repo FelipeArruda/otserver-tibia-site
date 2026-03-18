@@ -44,7 +44,7 @@ services:
       CELERY_WORKER_CONCURRENCY: ${CELERY_WORKER_CONCURRENCY:-2}
     volumes:
       - app_data:/data
-    entrypoint: []
+    entrypoint: null
     command:
       [
         "celery",
@@ -69,7 +69,7 @@ services:
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
       CELERY_HEALTH_CHECK_INTERVAL_SECONDS: ${CELERY_HEALTH_CHECK_INTERVAL_SECONDS:-60}
-    entrypoint: []
+    entrypoint: null
     command:
       [
         "celery",
