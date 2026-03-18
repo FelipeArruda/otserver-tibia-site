@@ -44,6 +44,11 @@ docker compose build
 docker compose up -d
 ```
 
+The same `docker-compose.yml` works for both local and Coolify.
+
+- Local: keep `WEB_PUBLISHED_PORT=8000`.
+- Coolify: set `WEB_PUBLISHED_PORT=0` to avoid host port conflicts.
+
 The container runs migrations automatically at startup (`python manage.py migrate --noinput`) before starting the server.
 
 Local app: `http://localhost:8000`

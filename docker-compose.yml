@@ -14,7 +14,7 @@ services:
     depends_on:
       - redis
     environment:
-      DJANGO_PORT: "8000"
+      DJANGO_PORT: ${DJANGO_PORT:-8000}
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
       DJANGO_DB_ENGINE: ${DJANGO_DB_ENGINE:-django.db.backends.sqlite3}
       DJANGO_DB_NAME: ${DJANGO_DB_NAME:-/data/db.sqlite3}
@@ -24,8 +24,14 @@ services:
     volumes:
       - app_data:/data
     ports:
-      - "8000:8000"
-    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+      - target: ${DJANGO_PORT:-8000}
+        published: ${WEB_PUBLISHED_PORT:-8000}
+        protocol: tcp
+        host_ip: ${WEB_HOST_IP:-0.0.0.0}
+    command:
+      - sh
+      - -c
+      - python manage.py runserver 0.0.0.0:${DJANGO_PORT:-8000}
 
   celery_worker:
     build:
