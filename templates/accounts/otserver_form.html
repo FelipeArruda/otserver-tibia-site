@@ -33,7 +33,7 @@
         </div>
       </div>
 
-      <div class="grid gap-5 sm:grid-cols-2">
+      <div class="grid gap-5 sm:grid-cols-3">
         <div>
           <label for="{{ form.database_engine.id_for_label }}" class="text-sm font-semibold text-slate-700">{{ form.database_engine.label }}</label>
           {{ form.database_engine }}
@@ -43,6 +43,11 @@
           <label for="{{ form.timezone.id_for_label }}" class="text-sm font-semibold text-slate-700">{{ form.timezone.label }}</label>
           {{ form.timezone }}
           {% if form.timezone.errors %}<p class="mt-2 text-xs font-semibold text-rose-600">{{ form.timezone.errors|striptags }}</p>{% endif %}
+        </div>
+        <div>
+          <label for="{{ form.monitor_interval_minutes.id_for_label }}" class="text-sm font-semibold text-slate-700">{{ form.monitor_interval_minutes.label }}</label>
+          {{ form.monitor_interval_minutes }}
+          {% if form.monitor_interval_minutes.errors %}<p class="mt-2 text-xs font-semibold text-rose-600">{{ form.monitor_interval_minutes.errors|striptags }}</p>{% endif %}
         </div>
       </div>
 

@@ -57,8 +57,27 @@
         <p class="mt-1 text-sm font-semibold text-slate-900">{% if server.monitor_enabled %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</p>
       </div>
       <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{% trans "Monitoring interval (minutes)" %}</p>
+        <p class="mt-1 text-sm font-semibold text-slate-900">{{ server.monitor_interval_minutes }}</p>
+      </div>
+      <div>
         <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{% trans "Status" %}</p>
         <p class="mt-1 text-sm font-semibold text-slate-900">{% if server.is_active %}{% trans "Active" %}{% else %}{% trans "Inactive" %}{% endif %}</p>
+      </div>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{% trans "Last health check" %}</p>
+        <p class="mt-1 text-sm font-semibold text-slate-900">
+          {% if server.last_health_check_ok is None %}{% trans "Not checked yet" %}
+          {% elif server.last_health_check_ok %}{% trans "Connected" %}
+          {% else %}{% trans "Disconnected" %}
+          {% endif %}
+        </p>
+      </div>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{% trans "Last health check at" %}</p>
+        <p class="mt-1 text-sm font-semibold text-slate-900">
+          {% if server.last_health_check_at %}{{ server.last_health_check_at|date:"Y-m-d H:i" }}{% else %}-{% endif %}
+        </p>
       </div>
       <div class="sm:col-span-2">
         <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{% trans "API base URL" %}</p>

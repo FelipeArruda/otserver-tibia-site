@@ -2,14 +2,23 @@ from __future__ import annotations
 
 import urllib.error
 import urllib.request
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from time import perf_counter
 from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.http import HttpRequest
+from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from accounts.models import AuditLog, OTServer, TibiaVacation, TibiaVersion, User
+from accounts.models import (
+    AuditLog,
+    OTServer,
+    PlatformSetting,
+    TibiaVacation,
+    TibiaVersion,
+    User,
+)
 
 
 def log_audit_event(
@@ -22,6 +31,20 @@ def log_audit_event(
     actor = request.user if isinstance(request.user, User) else None
     AuditLog.objects.create(
         actor=actor,
+        action=action,
+        target=target,
+        details=details or {},
+    )
+
+
+def log_system_audit_event(
+    *,
+    action: str,
+    target: str,
+    details: dict[str, object] | None = None,
+) -> None:
+    AuditLog.objects.create(
+        actor=None,
         action=action,
         target=target,
         details=details or {},
@@ -125,6 +148,110 @@ def check_otserver_connections(
         "database": db_result,
         "api": api_result,
     }
+
+
+def save_otserver_health_check(
+    *,
+    server: OTServer,
+    result: dict[str, object],
+    checked_at: datetime | None = None,
+) -> None:
+    check_time = checked_at or timezone.now()
+    database_message = str(result.get("database", {}).get("message", "")).strip()
+    api_message = str(result.get("api", {}).get("message", "")).strip()
+    combined_message = database_message
+    if api_message and api_message != _("API test skipped."):
+        combined_message = (
+            f"{database_message} | {api_message}" if database_message else api_message
+        )
+
+    server.last_health_check_at = check_time
+    server.last_health_check_ok = bool(result.get("success"))
+    server.last_health_check_message = combined_message[:255]
+    server.save(
+        update_fields=[
+            "last_health_check_at",
+            "last_health_check_ok",
+            "last_health_check_message",
+            "updated_at",
+        ]
+    )
+
+
+def run_scheduled_otserver_health_checks(
+    *,
+    now: datetime | None = None,
+    timeout_seconds: int = 5,
+) -> list[dict[str, object]]:
+    check_time = now or timezone.now()
+    monitored_servers = OTServer.objects.filter(
+        is_active=True,
+        monitor_enabled=True,
+    ).order_by("name")
+    results: list[dict[str, object]] = []
+
+    for server in monitored_servers:
+        interval_minutes = max(int(server.monitor_interval_minutes or 5), 1)
+        due_from = check_time - timedelta(minutes=interval_minutes)
+        if server.last_health_check_at and server.last_health_check_at > due_from:
+            continue
+
+        try:
+            result = check_otserver_connections(
+                database_engine=server.database_engine,
+                db_host=server.db_host,
+                db_port=server.db_port,
+                db_name=server.db_name,
+                db_user=server.db_user,
+                db_password=server.get_db_password(),
+                db_charset=server.db_charset,
+                db_use_ssl=server.db_use_ssl,
+                api_base_url=server.api_base_url,
+                api_token=server.get_api_token(),
+                timeout_seconds=timeout_seconds,
+            )
+        except Exception as exc:
+            result = {
+                "success": False,
+                "database": {"ok": False, "message": str(exc)[:240]},
+                "api": {"ok": None, "message": _("API test skipped.")},
+            }
+        save_otserver_health_check(server=server, result=result, checked_at=check_time)
+        checked_at_local, timezone_name = _format_for_platform_timezone(check_time)
+        log_system_audit_event(
+            action="otserver.health_check",
+            target=server.name,
+            details={
+                "source": "scheduler",
+                "success": result["success"],
+                "database_ok": result["database"]["ok"],
+                "api_ok": result["api"]["ok"],
+                "checked_at": checked_at_local,
+                "timezone": timezone_name,
+            },
+        )
+        results.append({"server": server, "result": result})
+
+    return results
+
+
+def _format_for_platform_timezone(value: datetime) -> tuple[str, str]:
+    timezone_name = _get_platform_timezone_name()
+    try:
+        tzinfo = ZoneInfo(timezone_name)
+    except ZoneInfoNotFoundError:
+        tzinfo = timezone.get_default_timezone()
+        timezone_name = str(tzinfo)
+    localized_value = timezone.localtime(value, tzinfo)
+    return localized_value.isoformat(), timezone_name
+
+
+def _get_platform_timezone_name() -> str:
+    try:
+        configured_timezone = PlatformSetting.get_solo().default_timezone.strip()
+    except Exception:
+        configured_timezone = ""
+    return configured_timezone or "UTC"
 
 
 def fetch_otserver_characters(
