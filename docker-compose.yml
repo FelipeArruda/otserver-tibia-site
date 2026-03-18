@@ -23,8 +23,8 @@ services:
       CELERY_HEALTH_CHECK_INTERVAL_SECONDS: ${CELERY_HEALTH_CHECK_INTERVAL_SECONDS:-60}
     volumes:
       - app_data:/data
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 
   celery_worker:
