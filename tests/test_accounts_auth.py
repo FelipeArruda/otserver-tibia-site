@@ -206,8 +206,10 @@ def test_home_shows_otservers_in_main_menu() -> None:
     content = response.content.decode("utf-8")
 
     assert response.status_code == 200
+    assert 'data-testid="otservers_group"' in content
     assert "OTServers" in content
     assert reverse("accounts:otservers") in content
+    assert reverse("accounts:characters") in content
     assert 'data-testid="settings-group"' not in content
 
 
