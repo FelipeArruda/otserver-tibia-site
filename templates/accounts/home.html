@@ -88,9 +88,23 @@
       {% endif %}
     </p>
     <div class="mt-3 space-y-2 text-sm">
-      <div class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"><span>{% trans "Login API" %}</span><span class="font-semibold {% if operator_status.login_api == 'ok' %}text-emerald-600{% else %}text-amber-600{% endif %}">{% if operator_status.login_api == "ok" %}OK{% else %}DELAY{% endif %}</span></div>
-      <div class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"><span>{% trans "Game database" %}</span><span class="font-semibold {% if operator_status.game_database == 'ok' %}text-emerald-600{% else %}text-amber-600{% endif %}">{% if operator_status.game_database == "ok" %}OK{% else %}DELAY{% endif %}</span></div>
-      <div class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"><span>{% trans "Webhook queue" %}</span><span class="font-semibold {% if operator_status.webhook_queue == 'ok' %}text-emerald-600{% else %}text-amber-600{% endif %}">{% if operator_status.webhook_queue == "ok" %}OK{% else %}DELAY{% endif %}</span></div>
+      {% for service in operator_status %}
+        <div class="rounded-lg bg-slate-50 px-3 py-2">
+          <div class="flex items-center justify-between gap-2">
+            <span class="truncate pr-2">{{ service.name }}</span>
+            <span class="shrink-0 font-semibold {% if service.status == 'ok' %}text-emerald-600{% elif service.status == 'delay' %}text-rose-600{% else %}text-amber-600{% endif %}">{{ service.status_label }}</span>
+          </div>
+          <p class="mt-1 text-xs text-slate-500">
+            {% if service.checked_at %}
+              {% blocktrans with checked_at=service.checked_at|date:"Y-m-d H:i" %}Last check: {{ checked_at }}{% endblocktrans %}
+            {% else %}
+              {% trans "Not checked yet." %}
+            {% endif %}
+          </p>
+        </div>
+      {% empty %}
+        <div class="rounded-lg bg-slate-50 px-3 py-2 text-slate-600">{% trans "No monitored OTServers configured." %}</div>
+      {% endfor %}
     </div>
   </article>
 {% endblock %}

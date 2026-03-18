@@ -49,6 +49,8 @@ from accounts.services import (
     check_otserver_connections,
     list_otserver_characters,
     log_audit_event,
+    run_scheduled_otserver_health_checks,
+    save_otserver_health_check,
     summarize_otserver_characters,
 )
 
@@ -240,6 +242,7 @@ class AccountHomeView(DashboardNavigationMixin, LoginRequiredMixin, TemplateView
 
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
         context = super().get_context_data(**kwargs)
+        run_scheduled_otserver_health_checks()
 
         now = timezone.now()
         last_24h = now - timedelta(hours=24)
@@ -314,13 +317,33 @@ class AccountHomeView(DashboardNavigationMixin, LoginRequiredMixin, TemplateView
         context["operational_events"] = [
             self._format_operational_event(log) for log in recent_audit_logs
         ]
-        context["operator_status"] = {
-            "login_api": "ok" if failed_ot_tests_24h == 0 else "delay",
-            "game_database": (
-                "ok" if database_ok and character_summary["errors"] == [] else "delay"
-            ),
-            "webhook_queue": "ok" if audit_events_24h < 100 else "delay",
-        }
+        monitored_servers = OTServer.objects.filter(
+            is_active=True,
+            monitor_enabled=True,
+        ).order_by("name")
+        context["operator_status"] = [
+            {
+                "name": server.name,
+                "status": (
+                    "ok"
+                    if server.last_health_check_ok is True
+                    else (
+                        "delay" if server.last_health_check_ok is False else "unknown"
+                    )
+                ),
+                "status_label": (
+                    _localized_text(en="Connected", pt="Conectado")
+                    if server.last_health_check_ok is True
+                    else (
+                        _localized_text(en="Disconnected", pt="Desconectado")
+                        if server.last_health_check_ok is False
+                        else _localized_text(en="Pending", pt="Pendente")
+                    )
+                ),
+                "checked_at": server.last_health_check_at,
+            }
+            for server in monitored_servers
+        ]
         context["dashboard_healthy"] = (
             database_ok
             and failed_ot_tests_24h == 0
@@ -355,6 +378,10 @@ class AccountHomeView(DashboardNavigationMixin, LoginRequiredMixin, TemplateView
                 en="Connection test",
                 pt="Teste de conexão",
             ),
+            "otserver.health_check": _localized_text(
+                en="Automatic health check",
+                pt="Verificação automática",
+            ),
         }
         title = action_map.get(
             log.action,
@@ -370,6 +397,14 @@ class AccountHomeView(DashboardNavigationMixin, LoginRequiredMixin, TemplateView
                 _localized_text(en="Succeeded", pt="Sucesso")
                 if success is True
                 else _localized_text(en="Failed", pt="Falhou")
+            )
+        if log.action == "otserver.health_check":
+            success = log.details.get("success")
+            status = "success" if success is True else "error"
+            status_label = (
+                _localized_text(en="Connected", pt="Conectado")
+                if success is True
+                else _localized_text(en="Disconnected", pt="Desconectado")
             )
 
         return {
@@ -1081,6 +1116,7 @@ class OTServerListConnectionTestView(LoginRequiredMixin, PermissionRequiredMixin
             api_base_url=server.api_base_url,
             api_token=server.get_api_token(),
         )
+        save_otserver_health_check(server=server, result=test_result)
         log_audit_event(
             request=request,
             action="otserver.connection_test",
@@ -1153,6 +1189,8 @@ class OTServerCreateView(
             api_base_url=form.cleaned_data["api_base_url"],
             api_token=form.cleaned_data["api_token"],
         )
+        if form.instance.pk:
+            save_otserver_health_check(server=form.instance, result=test_result)
         log_audit_event(
             request=request,
             action="otserver.connection_test",
@@ -1270,6 +1308,7 @@ class OTServerUpdateView(
             api_base_url=form.cleaned_data["api_base_url"],
             api_token=api_token,
         )
+        save_otserver_health_check(server=self.object, result=test_result)
         log_audit_event(
             request=request,
             action="otserver.connection_test",

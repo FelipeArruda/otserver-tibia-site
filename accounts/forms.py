@@ -368,6 +368,7 @@ class OTServerForm(forms.ModelForm):
             "api_token",
             "timezone",
             "monitor_enabled",
+            "monitor_interval_minutes",
             "is_active",
         )
         widgets = {
@@ -384,6 +385,9 @@ class OTServerForm(forms.ModelForm):
             "db_use_ssl": forms.CheckboxInput(attrs={"class": "peer sr-only"}),
             "api_base_url": forms.URLInput(attrs={"class": BASE_INPUT_CLASSES}),
             "monitor_enabled": forms.CheckboxInput(attrs={"class": "peer sr-only"}),
+            "monitor_interval_minutes": forms.NumberInput(
+                attrs={"class": BASE_INPUT_CLASSES, "min": 1, "max": 1440}
+            ),
             "is_active": forms.CheckboxInput(attrs={"class": "peer sr-only"}),
         }
 
@@ -409,6 +413,16 @@ class OTServerForm(forms.ModelForm):
         self.fields["db_use_ssl"].label = _("Use SSL")
         self.fields["api_base_url"].label = _("API base URL")
         self.fields["monitor_enabled"].label = _("Monitoring enabled")
+        language = (translation.get_language() or "").lower()
+        self.fields["monitor_interval_minutes"].label = (
+            "Intervalo de monitoramento (minutos)"
+            if language.startswith("pt")
+            else "Monitoring interval (minutes)"
+        )
+        self.fields["monitor_interval_minutes"].required = False
+        self.fields["monitor_interval_minutes"].initial = (
+            self.instance.monitor_interval_minutes or 5 if self.instance.pk else 5
+        )
         self.fields["is_active"].label = _("Active")
 
         if self.instance.pk:
@@ -439,6 +453,12 @@ class OTServerForm(forms.ModelForm):
         if isinstance(version, TibiaVersion):
             return version
         return TibiaVersion.objects.get(pk=TibiaVersion.DEFAULT_CODE)
+
+    def clean_monitor_interval_minutes(self) -> int:
+        interval = self.cleaned_data.get("monitor_interval_minutes")
+        if not interval:
+            return 5
+        return int(interval)
 
     def save(self, commit: bool = True) -> OTServer:
         current_server: OTServer | None = None

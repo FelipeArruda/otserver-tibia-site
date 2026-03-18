@@ -260,6 +260,33 @@ msgstr "Ativo"
 msgid "Inactive"
 msgstr "Inativo"
 
+msgid "Monitoring interval (minutes)"
+msgstr "Intervalo de monitoramento (minutos)"
+
+msgid "Last health check"
+msgstr "Última verificação de saúde"
+
+msgid "Last health check at"
+msgstr "Última verificação em"
+
+msgid "Last health check successful"
+msgstr "Última verificação com sucesso"
+
+msgid "Last health check message"
+msgstr "Mensagem da última verificação"
+
+msgid "Not checked yet"
+msgstr "Ainda não verificado"
+
+msgid "Not checked yet."
+msgstr "Ainda não verificado."
+
+msgid "No monitored OTServers configured."
+msgstr "Nenhum OTServer monitorado configurado."
+
+msgid "Last check: %(checked_at)s"
+msgstr "Última verificação: %(checked_at)s"
+
 msgid "No users found."
 msgstr "Nenhum usuário encontrado."
 

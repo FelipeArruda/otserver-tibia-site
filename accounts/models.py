@@ -1,6 +1,6 @@
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import RegexValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -204,6 +204,26 @@ class OTServer(models.Model):
     )
     monitor_enabled = models.BooleanField(
         default=True, verbose_name=_("Monitoring enabled")
+    )
+    monitor_interval_minutes = models.PositiveIntegerField(
+        default=5,
+        validators=[MinValueValidator(1), MaxValueValidator(1440)],
+        verbose_name=_("Monitoring interval (minutes)"),
+    )
+    last_health_check_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Last health check at"),
+    )
+    last_health_check_ok = models.BooleanField(
+        null=True,
+        blank=True,
+        verbose_name=_("Last health check successful"),
+    )
+    last_health_check_message = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_("Last health check message"),
     )
     is_active = models.BooleanField(default=True, verbose_name=_("Active"))
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created at"))
