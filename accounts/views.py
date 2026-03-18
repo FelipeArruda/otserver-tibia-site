@@ -60,6 +60,35 @@ def _localized_text(*, en: str, pt: str) -> str:
     return pt if language.startswith("pt") else en
 
 
+def _otserver_audit_details(
+    *,
+    server: OTServer,
+    db_password_changed: bool,
+    api_token_changed: bool,
+) -> dict[str, object]:
+    return {
+        "name": server.name,
+        "tibia_version": server.tibia_version_id,
+        "environment": server.environment,
+        "database_engine": server.database_engine,
+        "db_host": server.db_host,
+        "db_port": server.db_port,
+        "db_name": server.db_name,
+        "db_user": server.db_user,
+        "db_charset": server.db_charset,
+        "db_collation": server.db_collation,
+        "db_use_ssl": server.db_use_ssl,
+        "api_base_url": server.api_base_url,
+        "timezone": server.timezone,
+        "monitor_enabled": server.monitor_enabled,
+        "monitor_interval_minutes": server.monitor_interval_minutes,
+        "is_active": server.is_active,
+        "api_token_configured": bool(server.api_token),
+        "db_password_changed": db_password_changed,
+        "api_token_changed": api_token_changed,
+    }
+
+
 class DashboardNavigationMixin:
     main_menu_items = [
         {
@@ -1211,17 +1240,16 @@ class OTServerCreateView(
 
     def form_valid(self, form: OTServerForm) -> HttpResponse:
         response = super().form_valid(form)
+        details = _otserver_audit_details(
+            server=form.instance,
+            db_password_changed=True,
+            api_token_changed=bool(form.cleaned_data.get("api_token")),
+        )
         log_audit_event(
             request=self.request,
             action="otserver.create",
             target=form.instance.name,
-            details={
-                "tibia_version": form.instance.tibia_version_id,
-                "environment": form.instance.environment,
-                "database_engine": form.instance.database_engine,
-                "db_host": form.instance.db_host,
-                "is_active": form.instance.is_active,
-            },
+            details=details,
         )
         messages.success(self.request, _("OTServer created successfully."))
         return response
@@ -1330,18 +1358,20 @@ class OTServerUpdateView(
         )
 
     def form_valid(self, form: OTServerForm) -> HttpResponse:
+        previous_server = OTServer.objects.get(pk=form.instance.pk)
+        previous_db_password = previous_server.get_db_password()
+        previous_api_token = previous_server.get_api_token()
         response = super().form_valid(form)
+        details = _otserver_audit_details(
+            server=form.instance,
+            db_password_changed=form.instance.get_db_password() != previous_db_password,
+            api_token_changed=form.instance.get_api_token() != previous_api_token,
+        )
         log_audit_event(
             request=self.request,
             action="otserver.update",
             target=form.instance.name,
-            details={
-                "tibia_version": form.instance.tibia_version_id,
-                "environment": form.instance.environment,
-                "database_engine": form.instance.database_engine,
-                "db_host": form.instance.db_host,
-                "is_active": form.instance.is_active,
-            },
+            details=details,
         )
         messages.success(self.request, _("OTServer updated successfully."))
         return response
