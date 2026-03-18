@@ -226,3 +226,16 @@ LOGOUT_REDIRECT_URL = "accounts:login"
 EMAIL_BACKEND = os.getenv(
     "DJANGO_EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
 )
+
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://redis:6379/1")
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_ENABLE_UTC = True
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = int(os.getenv("CELERY_TASK_TIME_LIMIT", "300"))
+CELERY_BEAT_SCHEDULE = {
+    "otserver-health-check": {
+        "task": "accounts.tasks.run_otserver_health_check",
+        "schedule": float(os.getenv("CELERY_HEALTH_CHECK_INTERVAL_SECONDS", "60")),
+    }
+}
