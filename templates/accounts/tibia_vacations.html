@@ -1,0 +1,78 @@
+﻿{% extends "accounts/dashboard_base.html" %}
+{% load i18n %}
+
+{% block page_title %}{{ vocation_ui.title }}{% endblock %}
+{% block page_kicker %}OTSERV{% endblock %}
+{% block page_heading %}{{ vocation_ui.title }}{% endblock %}
+{% block page_description %}{{ vocation_ui.description }}{% endblock %}
+
+{% block page_actions %}
+  {% if can_add_vacation %}
+    <a href="{% url 'accounts:tibia_vacation_create' %}" class="rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500">{{ vocation_ui.add_button }}</a>
+  {% endif %}
+{% endblock %}
+
+{% block primary_content %}
+  <section class="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+    <form method="get" class="grid gap-3 md:grid-cols-3">
+      <input name="q" value="{{ filters.q }}" placeholder="{% trans 'Search by name' %}" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100">
+      <select name="version" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100">
+        <option value="">{{ vocation_ui.all_versions }}</option>
+        {% for version in version_choices %}
+          <option value="{{ version.code }}" {% if filters.version == version.code %}selected{% endif %}>{{ version.code }}</option>
+        {% endfor %}
+      </select>
+      <div class="grid grid-cols-2 gap-2">
+        <button type="submit" class="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">{% trans "Apply filters" %}</button>
+        <a href="{% url 'accounts:tibia_vacations' %}" class="rounded-xl border border-slate-200 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50">{% trans "Clear" %}</a>
+      </div>
+    </form>
+  </section>
+
+  <section class="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200 text-sm">
+        <thead class="bg-slate-50">
+          <tr>
+            <th class="px-4 py-3 text-left font-semibold text-slate-600">{% trans "Version" %}</th>
+            <th class="px-4 py-3 text-left font-semibold text-slate-600">{{ vocation_ui.vocation_id }}</th>
+            <th class="px-4 py-3 text-left font-semibold text-slate-600">{% trans "Name" %}</th>
+            <th class="px-4 py-3 text-left font-semibold text-slate-600">{{ vocation_ui.name_pt }}</th>
+            <th class="px-4 py-3 text-left font-semibold text-slate-600">{{ vocation_ui.description_label }}</th>
+            <th class="px-4 py-3 text-left font-semibold text-slate-600">{{ vocation_ui.actions }}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for vacation in vacations %}
+            <tr>
+              <td class="px-4 py-3 text-slate-700">{{ vacation.tibia_version_id }}</td>
+              <td class="px-4 py-3 text-slate-700">{{ vacation.vocation_id }}</td>
+              <td class="px-4 py-3 font-semibold text-slate-900">{{ vacation.name }}</td>
+              <td class="px-4 py-3 text-slate-700">{{ vacation.name_pt_br|default:'-' }}</td>
+              <td class="px-4 py-3 text-slate-700">{{ vacation.description|default:'-' }}</td>
+              <td class="px-4 py-3">
+                <div class="flex flex-wrap gap-2">
+                  {% if can_change_vacation %}
+                    <a href="{% url 'accounts:tibia_vacation_update' vacation.pk %}" class="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50">{% trans "Edit" %}</a>
+                  {% endif %}
+                  {% if can_delete_vacation %}
+                    <form method="post" action="{% url 'accounts:tibia_vacation_delete' vacation.pk %}" class="inline">
+                      {% csrf_token %}
+                      <button type="submit" class="rounded-lg border border-rose-200 px-2.5 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50" onclick="return confirm('{{ vocation_ui.remove_confirm }}')">{% trans "Remove" %}</button>
+                    </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="px-4 py-8 text-center text-slate-500">{{ vocation_ui.none_found }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {% include "accounts/_pagination.html" %}
+{% endblock %}

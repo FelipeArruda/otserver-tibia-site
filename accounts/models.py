@@ -229,3 +229,45 @@ class OTServer(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+
+class TibiaVacation(models.Model):
+    tibia_version = models.ForeignKey(
+        TibiaVersion,
+        on_delete=models.PROTECT,
+        related_name="tibia_vacations",
+        verbose_name=_("Tibia version"),
+    )
+    vocation_id = models.PositiveSmallIntegerField(verbose_name=_("Vocation ID"))
+    name = models.CharField(max_length=120, verbose_name=_("Name"))
+    description = models.CharField(
+        max_length=255, blank=True, verbose_name=_("Description")
+    )
+    name_pt_br = models.CharField(
+        max_length=120, blank=True, verbose_name=_("Name (Portuguese)")
+    )
+    description_pt_br = models.CharField(
+        max_length=255, blank=True, verbose_name=_("Description (Portuguese)")
+    )
+    base_id = models.PositiveSmallIntegerField(default=0, verbose_name=_("Base ID"))
+    from_voc = models.PositiveSmallIntegerField(
+        default=0, verbose_name=_("From vocation")
+    )
+    client_id = models.PositiveSmallIntegerField(default=0, verbose_name=_("Client ID"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created at"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated at"))
+
+    class Meta:
+        db_table = "tibia_vacations"
+        ordering = ["tibia_version_id", "vocation_id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tibia_version", "vocation_id"],
+                name="uniq_tibia_vacation_per_version",
+            )
+        ]
+        verbose_name = _("Tibia vacation")
+        verbose_name_plural = _("Tibia vacations")
+
+    def __str__(self) -> str:
+        return f"{self.tibia_version_id} #{self.vocation_id} - {self.name}"

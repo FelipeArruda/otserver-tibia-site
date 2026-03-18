@@ -7,9 +7,10 @@ from django.contrib.auth.forms import (
     UserCreationForm,
 )
 from django.contrib.auth.models import Group, Permission
+from django.utils import translation
 from django.utils.translation import gettext_lazy as _
 
-from accounts.models import OTServer, PlatformSetting, TibiaVersion, User
+from accounts.models import OTServer, PlatformSetting, TibiaVacation, TibiaVersion, User
 
 BASE_INPUT_CLASSES = (
     "mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-slate-800 "
@@ -453,3 +454,77 @@ class OTServerForm(forms.ModelForm):
         if commit:
             otserver.save()
         return otserver
+
+
+class TibiaVacationForm(forms.ModelForm):
+    class Meta:
+        model = TibiaVacation
+        fields = (
+            "tibia_version",
+            "vocation_id",
+            "name",
+            "description",
+            "name_pt_br",
+            "description_pt_br",
+            "base_id",
+            "from_voc",
+            "client_id",
+        )
+        widgets = {
+            "tibia_version": forms.Select(attrs={"class": BASE_INPUT_CLASSES}),
+            "vocation_id": forms.NumberInput(
+                attrs={"class": BASE_INPUT_CLASSES, "min": 0}
+            ),
+            "name": forms.TextInput(attrs={"class": BASE_INPUT_CLASSES}),
+            "description": forms.TextInput(attrs={"class": BASE_INPUT_CLASSES}),
+            "name_pt_br": forms.TextInput(attrs={"class": BASE_INPUT_CLASSES}),
+            "description_pt_br": forms.TextInput(attrs={"class": BASE_INPUT_CLASSES}),
+            "base_id": forms.NumberInput(attrs={"class": BASE_INPUT_CLASSES, "min": 0}),
+            "from_voc": forms.NumberInput(
+                attrs={"class": BASE_INPUT_CLASSES, "min": 0}
+            ),
+            "client_id": forms.NumberInput(
+                attrs={"class": BASE_INPUT_CLASSES, "min": 0}
+            ),
+        }
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields["tibia_version"].queryset = TibiaVersion.objects.order_by(
+            "sort_order", "code"
+        )
+        self.fields["tibia_version"].empty_label = None
+        language = (translation.get_language() or "").lower()
+        if language.startswith("pt"):
+            self.fields["tibia_version"].label = "Versão do Tibia"
+            self.fields["vocation_id"].label = "ID da vocação"
+            self.fields["name"].label = "Nome"
+            self.fields["description"].label = "Descrição"
+            self.fields["name_pt_br"].label = "Nome (Português)"
+            self.fields["description_pt_br"].label = "Descrição (Português)"
+            self.fields["base_id"].label = "ID base"
+            self.fields["from_voc"].label = "Vocação de origem"
+            self.fields["client_id"].label = "ID do cliente"
+
+    def clean(self) -> dict[str, object]:
+        cleaned_data = super().clean()
+        version = cleaned_data.get("tibia_version")
+        vocation_id = cleaned_data.get("vocation_id")
+        if not version or vocation_id is None:
+            return cleaned_data
+
+        duplicate = TibiaVacation.objects.filter(
+            tibia_version=version,
+            vocation_id=vocation_id,
+        )
+        if self.instance.pk:
+            duplicate = duplicate.exclude(pk=self.instance.pk)
+        if duplicate.exists():
+            language = (translation.get_language() or "").lower()
+            message = (
+                "Já existe uma vocação com este ID para a versão selecionada."
+                if language.startswith("pt")
+                else "A vocation with this ID already exists for the selected version."
+            )
+            self.add_error("vocation_id", message)
+        return cleaned_data

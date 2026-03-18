@@ -9,7 +9,7 @@ from typing import Any
 from django.http import HttpRequest
 from django.utils.translation import gettext as _
 
-from accounts.models import AuditLog, OTServer, User
+from accounts.models import AuditLog, OTServer, TibiaVacation, TibiaVersion, User
 
 
 def log_audit_event(
@@ -170,24 +170,46 @@ def fetch_otserver_characters(
             }
             if "name" not in available_columns:
                 raise RuntimeError(_("Column 'name' not found in players table."))
+            online_join_sql, online_presence_expr = _resolve_online_source(
+                cursor=cursor, players_columns=available_columns
+            )
 
             select_parts = [
-                "name",
-                "level" if "level" in available_columns else "NULL AS level",
-                "vocation" if "vocation" in available_columns else "NULL AS vocation",
-                "online" if "online" in available_columns else "NULL AS online",
+                "players.name AS name",
                 (
-                    "lastlogin"
+                    "players.level AS level"
+                    if "level" in available_columns
+                    else "NULL AS level"
+                ),
+                (
+                    "players.vocation AS vocation"
+                    if "vocation" in available_columns
+                    else "NULL AS vocation"
+                ),
+                (
+                    "players.lastlogin AS lastlogin"
                     if "lastlogin" in available_columns
                     else "NULL AS lastlogin"
                 ),
             ]
-            query = f"SELECT {', '.join(select_parts)} FROM players"
+            if online_presence_expr:
+                select_parts.append(
+                    f"CASE WHEN {online_presence_expr} THEN 1 ELSE 0 END AS online"
+                )
+            elif "online" in available_columns:
+                select_parts.append("players.online AS online")
+            else:
+                select_parts.append("NULL AS online")
+
+            query = (
+                f"SELECT {', '.join(select_parts)} "
+                f"FROM players AS players {online_join_sql}"
+            )
             params: list[str] = []
             if search:
-                query += " WHERE name LIKE %s"
+                query += " WHERE players.name LIKE %s"
                 params.append(f"%{search}%")
-            query += " ORDER BY name ASC"
+            query += " ORDER BY players.name ASC"
             cursor.execute(query, params)
             rows = cursor.fetchall()
     finally:
@@ -207,6 +229,7 @@ def fetch_otserver_characters(
                 "name": name,
                 "otserver_pk": server.pk,
                 "otserver_name": server.name,
+                "vocation_id": _as_int_or_none(row.get("vocation")),
                 "vocation": _as_text_or_empty(row.get("vocation")),
                 "level": _as_int_or_none(row.get("level")),
                 "is_online": _as_bool_or_none(row.get("online")),
@@ -258,14 +281,43 @@ def fetch_otserver_character_summary(
             }
             if "name" not in available_columns:
                 raise RuntimeError(_("Column 'name' not found in players table."))
+            online_join_sql, online_presence_expr = _resolve_online_source(
+                cursor=cursor, players_columns=available_columns
+            )
+
+            if online_presence_expr:
+                cursor.execute(
+                    """
+                    SELECT
+                        COUNT(*) AS total_characters,
+                        SUM(
+                            CASE WHEN {online_presence_expr} THEN 1 ELSE 0 END
+                        ) AS online_characters
+                    FROM players AS players
+                    {online_join_sql}
+                    """.format(
+                        online_presence_expr=online_presence_expr,
+                        online_join_sql=online_join_sql,
+                    )
+                )
+                row = cursor.fetchone() or {}
+                total = _as_int_or_none(row.get("total_characters")) or 0
+                online = _as_int_or_none(row.get("online_characters")) or 0
+                offline = max(total - online, 0)
+                return {
+                    "total_characters": total,
+                    "online_characters": online,
+                    "offline_characters": offline,
+                    "unknown_status_characters": 0,
+                }
 
             if "online" in available_columns:
                 cursor.execute(
                     """
                     SELECT
                         COUNT(*) AS total_characters,
-                        SUM(CASE WHEN online = 1 THEN 1 ELSE 0 END) AS online_characters
-                    FROM players
+                        SUM(CASE WHEN players.online = 1 THEN 1 ELSE 0 END) AS online_characters
+                    FROM players AS players
                     """
                 )
                 row = cursor.fetchone() or {}
@@ -347,11 +399,16 @@ def list_otserver_characters(
 
     all_characters: list[dict[str, Any]] = []
     source_errors: list[dict[str, str]] = []
+    vacation_map_by_version = _build_vacation_map_by_version(servers=filtered_servers)
     for server in filtered_servers:
         try:
-            all_characters.extend(
-                fetch_otserver_characters(server=server, search=search)
+            characters = fetch_otserver_characters(server=server, search=search)
+            _apply_vocation_translations(
+                characters=characters,
+                tibia_version_code=server.tibia_version_id,
+                vacation_map_by_version=vacation_map_by_version,
             )
+            all_characters.extend(characters)
         except Exception as exc:
             source_errors.append({"otserver_name": server.name, "message": str(exc)})
 
@@ -529,3 +586,102 @@ def _to_level_value(value: object) -> int:
     if isinstance(value, int):
         return value
     return -1
+
+
+def _resolve_online_source(
+    *, cursor: Any, players_columns: set[str]
+) -> tuple[str, str]:
+    cursor.execute("SHOW TABLES LIKE %s", ("players_online",))
+    if cursor.fetchone() is None:
+        return "", ""
+
+    cursor.execute("SHOW COLUMNS FROM players_online")
+    online_columns = {
+        str(column.get("Field", "")).lower()
+        for column in cursor.fetchall()
+        if isinstance(column, dict)
+    }
+
+    candidate_pairs = [
+        ("id", "player_id"),
+        ("id", "playerid"),
+        ("name", "player_name"),
+        ("name", "playername"),
+        ("name", "name"),
+    ]
+    for players_column, online_column in candidate_pairs:
+        if players_column not in players_columns or online_column not in online_columns:
+            continue
+        quoted_players_column = _quote_identifier(players_column)
+        quoted_online_column = _quote_identifier(online_column)
+        join_sql = (
+            "LEFT JOIN ("
+            f"SELECT DISTINCT {quoted_online_column} AS online_key "
+            "FROM players_online"
+            ") AS online_players "
+            f"ON online_players.online_key = players.{quoted_players_column}"
+        )
+        return join_sql, "online_players.online_key IS NOT NULL"
+
+    return "", ""
+
+
+def _quote_identifier(identifier: str) -> str:
+    escaped = identifier.replace("`", "``")
+    return f"`{escaped}`"
+
+
+def _build_vacation_map_by_version(
+    *, servers: list[OTServer]
+) -> dict[str, dict[int, dict[str, str]]]:
+    version_codes = {
+        server.tibia_version_id
+        for server in servers
+        if getattr(server, "tibia_version_id", "")
+    }
+    version_codes.add(TibiaVersion.DEFAULT_CODE)
+    if not version_codes:
+        return {}
+
+    rows = TibiaVacation.objects.filter(tibia_version_id__in=version_codes).values(
+        "tibia_version_id",
+        "vocation_id",
+        "name",
+        "name_pt_br",
+    )
+    mapping: dict[str, dict[int, dict[str, str]]] = {}
+    for row in rows:
+        version_code = str(row["tibia_version_id"])
+        vocation_id = int(row["vocation_id"])
+        mapping.setdefault(version_code, {})[vocation_id] = {
+            "name": str(row.get("name", "")).strip(),
+            "name_pt_br": str(row.get("name_pt_br", "")).strip(),
+        }
+    return mapping
+
+
+def _apply_vocation_translations(
+    *,
+    characters: list[dict[str, Any]],
+    tibia_version_code: str,
+    vacation_map_by_version: dict[str, dict[int, dict[str, str]]],
+) -> None:
+    version_map = vacation_map_by_version.get(tibia_version_code, {})
+    if not version_map:
+        version_map = vacation_map_by_version.get(TibiaVersion.DEFAULT_CODE, {})
+    if not version_map and vacation_map_by_version:
+        # Last-resort fallback when the server's Tibia version has no mapped vocations.
+        version_map = next(iter(vacation_map_by_version.values()))
+
+    for character in characters:
+        vocation_id = character.get("vocation_id")
+        if not isinstance(vocation_id, int):
+            continue
+
+        vacation = version_map.get(vocation_id)
+        if not vacation:
+            character["vocation"] = str(vocation_id)
+            continue
+
+        name = vacation.get("name", "")
+        character["vocation"] = name or str(vocation_id)

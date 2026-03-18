@@ -24,6 +24,10 @@ from accounts.views import (
     RoleManagementView,
     RoleUpdateView,
     SignUpView,
+    TibiaVacationCreateView,
+    TibiaVacationDeleteView,
+    TibiaVacationListView,
+    TibiaVacationUpdateView,
     UserCreateView,
     UserManagementView,
     UserToggleActiveView,
@@ -76,6 +80,24 @@ urlpatterns = [
     ),
     path("otservers/new/", OTServerCreateView.as_view(), name="otserver_create"),
     path("otservers/<int:pk>/", OTServerDetailView.as_view(), name="otserver_detail"),
+    path(
+        "otservers/vocations/", TibiaVacationListView.as_view(), name="tibia_vacations"
+    ),
+    path(
+        "otservers/vocations/new/",
+        TibiaVacationCreateView.as_view(),
+        name="tibia_vacation_create",
+    ),
+    path(
+        "otservers/vocations/<int:pk>/edit/",
+        TibiaVacationUpdateView.as_view(),
+        name="tibia_vacation_update",
+    ),
+    path(
+        "otservers/vocations/<int:pk>/delete/",
+        TibiaVacationDeleteView.as_view(),
+        name="tibia_vacation_delete",
+    ),
     path(
         "otservers/<int:pk>/edit/",
         OTServerUpdateView.as_view(),
