@@ -23,7 +23,26 @@
     </form>
   </section>
 
-  <section class="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200">
+  <section class="grid gap-3 md:hidden">
+    {% for entry in logs %}
+      <article class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+        <div class="flex items-start justify-between gap-3">
+          <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{{ entry.action }}</p>
+          <span class="text-xs text-slate-500">{{ entry.created_at|localtime|date:"Y-m-d H:i:s" }}</span>
+        </div>
+        <p class="mt-2 text-sm font-semibold text-slate-900">{% if entry.actor %}{{ entry.actor.email }}{% else %}{% trans "System" %}{% endif %}</p>
+        <p class="mt-1 text-sm text-slate-700">{{ entry.target }}</p>
+        <div class="mt-3 rounded-xl bg-slate-50 p-3">
+          <p class="text-xs uppercase tracking-[0.12em] text-slate-500">{% trans "Details" %}</p>
+          <code class="mt-1 block break-all text-xs text-slate-600">{{ entry.details }}</code>
+        </div>
+      </article>
+    {% empty %}
+      <article class="rounded-2xl bg-white p-6 text-center text-sm text-slate-500 shadow-sm ring-1 ring-slate-200">{% trans "No audit records found." %}</article>
+    {% endfor %}
+  </section>
+
+  <section class="hidden overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200 md:block">
     <div class="overflow-x-auto">
       <table class="min-w-full divide-y divide-slate-200 text-sm">
         <thead class="bg-slate-50">
