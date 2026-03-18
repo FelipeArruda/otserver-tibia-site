@@ -49,7 +49,6 @@ from accounts.services import (
     check_otserver_connections,
     list_otserver_characters,
     log_audit_event,
-    run_scheduled_otserver_health_checks,
     save_otserver_health_check,
     summarize_otserver_characters,
 )
@@ -271,7 +270,6 @@ class AccountHomeView(DashboardNavigationMixin, LoginRequiredMixin, TemplateView
 
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
         context = super().get_context_data(**kwargs)
-        run_scheduled_otserver_health_checks()
 
         now = timezone.now()
         last_24h = now - timedelta(hours=24)

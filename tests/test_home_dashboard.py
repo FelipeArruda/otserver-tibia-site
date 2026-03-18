@@ -23,10 +23,7 @@ def test_home_dashboard_renders_classic_layout_sections_with_real_metrics() -> N
 
     client = Client()
     assert client.login(username=user.email, password="StrongPass123!")
-    with (
-        patch("accounts.views.run_scheduled_otserver_health_checks"),
-        patch("accounts.views.summarize_otserver_characters") as summary_mock,
-    ):
+    with patch("accounts.views.summarize_otserver_characters") as summary_mock:
         summary_mock.return_value = {
             "total_characters": 60,
             "online_characters": 22,
@@ -80,8 +77,7 @@ def test_operational_feed_shows_only_otserver_events_with_friendly_labels() -> N
 
     client = Client()
     assert client.login(username=user.email, password="StrongPass123!")
-    with patch("accounts.views.run_scheduled_otserver_health_checks"):
-        response = client.get(reverse("accounts:home"))
+    response = client.get(reverse("accounts:home"))
     content = response.content.decode("utf-8")
 
     assert response.status_code == 200
@@ -108,8 +104,7 @@ def test_operational_feed_limits_to_five_and_translates_to_portuguese() -> None:
     client = Client()
     client.post(reverse("set_language"), {"language": "pt-br", "next": "/"})
     assert client.login(username=user.email, password="StrongPass123!")
-    with patch("accounts.views.run_scheduled_otserver_health_checks"):
-        response = client.get(reverse("accounts:home"))
+    response = client.get(reverse("accounts:home"))
     content = response.content.decode("utf-8")
 
     assert response.status_code == 200
@@ -158,8 +153,7 @@ def test_operator_status_lists_otserver_name_and_connection_state() -> None:
 
     client = Client()
     assert client.login(username=user.email, password="StrongPass123!")
-    with patch("accounts.views.run_scheduled_otserver_health_checks"):
-        response = client.get(reverse("accounts:home"))
+    response = client.get(reverse("accounts:home"))
     content = response.content.decode("utf-8")
 
     assert response.status_code == 200

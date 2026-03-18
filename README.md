@@ -52,6 +52,14 @@ O container roda migrações automaticamente no startup (`python manage.py migra
 
 Aplicação local: `http://localhost:8000`
 
+Com a stack atual, o `docker compose` também sobe:
+
+- `redis` (broker/result backend);
+- `celery_worker` (execução de tarefas assíncronas);
+- `celery_beat` (agendamento periódico).
+
+A rotina de `health check` dos OTServers roda automaticamente via Celery Beat, respeitando o intervalo configurado por OTServer.
+
 ### Build manual por Dockerfile
 
 Linux:
