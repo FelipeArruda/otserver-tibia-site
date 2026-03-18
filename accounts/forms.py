@@ -456,6 +456,41 @@ class OTServerForm(forms.ModelForm):
         return otserver
 
 
+class TibiaVersionForm(forms.ModelForm):
+    class Meta:
+        model = TibiaVersion
+        fields = ("code", "sort_order", "is_supported")
+        widgets = {
+            "code": forms.TextInput(
+                attrs={
+                    "class": BASE_INPUT_CLASSES,
+                    "placeholder": "15.30",
+                }
+            ),
+            "sort_order": forms.NumberInput(
+                attrs={"class": BASE_INPUT_CLASSES, "min": 0}
+            ),
+            "is_supported": forms.CheckboxInput(attrs={"class": "peer sr-only"}),
+        }
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields["code"].label = _("Version")
+        self.fields["sort_order"].label = _("Sort order")
+        self.fields["is_supported"].label = _("Supported")
+
+    def clean_code(self) -> str:
+        code = str(self.cleaned_data["code"]).strip()
+        existing = TibiaVersion.objects.filter(code__iexact=code)
+        if self.instance.pk:
+            existing = existing.exclude(pk=self.instance.pk)
+        if existing.exists():
+            raise forms.ValidationError(
+                _("A Tibia version with this code already exists.")
+            )
+        return code
+
+
 class TibiaVacationForm(forms.ModelForm):
     class Meta:
         model = TibiaVacation
