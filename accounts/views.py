@@ -15,6 +15,7 @@ from django.contrib.auth.views import (
 from django.core.paginator import Paginator
 from django.db import connections
 from django.db.models import Count
+from django.db.models.deletion import ProtectedError
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
@@ -34,12 +35,14 @@ from accounts.forms import (
     RoleManagementForm,
     SignUpForm,
     TibiaVacationForm,
+    TibiaVersionForm,
 )
 from accounts.models import (
     AuditLog,
     OTServer,
     PlatformSetting,
     TibiaVacation,
+    TibiaVersion,
     User,
 )
 from accounts.services import (
@@ -94,6 +97,13 @@ class DashboardNavigationMixin:
                     "href": reverse_lazy("accounts:tibia_vacations"),
                     "icon": "list",
                     "required_perms": ["accounts.view_tibiavacation"],
+                },
+                {
+                    "key": "tibia_versions",
+                    "label": _("Tibia Versions"),
+                    "href": reverse_lazy("accounts:tibia_versions"),
+                    "icon": "list",
+                    "required_perms": ["accounts.view_tibiaversion"],
                 },
             ],
         },
@@ -166,14 +176,23 @@ class DashboardNavigationMixin:
             if visible_item.get("key") == "otservers_group":
                 language = translation.get_language() or ""
                 visible_item["label"] = (
-                    "Gestão de OTServers"
+                    "Gest\u00e3o de OTServers"
                     if language.lower().startswith("pt")
                     else "OTServers Management"
                 )
             if visible_item.get("key") == "tibia_vacations":
                 language = translation.get_language() or ""
                 visible_item["label"] = (
-                    "Vocações" if language.lower().startswith("pt") else "Vocations"
+                    "Voca\u00e7\u00f5es"
+                    if language.lower().startswith("pt")
+                    else "Vocations"
+                )
+            if visible_item.get("key") == "tibia_versions":
+                language = translation.get_language() or ""
+                visible_item["label"] = (
+                    "Vers\u00f5es do Tibia"
+                    if language.lower().startswith("pt")
+                    else "Tibia Versions"
                 )
             raw_children = item.get("children", [])
             children = (
@@ -1307,6 +1326,241 @@ class OTServerDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
         )
         messages.success(request, _("OTServer removed successfully."))
         return redirect("accounts:otservers")
+
+
+class TibiaVersionListView(
+    DashboardNavigationMixin,
+    PaginationMixin,
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    TemplateView,
+):
+    template_name = "accounts/tibia_versions.html"
+    permission_required = ("accounts.view_otserver", "accounts.view_tibiaversion")
+    raise_exception = True
+    active_menu_key = "tibia_versions"
+    page_size = 15
+
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context = super().get_context_data(**kwargs)
+        language = (translation.get_language() or "").lower()
+        is_pt = language.startswith("pt")
+
+        queryset = TibiaVersion.objects.annotate(
+            otservers_count=Count("otservers", distinct=True)
+        ).order_by("sort_order", "code")
+
+        search = self.request.GET.get("q", "").strip()
+        supported = self.request.GET.get("supported", "").strip()
+        if search:
+            queryset = queryset.filter(code__icontains=search)
+        if supported == "yes":
+            queryset = queryset.filter(is_supported=True)
+        elif supported == "no":
+            queryset = queryset.filter(is_supported=False)
+
+        context.update(self.paginate_queryset(queryset, context_name="versions"))
+        context["filters"] = {"q": search, "supported": supported}
+        context["can_add_version"] = self.request.user.has_perm(
+            "accounts.add_tibiaversion"
+        )
+        context["can_change_version"] = self.request.user.has_perm(
+            "accounts.change_tibiaversion"
+        )
+        context["can_delete_version"] = self.request.user.has_perm(
+            "accounts.delete_tibiaversion"
+        )
+        context["version_ui"] = {
+            "title": "Vers\u00f5es do Tibia" if is_pt else "Tibia Versions",
+            "description": (
+                "Gerencie as vers\u00f5es do Tibia dispon\u00edveis para seus OTServers."
+                if is_pt
+                else "Manage available Tibia versions for your OTServers."
+            ),
+            "add_button": "Adicionar versão" if is_pt else "Add version",
+            "sort_order": "Ordem" if is_pt else "Sort order",
+            "all_status": "Todos os status" if is_pt else "All status",
+            "supported": "Suportada" if is_pt else "Supported",
+            "unsupported": "Não suportada" if is_pt else "Unsupported",
+            "otservers_count": "OTServers vinculados" if is_pt else "Linked OTServers",
+            "actions": "Ações" if is_pt else "Actions",
+            "none_found": (
+                "Nenhuma versão encontrada." if is_pt else "No Tibia versions found."
+            ),
+            "remove_confirm": (
+                "Remover esta versão do Tibia?"
+                if is_pt
+                else "Remove this Tibia version?"
+            ),
+        }
+        context["show_secondary_content"] = False
+        return context
+
+
+class TibiaVersionCreateView(
+    DashboardNavigationMixin, LoginRequiredMixin, PermissionRequiredMixin, CreateView
+):
+    template_name = "accounts/tibia_version_form.html"
+    form_class = TibiaVersionForm
+    permission_required = ("accounts.view_otserver", "accounts.add_tibiaversion")
+    raise_exception = True
+    success_url = reverse_lazy("accounts:tibia_versions")
+    active_menu_key = "tibia_versions"
+
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context = super().get_context_data(**kwargs)
+        language = (translation.get_language() or "").lower()
+        is_pt = language.startswith("pt")
+        context["version_ui"] = {
+            "title": "Nova versão do Tibia" if is_pt else "New Tibia version",
+            "description": (
+                "Cadastre versões para uso em OTServers e mapeamentos."
+                if is_pt
+                else "Register versions for OTServer usage and mappings."
+            ),
+            "back": "Voltar para versões" if is_pt else "Back to versions",
+        }
+        context["show_secondary_content"] = False
+        return context
+
+    def form_valid(self, form: TibiaVersionForm) -> HttpResponse:
+        response = super().form_valid(form)
+        log_audit_event(
+            request=self.request,
+            action="tibia_version.create",
+            target=form.instance.code,
+            details={
+                "sort_order": form.instance.sort_order,
+                "is_supported": form.instance.is_supported,
+            },
+        )
+        messages.success(
+            self.request,
+            _localized_text(
+                en="Tibia version created successfully.",
+                pt="Versão do Tibia criada com sucesso.",
+            ),
+        )
+        return response
+
+    def form_invalid(self, form: TibiaVersionForm) -> HttpResponse:
+        messages.error(
+            self.request,
+            _localized_text(
+                en="Please correct the highlighted fields.",
+                pt="Corrija os campos destacados.",
+            ),
+        )
+        return super().form_invalid(form)
+
+
+class TibiaVersionUpdateView(
+    DashboardNavigationMixin, LoginRequiredMixin, PermissionRequiredMixin, UpdateView
+):
+    template_name = "accounts/tibia_version_form.html"
+    form_class = TibiaVersionForm
+    model = TibiaVersion
+    pk_url_kwarg = "pk"
+    permission_required = ("accounts.view_otserver", "accounts.change_tibiaversion")
+    raise_exception = True
+    success_url = reverse_lazy("accounts:tibia_versions")
+    active_menu_key = "tibia_versions"
+
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context = super().get_context_data(**kwargs)
+        language = (translation.get_language() or "").lower()
+        is_pt = language.startswith("pt")
+        context["version_ui"] = {
+            "title": "Editar versão do Tibia" if is_pt else "Edit Tibia version",
+            "description": (
+                "Atualize ordem e status de suporte da versão."
+                if is_pt
+                else "Update sort order and supported status."
+            ),
+            "back": "Voltar para versões" if is_pt else "Back to versions",
+        }
+        context["show_secondary_content"] = False
+        return context
+
+    def get_form(
+        self, form_class: type[TibiaVersionForm] | None = None
+    ) -> TibiaVersionForm:
+        form = super().get_form(form_class)
+        form.fields["code"].disabled = True
+        return form
+
+    def form_valid(self, form: TibiaVersionForm) -> HttpResponse:
+        response = super().form_valid(form)
+        log_audit_event(
+            request=self.request,
+            action="tibia_version.update",
+            target=form.instance.code,
+            details={
+                "sort_order": form.instance.sort_order,
+                "is_supported": form.instance.is_supported,
+            },
+        )
+        messages.success(
+            self.request,
+            _localized_text(
+                en="Tibia version updated successfully.",
+                pt="Versão do Tibia atualizada com sucesso.",
+            ),
+        )
+        return response
+
+    def form_invalid(self, form: TibiaVersionForm) -> HttpResponse:
+        messages.error(
+            self.request,
+            _localized_text(
+                en="Please correct the highlighted fields.",
+                pt="Corrija os campos destacados.",
+            ),
+        )
+        return super().form_invalid(form)
+
+
+class TibiaVersionDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = ("accounts.view_otserver", "accounts.delete_tibiaversion")
+    raise_exception = True
+
+    def post(
+        self, request: HttpRequest, *args: object, **kwargs: object
+    ) -> HttpResponse:
+        version = get_object_or_404(TibiaVersion, pk=kwargs["pk"])
+        code = version.code
+        try:
+            version.delete()
+        except ProtectedError:
+            messages.error(
+                request,
+                _localized_text(
+                    en=(
+                        "Cannot remove this Tibia version because it is in use by "
+                        "OTServers or related records."
+                    ),
+                    pt=(
+                        "Não é possível remover esta versão do Tibia porque ela está "
+                        "em uso por OTServers ou registros relacionados."
+                    ),
+                ),
+            )
+            return redirect("accounts:tibia_versions")
+
+        log_audit_event(
+            request=request,
+            action="tibia_version.delete",
+            target=code,
+            details={},
+        )
+        messages.success(
+            request,
+            _localized_text(
+                en="Tibia version removed successfully.",
+                pt="Versão do Tibia removida com sucesso.",
+            ),
+        )
+        return redirect("accounts:tibia_versions")
 
 
 class TibiaVacationListView(

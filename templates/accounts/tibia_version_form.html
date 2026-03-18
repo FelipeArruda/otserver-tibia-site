@@ -1,0 +1,60 @@
+{% extends "accounts/dashboard_base.html" %}
+{% load i18n %}
+
+{% block page_title %}{{ version_ui.title }}{% endblock %}
+{% block page_kicker %}OTSERV{% endblock %}
+{% block page_heading %}{{ version_ui.title }}{% endblock %}
+{% block page_description %}{{ version_ui.description }}{% endblock %}
+
+{% block page_actions %}
+  <a href="{% url 'accounts:tibia_versions' %}" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">{{ version_ui.back }}</a>
+{% endblock %}
+
+{% block primary_content %}
+  <section class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+    <form method="post" class="grid gap-4 md:grid-cols-2">
+      {% csrf_token %}
+
+      <label class="block">
+        <span class="text-sm font-semibold text-slate-700">{{ form.code.label }}</span>
+        {{ form.code }}
+        {% if form.code.errors %}
+          <span class="mt-1 block text-xs text-rose-600">{{ form.code.errors|striptags }}</span>
+        {% endif %}
+      </label>
+
+      <label class="block">
+        <span class="text-sm font-semibold text-slate-700">{{ form.sort_order.label }}</span>
+        {{ form.sort_order }}
+        {% if form.sort_order.errors %}
+          <span class="mt-1 block text-xs text-rose-600">{{ form.sort_order.errors|striptags }}</span>
+        {% endif %}
+      </label>
+
+      <label class="md:col-span-2 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <span class="text-sm font-semibold text-slate-700">{{ form.is_supported.label }}</span>
+        <span class="relative inline-flex items-center">
+          {{ form.is_supported }}
+          <span class="h-6 w-11 rounded-full bg-slate-300 transition peer-checked:bg-cyan-500"></span>
+          <span class="pointer-events-none absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition peer-checked:translate-x-5"></span>
+        </span>
+      </label>
+      {% if form.is_supported.errors %}
+        <div class="md:col-span-2">
+          <span class="mt-1 block text-xs text-rose-600">{{ form.is_supported.errors|striptags }}</span>
+        </div>
+      {% endif %}
+
+      {% if form.non_field_errors %}
+        <div class="md:col-span-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {{ form.non_field_errors|striptags }}
+        </div>
+      {% endif %}
+
+      <div class="md:col-span-2 flex flex-wrap gap-2">
+        <button type="submit" class="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">{% trans "Save" %}</button>
+        <a href="{% url 'accounts:tibia_versions' %}" class="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">{% trans "Cancel" %}</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}
