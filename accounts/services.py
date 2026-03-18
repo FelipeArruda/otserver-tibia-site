@@ -399,14 +399,15 @@ def list_otserver_characters(
 
     all_characters: list[dict[str, Any]] = []
     source_errors: list[dict[str, str]] = []
-    vacation_map_by_version = _build_vacation_map_by_version(servers=filtered_servers)
+    vacation_maps = _build_vacation_maps(servers=filtered_servers)
     for server in filtered_servers:
         try:
             characters = fetch_otserver_characters(server=server, search=search)
             _apply_vocation_translations(
                 characters=characters,
+                otserver_pk=server.pk,
                 tibia_version_code=server.tibia_version_id,
-                vacation_map_by_version=vacation_map_by_version,
+                vacation_maps=vacation_maps,
             )
             all_characters.extend(characters)
         except Exception as exc:
@@ -631,57 +632,72 @@ def _quote_identifier(identifier: str) -> str:
     return f"`{escaped}`"
 
 
-def _build_vacation_map_by_version(
-    *, servers: list[OTServer]
-) -> dict[str, dict[int, dict[str, str]]]:
+def _build_vacation_maps(*, servers: list[OTServer]) -> dict[str, object]:
+    otserver_ids = [server.pk for server in servers]
     version_codes = {
         server.tibia_version_id
         for server in servers
         if getattr(server, "tibia_version_id", "")
     }
     version_codes.add(TibiaVersion.DEFAULT_CODE)
-    if not version_codes:
-        return {}
+    if not otserver_ids and not version_codes:
+        return {"by_otserver": {}, "legacy_by_version": {}}
 
-    rows = TibiaVacation.objects.filter(tibia_version_id__in=version_codes).values(
-        "tibia_version_id",
-        "vocation_id",
-        "name",
-        "name_pt_br",
+    by_otserver: dict[int, dict[int, str]] = {}
+    legacy_by_version: dict[str, dict[int, str]] = {}
+    rows = TibiaVacation.objects.filter(otserver_id__in=otserver_ids).values(
+        "otserver_id", "vocation_id", "name"
     )
-    mapping: dict[str, dict[int, dict[str, str]]] = {}
     for row in rows:
+        server_id = int(row["otserver_id"])
+        vocation_id = int(row["vocation_id"])
+        by_otserver.setdefault(server_id, {})[vocation_id] = str(row["name"]).strip()
+
+    legacy_rows = TibiaVacation.objects.filter(
+        otserver__isnull=True,
+        tibia_version_id__in=version_codes,
+    ).values("tibia_version_id", "vocation_id", "name")
+    for row in legacy_rows:
         version_code = str(row["tibia_version_id"])
         vocation_id = int(row["vocation_id"])
-        mapping.setdefault(version_code, {})[vocation_id] = {
-            "name": str(row.get("name", "")).strip(),
-            "name_pt_br": str(row.get("name_pt_br", "")).strip(),
-        }
-    return mapping
+        legacy_by_version.setdefault(version_code, {})[vocation_id] = str(
+            row["name"]
+        ).strip()
+
+    return {"by_otserver": by_otserver, "legacy_by_version": legacy_by_version}
 
 
 def _apply_vocation_translations(
     *,
     characters: list[dict[str, Any]],
+    otserver_pk: int,
     tibia_version_code: str,
-    vacation_map_by_version: dict[str, dict[int, dict[str, str]]],
+    vacation_maps: dict[str, object],
 ) -> None:
-    version_map = vacation_map_by_version.get(tibia_version_code, {})
-    if not version_map:
-        version_map = vacation_map_by_version.get(TibiaVersion.DEFAULT_CODE, {})
-    if not version_map and vacation_map_by_version:
-        # Last-resort fallback when the server's Tibia version has no mapped vocations.
-        version_map = next(iter(vacation_map_by_version.values()))
+    by_otserver = vacation_maps.get("by_otserver", {})
+    legacy_by_version = vacation_maps.get("legacy_by_version", {})
+    server_map = (
+        by_otserver.get(otserver_pk, {}) if isinstance(by_otserver, dict) else {}
+    )
+    version_map = (
+        legacy_by_version.get(tibia_version_code, {})
+        if isinstance(legacy_by_version, dict)
+        else {}
+    )
+    if not version_map and isinstance(legacy_by_version, dict):
+        version_map = legacy_by_version.get(TibiaVersion.DEFAULT_CODE, {})
+    if not version_map and isinstance(legacy_by_version, dict) and legacy_by_version:
+        version_map = next(iter(legacy_by_version.values()))
 
     for character in characters:
         vocation_id = character.get("vocation_id")
         if not isinstance(vocation_id, int):
             continue
 
-        vacation = version_map.get(vocation_id)
-        if not vacation:
-            character["vocation"] = str(vocation_id)
+        if vocation_id in server_map:
+            character["vocation"] = server_map[vocation_id] or str(vocation_id)
             continue
-
-        name = vacation.get("name", "")
-        character["vocation"] = name or str(vocation_id)
+        if vocation_id in version_map:
+            character["vocation"] = version_map[vocation_id] or str(vocation_id)
+            continue
+        character["vocation"] = str(vocation_id)

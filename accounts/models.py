@@ -232,6 +232,14 @@ class OTServer(models.Model):
 
 
 class TibiaVacation(models.Model):
+    otserver = models.ForeignKey(
+        OTServer,
+        on_delete=models.CASCADE,
+        related_name="vocations",
+        null=True,
+        blank=True,
+        verbose_name=_("OTServer"),
+    )
     tibia_version = models.ForeignKey(
         TibiaVersion,
         on_delete=models.PROTECT,
@@ -259,15 +267,21 @@ class TibiaVacation(models.Model):
 
     class Meta:
         db_table = "tibia_vacations"
-        ordering = ["tibia_version_id", "vocation_id"]
+        ordering = ["otserver_id", "vocation_id"]
         constraints = [
             models.UniqueConstraint(
-                fields=["tibia_version", "vocation_id"],
-                name="uniq_tibia_vacation_per_version",
+                fields=["otserver", "vocation_id"],
+                name="uniq_tibia_vacation_per_otserver",
             )
         ]
         verbose_name = _("Tibia vacation")
         verbose_name_plural = _("Tibia vacations")
 
+    def save(self, *args: object, **kwargs: object) -> None:
+        if self.otserver_id:
+            self.tibia_version_id = self.otserver.tibia_version_id
+        super().save(*args, **kwargs)
+
     def __str__(self) -> str:
-        return f"{self.tibia_version_id} #{self.vocation_id} - {self.name}"
+        server_name = self.otserver.name if self.otserver_id else self.tibia_version_id
+        return f"{server_name} #{self.vocation_id} - {self.name}"

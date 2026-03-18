@@ -129,6 +129,7 @@ def test_list_otserver_characters_translates_vocation_by_tibia_version(
         is_active=True,
     )
     TibiaVacation.objects.update_or_create(
+        otserver=server,
         tibia_version_id="15.30",
         vocation_id=4,
         defaults={
@@ -189,6 +190,7 @@ def test_list_otserver_characters_falls_back_to_default_version_vocations(
         is_active=True,
     )
     TibiaVacation.objects.update_or_create(
+        otserver=None,
         tibia_version_id="15.30",
         vocation_id=2,
         defaults={
