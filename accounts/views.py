@@ -1,4 +1,4 @@
-﻿from datetime import date, timedelta
+from datetime import date, timedelta
 
 from django.conf import settings
 from django.contrib import messages
@@ -183,7 +183,9 @@ class DashboardNavigationMixin:
             if visible_item.get("key") == "tibia_vacations":
                 language = translation.get_language() or ""
                 visible_item["label"] = (
-                    "Voca\u00e7\u00f5es" if language.lower().startswith("pt") else "Vocations"
+                    "Voca\u00e7\u00f5es"
+                    if language.lower().startswith("pt")
+                    else "Vocations"
                 )
             if visible_item.get("key") == "tibia_versions":
                 language = translation.get_language() or ""
@@ -351,7 +353,7 @@ class AccountHomeView(DashboardNavigationMixin, LoginRequiredMixin, TemplateView
             ),
             "otserver.connection_test": _localized_text(
                 en="Connection test",
-                pt="Teste de conexÃƒÂ£o",
+                pt="Teste de conexão",
             ),
         }
         title = action_map.get(
@@ -1045,7 +1047,7 @@ class CharacterListView(
         context["source_count"] = len(context["otserver_choices"])
         context["characters_ui"] = {
             "name_label": "Nome" if is_pt else "Character",
-            "vocation_label": "VocaÃƒÂ§ÃƒÂ£o" if is_pt else "Vocation",
+            "vocation_label": "Vocação" if is_pt else "Vocation",
         }
         return context
 
@@ -1436,7 +1438,7 @@ class TibiaVersionCreateView(
             self.request,
             _localized_text(
                 en="Tibia version created successfully.",
-                pt="Vers\u00e3o do Tibia criada com sucesso.",
+                pt="Versão do Tibia criada com sucesso.",
             ),
         )
         return response
@@ -1502,7 +1504,7 @@ class TibiaVersionUpdateView(
             self.request,
             _localized_text(
                 en="Tibia version updated successfully.",
-                pt="Vers\u00e3o do Tibia atualizada com sucesso.",
+                pt="Versão do Tibia atualizada com sucesso.",
             ),
         )
         return response
@@ -1538,7 +1540,7 @@ class TibiaVersionDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
                         "OTServers or related records."
                     ),
                     pt=(
-                        "N\u00e3o \u00e9 poss\u00edvel remover esta vers\u00e3o do Tibia porque ela est\u00e1 "
+                        "Não é possível remover esta versão do Tibia porque ela está "
                         "em uso por OTServers ou registros relacionados."
                     ),
                 ),
@@ -1555,7 +1557,7 @@ class TibiaVersionDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
             request,
             _localized_text(
                 en="Tibia version removed successfully.",
-                pt="Vers\u00e3o do Tibia removida com sucesso.",
+                pt="Versão do Tibia removida com sucesso.",
             ),
         )
         return redirect("accounts:tibia_versions")
@@ -1609,22 +1611,22 @@ class TibiaVacationListView(
             "accounts.delete_tibiavacation"
         )
         context["vocation_ui"] = {
-            "title": "VocaÃƒÂ§ÃƒÂµes" if is_pt else "Vocations",
+            "title": "Vocações" if is_pt else "Vocations",
             "description": (
-                "Gerencie traduÃƒÂ§ÃƒÂµes de vocaÃƒÂ§ÃƒÂµes por versÃƒÂ£o do Tibia."
+                "Gerencie traduções de vocações por versão do Tibia."
                 if is_pt
                 else "Manage vocation translations by Tibia version."
             ),
-            "add_button": "Adicionar vocaÃƒÂ§ÃƒÂ£o" if is_pt else "Add vocation",
+            "add_button": "Adicionar vocação" if is_pt else "Add vocation",
             "all_otservers": "Todos os OTServers" if is_pt else "All OTServers",
-            "vocation_id": "ID da vocaÃƒÂ§ÃƒÂ£o" if is_pt else "Vocation ID",
-            "name_pt": "Nome (PortuguÃƒÂªs)" if is_pt else "Name (Portuguese)",
-            "description_label": "DescriÃƒÂ§ÃƒÂ£o" if is_pt else "Description",
-            "actions": "AÃƒÂ§ÃƒÂµes" if is_pt else "Actions",
-            "none_found": "Nenhuma vocaÃƒÂ§ÃƒÂ£o encontrada."
+            "vocation_id": "ID da vocação" if is_pt else "Vocation ID",
+            "name_pt": "Nome (Português)" if is_pt else "Name (Portuguese)",
+            "description_label": "Descrição" if is_pt else "Description",
+            "actions": "Ações" if is_pt else "Actions",
+            "none_found": "Nenhuma vocação encontrada."
             if is_pt
             else "No vocations found.",
-            "remove_confirm": "Remover esta vocaÃƒÂ§ÃƒÂ£o?"
+            "remove_confirm": "Remover esta vocação?"
             if is_pt
             else "Remove this vocation?",
         }
@@ -1647,13 +1649,13 @@ class TibiaVacationCreateView(
         language = (translation.get_language() or "").lower()
         is_pt = language.startswith("pt")
         context["vocation_ui"] = {
-            "title": "Nova vocaÃƒÂ§ÃƒÂ£o" if is_pt else "New vocation",
+            "title": "Nova vocação" if is_pt else "New vocation",
             "description": (
-                "Mantenha registros de traduÃƒÂ§ÃƒÂ£o de vocaÃƒÂ§ÃƒÂµes por OTServer."
+                "Mantenha registros de tradução de vocações por OTServer."
                 if is_pt
                 else "Maintain vocation translation records per OTServer."
             ),
-            "back": "Voltar para vocaÃƒÂ§ÃƒÂµes" if is_pt else "Back to vocations",
+            "back": "Voltar para vocações" if is_pt else "Back to vocations",
         }
         context["show_secondary_content"] = False
         return context
@@ -1673,7 +1675,7 @@ class TibiaVacationCreateView(
             self.request,
             _localized_text(
                 en="Vocation created successfully.",
-                pt="VocaÃƒÂ§ÃƒÂ£o criada com sucesso.",
+                pt="Vocação criada com sucesso.",
             ),
         )
         return response
@@ -1706,13 +1708,13 @@ class TibiaVacationUpdateView(
         language = (translation.get_language() or "").lower()
         is_pt = language.startswith("pt")
         context["vocation_ui"] = {
-            "title": "Editar vocaÃƒÂ§ÃƒÂ£o" if is_pt else "Edit vocation",
+            "title": "Editar vocação" if is_pt else "Edit vocation",
             "description": (
-                "Mantenha registros de traduÃƒÂ§ÃƒÂ£o de vocaÃƒÂ§ÃƒÂµes por OTServer."
+                "Mantenha registros de tradução de vocações por OTServer."
                 if is_pt
                 else "Maintain vocation translation records per OTServer."
             ),
-            "back": "Voltar para vocaÃƒÂ§ÃƒÂµes" if is_pt else "Back to vocations",
+            "back": "Voltar para vocações" if is_pt else "Back to vocations",
         }
         context["show_secondary_content"] = False
         return context
@@ -1732,7 +1734,7 @@ class TibiaVacationUpdateView(
             self.request,
             _localized_text(
                 en="Vocation updated successfully.",
-                pt="VocaÃƒÂ§ÃƒÂ£o atualizada com sucesso.",
+                pt="Vocação atualizada com sucesso.",
             ),
         )
         return response
@@ -1768,7 +1770,7 @@ class TibiaVacationDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View)
             request,
             _localized_text(
                 en="Vocation removed successfully.",
-                pt="VocaÃƒÂ§ÃƒÂ£o removida com sucesso.",
+                pt="Vocação removida com sucesso.",
             ),
         )
         return redirect("accounts:tibia_vacations")
@@ -1832,4 +1834,3 @@ class AuditLogListView(
             return date.fromisoformat(value)
         except ValueError:
             return None
-
