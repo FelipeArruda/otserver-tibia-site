@@ -80,7 +80,9 @@ urlpatterns = [
     ),
     path("otservers/new/", OTServerCreateView.as_view(), name="otserver_create"),
     path("otservers/<int:pk>/", OTServerDetailView.as_view(), name="otserver_detail"),
-    path("otservers/vocations/", TibiaVacationListView.as_view(), name="tibia_vacations"),
+    path(
+        "otservers/vocations/", TibiaVacationListView.as_view(), name="tibia_vacations"
+    ),
     path(
         "otservers/vocations/new/",
         TibiaVacationCreateView.as_view(),

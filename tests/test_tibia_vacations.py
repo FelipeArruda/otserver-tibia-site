@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.test import Client
@@ -10,7 +10,9 @@ from accounts.models import TibiaVacation, TibiaVersion
 @pytest.mark.django_db
 def test_home_shows_vocations_menu_when_user_has_permissions() -> None:
     user_model = get_user_model()
-    user = user_model.objects.create_user(email="vocations-menu@example.com", password="StrongPass123!")
+    user = user_model.objects.create_user(
+        email="vocations-menu@example.com", password="StrongPass123!"
+    )
     user.user_permissions.add(
         Permission.objects.get(codename="view_otserver"),
         Permission.objects.get(codename="view_tibiavacation"),
@@ -29,7 +31,9 @@ def test_home_shows_vocations_menu_when_user_has_permissions() -> None:
 @pytest.mark.django_db
 def test_tibia_vacations_route_requires_permissions() -> None:
     user_model = get_user_model()
-    user = user_model.objects.create_user(email="vocations-route@example.com", password="StrongPass123!")
+    user = user_model.objects.create_user(
+        email="vocations-route@example.com", password="StrongPass123!"
+    )
 
     client = Client()
     assert client.login(username=user.email, password="StrongPass123!")
@@ -50,7 +54,9 @@ def test_tibia_vacations_route_requires_permissions() -> None:
 def test_tibia_vacation_create_flow() -> None:
     TibiaVersion.objects.get_or_create(code="15.30", defaults={"sort_order": 1})
     user_model = get_user_model()
-    user = user_model.objects.create_user(email="vocations-create@example.com", password="StrongPass123!")
+    user = user_model.objects.create_user(
+        email="vocations-create@example.com", password="StrongPass123!"
+    )
     user.user_permissions.add(
         Permission.objects.get(codename="view_otserver"),
         Permission.objects.get(codename="view_tibiavacation"),
@@ -96,7 +102,9 @@ def test_tibia_vacation_edit_labels_are_portuguese_in_pt_br() -> None:
     )
 
     user_model = get_user_model()
-    user = user_model.objects.create_user(email="vocations-pt-labels@example.com", password="StrongPass123!")
+    user = user_model.objects.create_user(
+        email="vocations-pt-labels@example.com", password="StrongPass123!"
+    )
     user.user_permissions.add(
         Permission.objects.get(codename="view_otserver"),
         Permission.objects.get(codename="change_tibiavacation"),

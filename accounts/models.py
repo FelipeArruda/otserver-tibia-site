@@ -240,7 +240,9 @@ class TibiaVacation(models.Model):
     )
     vocation_id = models.PositiveSmallIntegerField(verbose_name=_("Vocation ID"))
     name = models.CharField(max_length=120, verbose_name=_("Name"))
-    description = models.CharField(max_length=255, blank=True, verbose_name=_("Description"))
+    description = models.CharField(
+        max_length=255, blank=True, verbose_name=_("Description")
+    )
     name_pt_br = models.CharField(
         max_length=120, blank=True, verbose_name=_("Name (Portuguese)")
     )
@@ -248,7 +250,9 @@ class TibiaVacation(models.Model):
         max_length=255, blank=True, verbose_name=_("Description (Portuguese)")
     )
     base_id = models.PositiveSmallIntegerField(default=0, verbose_name=_("Base ID"))
-    from_voc = models.PositiveSmallIntegerField(default=0, verbose_name=_("From vocation"))
+    from_voc = models.PositiveSmallIntegerField(
+        default=0, verbose_name=_("From vocation")
+    )
     client_id = models.PositiveSmallIntegerField(default=0, verbose_name=_("Client ID"))
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created at"))
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated at"))

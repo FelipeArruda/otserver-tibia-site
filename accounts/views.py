@@ -1311,13 +1311,19 @@ class TibiaVacationListView(
                 else "Manage vocation translations by Tibia version."
             ),
             "add_button": "Adicionar vocação" if is_pt else "Add vocation",
-            "all_versions": "Todas as versões do Tibia" if is_pt else "All Tibia versions",
+            "all_versions": "Todas as versões do Tibia"
+            if is_pt
+            else "All Tibia versions",
             "vocation_id": "ID da vocação" if is_pt else "Vocation ID",
             "name_pt": "Nome (Português)" if is_pt else "Name (Portuguese)",
             "description_label": "Descrição" if is_pt else "Description",
             "actions": "Ações" if is_pt else "Actions",
-            "none_found": "Nenhuma vocação encontrada." if is_pt else "No vocations found.",
-            "remove_confirm": "Remover esta vocação?" if is_pt else "Remove this vocation?",
+            "none_found": "Nenhuma vocação encontrada."
+            if is_pt
+            else "No vocations found.",
+            "remove_confirm": "Remover esta vocação?"
+            if is_pt
+            else "Remove this vocation?",
         }
         context["show_secondary_content"] = False
         return context

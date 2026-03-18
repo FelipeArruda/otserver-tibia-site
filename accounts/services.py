@@ -635,7 +635,9 @@ def _build_vacation_map_by_version(
     *, servers: list[OTServer]
 ) -> dict[str, dict[int, dict[str, str]]]:
     version_codes = {
-        server.tibia_version_id for server in servers if getattr(server, "tibia_version_id", "")
+        server.tibia_version_id
+        for server in servers
+        if getattr(server, "tibia_version_id", "")
     }
     version_codes.add(TibiaVersion.DEFAULT_CODE)
     if not version_codes:

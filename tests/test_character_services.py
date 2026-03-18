@@ -111,7 +111,9 @@ def test_summarize_otserver_characters_aggregates_and_handles_errors(
 
 
 @pytest.mark.django_db
-def test_list_otserver_characters_translates_vocation_by_tibia_version(monkeypatch) -> None:
+def test_list_otserver_characters_translates_vocation_by_tibia_version(
+    monkeypatch,
+) -> None:
     TibiaVersion.objects.get_or_create(code="15.30", defaults={"sort_order": 1})
     server = OTServer.objects.create(
         name="Crystal",
