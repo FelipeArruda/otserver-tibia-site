@@ -234,7 +234,9 @@ class AccountHomeView(DashboardNavigationMixin, LoginRequiredMixin, TemplateView
         audit_events_24h = AuditLog.objects.filter(created_at__gte=last_24h).count()
         latest_audit_event = AuditLog.objects.select_related("actor").first()
         recent_audit_logs = list(
-            AuditLog.objects.select_related("actor").order_by("-created_at")[:4]
+            AuditLog.objects.select_related("actor")
+            .filter(action__startswith="otserver.")
+            .order_by("-created_at")[:5]
         )
         recent_ot_tests = list(
             AuditLog.objects.filter(
@@ -291,7 +293,9 @@ class AccountHomeView(DashboardNavigationMixin, LoginRequiredMixin, TemplateView
             "failed_ot_tests_24h": failed_ot_tests_24h,
             "database_ok": database_ok,
         }
-        context["recent_audit_logs"] = recent_audit_logs
+        context["operational_events"] = [
+            self._format_operational_event(log) for log in recent_audit_logs
+        ]
         context["operator_status"] = {
             "login_api": "ok" if failed_ot_tests_24h == 0 else "delay",
             "game_database": (
@@ -313,6 +317,50 @@ class AccountHomeView(DashboardNavigationMixin, LoginRequiredMixin, TemplateView
         )
         context["can_view_audit"] = self.request.user.has_perm("accounts.view_auditlog")
         return context
+
+    @staticmethod
+    def _format_operational_event(log: AuditLog) -> dict[str, object]:
+        action_map = {
+            "otserver.create": _localized_text(
+                en="OTServer created",
+                pt="OTServer criado",
+            ),
+            "otserver.update": _localized_text(
+                en="OTServer updated",
+                pt="OTServer atualizado",
+            ),
+            "otserver.delete": _localized_text(
+                en="OTServer removed",
+                pt="OTServer removido",
+            ),
+            "otserver.connection_test": _localized_text(
+                en="Connection test",
+                pt="Teste de conexão",
+            ),
+        }
+        title = action_map.get(
+            log.action,
+            _localized_text(en="OTServer event", pt="Evento de OTServer"),
+        )
+
+        status = "info"
+        status_label = ""
+        if log.action == "otserver.connection_test":
+            success = log.details.get("success")
+            status = "success" if success is True else "error"
+            status_label = (
+                _localized_text(en="Succeeded", pt="Sucesso")
+                if success is True
+                else _localized_text(en="Failed", pt="Falhou")
+            )
+
+        return {
+            "title": title,
+            "target": log.target,
+            "status": status,
+            "status_label": status_label,
+            "created_at": log.created_at,
+        }
 
 
 class SignUpView(CreateView):
