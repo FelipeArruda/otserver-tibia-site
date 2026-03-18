@@ -720,9 +720,25 @@ def test_otserver_crud_flow_with_permissions() -> None:
     assert create_response.status_code == 302
     server = OTServer.objects.get(name="Crystal Server")
     assert server.tibia_version_id == "13.40"
-    assert AuditLog.objects.filter(
+    create_log = AuditLog.objects.get(
         action="otserver.create", target="Crystal Server", actor=manager
-    ).exists()
+    )
+    assert create_log.details["db_password_changed"] is True
+    assert create_log.details["api_token_changed"] is True
+    assert create_log.details["monitor_interval_minutes"] == 5
+    assert "db_password" not in create_log.details
+    assert create_log.details["db_host"] == "localhost"
+    assert create_log.details["db_port"] == 3306
+    assert create_log.details["db_name"] == "otserv"
+    assert create_log.details["db_user"] == "otserv_user"
+    assert create_log.details["db_charset"] == "utf8mb4"
+    assert create_log.details["db_collation"] == "utf8mb4_unicode_ci"
+    assert create_log.details["db_use_ssl"] is True
+    assert create_log.details["api_base_url"] == "https://example.com/api"
+    assert create_log.details["api_token_configured"] is True
+    assert create_log.details["timezone"] == "UTC"
+    assert create_log.details["monitor_enabled"] is True
+    assert create_log.details["is_active"] is True
 
     detail_response = client.get(reverse("accounts:otserver_detail", args=[server.pk]))
     assert detail_response.status_code == 200
@@ -757,9 +773,20 @@ def test_otserver_crud_flow_with_permissions() -> None:
     assert server.database_engine == "mariadb"
     assert server.db_password.startswith("enc::")
     assert server.get_db_password() == "Secret123!"
-    assert AuditLog.objects.filter(
+    update_log = AuditLog.objects.get(
         action="otserver.update", target="Crystal Server", actor=manager
-    ).exists()
+    )
+    assert update_log.details["db_password_changed"] is False
+    assert update_log.details["api_token_changed"] is False
+    assert "db_password" not in update_log.details
+    assert update_log.details["db_host"] == "127.0.0.1"
+    assert update_log.details["db_port"] == 3307
+    assert update_log.details["db_name"] == "otserv_staging"
+    assert update_log.details["db_user"] == "otserv_user2"
+    assert update_log.details["db_collation"] == ""
+    assert update_log.details["db_use_ssl"] is False
+    assert update_log.details["api_base_url"] == ""
+    assert update_log.details["timezone"] == "America/Sao_Paulo"
 
     delete_response = client.post(reverse("accounts:otserver_delete", args=[server.pk]))
     assert delete_response.status_code == 302
@@ -807,6 +834,61 @@ def test_otserver_form_is_translated_in_portuguese() -> None:
     assert response.status_code == 200
     assert "Nome" in content
     assert "Testar conexão" in content
+
+
+@pytest.mark.django_db
+def test_otserver_update_logs_db_password_change_without_exposing_secret() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="otserver-password-audit@example.com", password="StrongPass123!"
+    )
+    manager.user_permissions.add(
+        Permission.objects.get(codename="view_otserver"),
+        Permission.objects.get(codename="change_otserver"),
+    )
+    server = OTServer.objects.create(
+        name="PasswordAudit",
+        environment="production",
+        database_engine="mysql",
+        db_host="localhost",
+        db_port=3306,
+        db_name="otserv",
+        db_user="root",
+        db_password="old-secret",
+        timezone="UTC",
+    )
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+    response = client.post(
+        reverse("accounts:otserver_update", args=[server.pk]),
+        {
+            "name": "PasswordAudit",
+            "tibia_version": server.tibia_version_id,
+            "environment": "production",
+            "database_engine": "mysql",
+            "db_host": "localhost",
+            "db_port": 3306,
+            "db_name": "otserv",
+            "db_user": "root",
+            "db_password": "new-secret",
+            "db_charset": "utf8mb4",
+            "db_collation": "",
+            "db_use_ssl": "",
+            "api_base_url": "",
+            "api_token": "",
+            "timezone": "UTC",
+            "monitor_enabled": "on",
+            "is_active": "on",
+        },
+    )
+
+    assert response.status_code == 302
+    log_entry = AuditLog.objects.get(
+        action="otserver.update", target="PasswordAudit", actor=manager
+    )
+    assert log_entry.details["db_password_changed"] is True
+    assert "db_password" not in log_entry.details
 
 
 @pytest.mark.django_db
