@@ -8,7 +8,7 @@ from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.http import HttpRequest
-from django.utils import timezone
+from django.utils import timezone, translation
 from django.utils.translation import gettext as _
 
 from accounts.models import (
@@ -35,6 +35,11 @@ def log_audit_event(
         target=target,
         details=details or {},
     )
+
+
+def _localized_runtime_text(*, en: str, pt: str) -> str:
+    language = (translation.get_language() or "").lower()
+    return pt if language.startswith("pt") else en
 
 
 def log_system_audit_event(
@@ -147,6 +152,75 @@ def check_otserver_connections(
         "success": overall_success,
         "database": db_result,
         "api": api_result,
+    }
+
+
+def inspect_otserver_schema(
+    *,
+    database_engine: str,
+    db_host: str,
+    db_port: int,
+    db_name: str,
+    db_user: str,
+    db_password: str,
+    db_charset: str,
+    db_use_ssl: bool,
+    timeout_seconds: int = 5,
+) -> dict[str, object]:
+    try:
+        import pymysql
+        from pymysql.cursors import DictCursor
+    except Exception as exc:
+        raise RuntimeError(_("PyMySQL dependency is not installed.")) from exc
+
+    if database_engine not in {"mysql", "mariadb"}:
+        raise RuntimeError(_("Unsupported database engine."))
+
+    connect_kwargs: dict[str, Any] = {
+        "host": db_host,
+        "port": int(db_port),
+        "user": db_user,
+        "password": db_password,
+        "database": db_name,
+        "charset": db_charset or "utf8mb4",
+        "connect_timeout": timeout_seconds,
+        "cursorclass": DictCursor,
+    }
+    if db_use_ssl:
+        connect_kwargs["ssl"] = {}
+
+    connection = pymysql.connect(**connect_kwargs)
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SHOW TABLES")
+            table_rows = cursor.fetchall()
+            table_names = sorted(
+                {
+                    str(next(iter(row.values()))).strip()
+                    for row in table_rows
+                    if isinstance(row, dict) and row
+                },
+                key=lambda value: value.casefold(),
+            )
+            columns_by_table: dict[str, list[str]] = {}
+            for table_name in table_names:
+                cursor.execute(f"SHOW COLUMNS FROM {_quote_identifier(table_name)}")
+                columns = sorted(
+                    {
+                        str(column.get("Field", "")).strip()
+                        for column in cursor.fetchall()
+                        if isinstance(column, dict)
+                        and str(column.get("Field", "")).strip()
+                    },
+                    key=lambda value: value.casefold(),
+                )
+                columns_by_table[table_name] = columns
+    finally:
+        connection.close()
+
+    return {
+        "tables": table_names,
+        "columns_by_table": columns_by_table,
     }
 
 
@@ -285,11 +359,14 @@ def fetch_otserver_characters(
     connection = pymysql.connect(**connect_kwargs)
     try:
         with connection.cursor() as cursor:
-            cursor.execute("SHOW TABLES LIKE %s", ("players",))
-            if cursor.fetchone() is None:
-                raise RuntimeError(_("Players table not found."))
-
-            cursor.execute("SHOW COLUMNS FROM players")
+            schema_mapping = _get_server_schema_mapping(server=server)
+            players_table_name = _resolve_players_table_name_from_cursor(
+                cursor=cursor,
+                configured_table_name=str(
+                    schema_mapping.get("players_table", "")
+                ).strip(),
+            )
+            cursor.execute(f"SHOW COLUMNS FROM {_quote_identifier(players_table_name)}")
             available_columns = {
                 str(column.get("Field", "")).lower()
                 for column in cursor.fetchall()
@@ -335,7 +412,8 @@ def fetch_otserver_characters(
 
             query = (
                 f"SELECT {', '.join(select_parts)} "
-                f"FROM players AS players {online_join_sql} {account_join_sql}"
+                f"FROM {_quote_identifier(players_table_name)} AS players "
+                f"{online_join_sql} {account_join_sql}"
             )
             params: list[str] = []
             if search:
@@ -423,17 +501,28 @@ def fetch_otserver_character_deaths(
     if server.db_use_ssl:
         connect_kwargs["ssl"] = {}
 
+    schema_mapping = _get_server_schema_mapping(server=server)
     connection = pymysql.connect(**connect_kwargs)
     try:
         with connection.cursor() as cursor:
-            cursor.execute("SHOW TABLES LIKE %s", ("players",))
-            if cursor.fetchone() is None:
+            players_table_name = _resolve_players_table_name_from_cursor(
+                cursor=cursor,
+                configured_table_name=str(
+                    schema_mapping.get("players_table", "")
+                ).strip(),
+            )
+            if not players_table_name:
                 return []
-            death_table_name = _resolve_death_table_name(cursor=cursor)
+            death_table_name = _resolve_death_table_name(
+                cursor=cursor,
+                configured_table_name=str(
+                    schema_mapping.get("deaths_table", "")
+                ).strip(),
+            )
             if not death_table_name:
                 return []
 
-            cursor.execute("SHOW COLUMNS FROM players")
+            cursor.execute(f"SHOW COLUMNS FROM {_quote_identifier(players_table_name)}")
             player_columns = {
                 str(column.get("Field", "")).lower()
                 for column in cursor.fetchall()
@@ -448,22 +537,53 @@ def fetch_otserver_character_deaths(
 
             if "name" not in player_columns:
                 return []
+            configured_player_id_column = (
+                str(schema_mapping.get("player_id_column", "")).strip().lower()
+            )
             player_id_column = _first_available_column(
-                player_columns, ("id", "player_id", "playerid", "guid")
+                player_columns,
+                (configured_player_id_column,)
+                if configured_player_id_column
+                else ("id", "player_id", "playerid", "guid"),
+            )
+            configured_death_player_id_column = (
+                str(schema_mapping.get("death_player_id_column", "")).strip().lower()
             )
             death_player_id_column = _first_available_column(
-                death_columns, ("player_id", "playerid", "pid")
+                death_columns,
+                (configured_death_player_id_column,)
+                if configured_death_player_id_column
+                else ("player_id", "playerid", "pid"),
             )
             if not player_id_column or not death_player_id_column:
                 return []
 
-            death_date_column = _first_available_column(
-                death_columns, ("date", "time", "created_at", "death_at")
+            configured_death_time_column = (
+                str(schema_mapping.get("death_time_column", "")).strip().lower()
             )
-            death_level_column = _first_available_column(death_columns, ("level",))
+            death_date_column = _first_available_column(
+                death_columns,
+                (configured_death_time_column,)
+                if configured_death_time_column
+                else ("date", "time", "created_at", "death_at"),
+            )
+            configured_death_level_column = (
+                str(schema_mapping.get("death_level_column", "")).strip().lower()
+            )
+            death_level_column = _first_available_column(
+                death_columns,
+                (configured_death_level_column,)
+                if configured_death_level_column
+                else ("level",),
+            )
+            configured_death_killer_column = (
+                str(schema_mapping.get("death_killer_column", "")).strip().lower()
+            )
             death_killer_column = _first_available_column(
                 death_columns,
-                ("killed_by", "killer", "mostdamage_by", "by"),
+                (configured_death_killer_column,)
+                if configured_death_killer_column
+                else ("killed_by", "killer", "mostdamage_by", "by"),
             )
             death_id_column = _first_available_column(
                 death_columns, ("id", "death_id", "deathid")
@@ -474,7 +594,7 @@ def fetch_otserver_character_deaths(
             cursor.execute(
                 "SELECT "
                 f"{_quote_identifier(player_id_column)} AS player_id "
-                "FROM players WHERE name = %s LIMIT 1",
+                f"FROM {_quote_identifier(players_table_name)} WHERE name = %s LIMIT 1",
                 (normalized_name,),
             )
             player_row = cursor.fetchone() or {}
@@ -1094,12 +1214,51 @@ def _resolve_account_table_name(*, cursor: Any) -> str:
     return ""
 
 
-def _resolve_death_table_name(*, cursor: Any) -> str:
+def _resolve_death_table_name(*, cursor: Any, configured_table_name: str = "") -> str:
+    if configured_table_name:
+        cursor.execute("SHOW TABLES LIKE %s", (configured_table_name,))
+        if cursor.fetchone() is not None:
+            return configured_table_name
+        raise RuntimeError(
+            _localized_runtime_text(
+                en="Configured deaths table '%(table)s' not found.",
+                pt="Tabela de mortes configurada '%(table)s' não foi encontrada.",
+            )
+            % {"table": configured_table_name}
+        )
     for table_name in ("players_death", "player_deaths", "player_death"):
         cursor.execute("SHOW TABLES LIKE %s", (table_name,))
         if cursor.fetchone() is not None:
             return table_name
     return ""
+
+
+def _resolve_players_table_name_from_cursor(
+    *, cursor: Any, configured_table_name: str = ""
+) -> str:
+    if configured_table_name:
+        cursor.execute("SHOW TABLES LIKE %s", (configured_table_name,))
+        if cursor.fetchone() is not None:
+            return configured_table_name
+        raise RuntimeError(
+            _localized_runtime_text(
+                en="Configured players table '%(table)s' not found.",
+                pt="Tabela de players configurada '%(table)s' não foi encontrada.",
+            )
+            % {"table": configured_table_name}
+        )
+    for table_name in ("players", "player"):
+        cursor.execute("SHOW TABLES LIKE %s", (table_name,))
+        if cursor.fetchone() is not None:
+            return table_name
+    raise RuntimeError(_("Players table not found."))
+
+
+def _get_server_schema_mapping(*, server: OTServer) -> dict[str, Any]:
+    schema_mapping = server.schema_mapping
+    if isinstance(schema_mapping, dict):
+        return schema_mapping
+    return {}
 
 
 def _first_available_column(

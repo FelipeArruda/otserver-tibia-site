@@ -48,6 +48,7 @@ from accounts.models import (
 from accounts.services import (
     check_otserver_connections,
     fetch_otserver_character_deaths,
+    inspect_otserver_schema,
     list_otserver_characters,
     log_audit_event,
     save_otserver_health_check,
@@ -66,6 +67,22 @@ def _otserver_audit_details(
     db_password_changed: bool,
     api_token_changed: bool,
 ) -> dict[str, object]:
+    schema_mapping = (
+        server.schema_mapping if isinstance(server.schema_mapping, dict) else {}
+    )
+    normalized_schema = {
+        "players_table": str(schema_mapping.get("players_table", "")).strip(),
+        "deaths_table": str(schema_mapping.get("deaths_table", "")).strip(),
+        "player_id_column": str(schema_mapping.get("player_id_column", "")).strip(),
+        "death_player_id_column": str(
+            schema_mapping.get("death_player_id_column", "")
+        ).strip(),
+        "death_time_column": str(schema_mapping.get("death_time_column", "")).strip(),
+        "death_level_column": str(schema_mapping.get("death_level_column", "")).strip(),
+        "death_killer_column": str(
+            schema_mapping.get("death_killer_column", "")
+        ).strip(),
+    }
     return {
         "name": server.name,
         "tibia_version": server.tibia_version_id,
@@ -86,6 +103,110 @@ def _otserver_audit_details(
         "api_token_configured": bool(server.api_token),
         "db_password_changed": db_password_changed,
         "api_token_changed": api_token_changed,
+        "schema_mapping": normalized_schema,
+        "schema_players_table": normalized_schema["players_table"],
+        "schema_deaths_table": normalized_schema["deaths_table"],
+        "schema_player_id_column": normalized_schema["player_id_column"],
+        "schema_death_player_id_column": normalized_schema["death_player_id_column"],
+        "schema_death_time_column": normalized_schema["death_time_column"],
+        "schema_death_level_column": normalized_schema["death_level_column"],
+        "schema_death_killer_column": normalized_schema["death_killer_column"],
+    }
+
+
+def _pick_first_match(options: list[str], candidates: tuple[str, ...]) -> str:
+    normalized = {value.strip().casefold(): value for value in options if value.strip()}
+    for candidate in candidates:
+        matched = normalized.get(candidate.casefold())
+        if matched:
+            return matched
+    return ""
+
+
+def _build_schema_autofill(
+    *, schema_options: dict[str, object], current_values: dict[str, str]
+) -> dict[str, str]:
+    tables = schema_options.get("tables")
+    columns_by_table = schema_options.get("columns_by_table")
+    table_list = tables if isinstance(tables, list) else []
+    table_columns = columns_by_table if isinstance(columns_by_table, dict) else {}
+
+    players_table = current_values.get("players_table", "").strip()
+    if not players_table:
+        players_table = _pick_first_match(
+            [str(value) for value in table_list if isinstance(value, str)],
+            ("players", "player"),
+        )
+
+    deaths_table = current_values.get("deaths_table", "").strip()
+    if not deaths_table:
+        deaths_table = _pick_first_match(
+            [str(value) for value in table_list if isinstance(value, str)],
+            ("players_death", "player_deaths", "player_death"),
+        )
+
+    player_columns_raw = table_columns.get(players_table, [])
+    death_columns_raw = table_columns.get(deaths_table, [])
+    player_columns = (
+        [str(value) for value in player_columns_raw if isinstance(value, str)]
+        if isinstance(player_columns_raw, list)
+        else []
+    )
+    death_columns = (
+        [str(value) for value in death_columns_raw if isinstance(value, str)]
+        if isinstance(death_columns_raw, list)
+        else []
+    )
+
+    return {
+        "players_table": players_table,
+        "deaths_table": deaths_table,
+        "player_id_column": current_values.get("player_id_column", "").strip()
+        or _pick_first_match(player_columns, ("id", "player_id", "playerid", "guid")),
+        "death_player_id_column": current_values.get(
+            "death_player_id_column", ""
+        ).strip()
+        or _pick_first_match(death_columns, ("player_id", "playerid", "pid")),
+        "death_time_column": current_values.get("death_time_column", "").strip()
+        or _pick_first_match(death_columns, ("date", "time", "created_at", "death_at")),
+        "death_level_column": current_values.get("death_level_column", "").strip()
+        or _pick_first_match(death_columns, ("level",)),
+        "death_killer_column": current_values.get("death_killer_column", "").strip()
+        or _pick_first_match(
+            death_columns,
+            ("killed_by", "killer", "mostdamage_by", "by"),
+        ),
+    }
+
+
+def _schema_ui_labels(*, is_pt: bool) -> dict[str, str]:
+    return {
+        "title": (
+            "Mapeamento avançado de schema" if is_pt else "Advanced schema mapping"
+        ),
+        "subtitle": (
+            "Opcional: mapeie nomes customizados de tabela/coluna para esta versão de OTServer."
+            if is_pt
+            else "Optional: map custom table/column names for this OTServer version."
+        ),
+        "description": (
+            "Use Testar conexão para carregar tabelas/colunas disponíveis e mapear os nomes usados nesta versão do OTServer."
+            if is_pt
+            else "Use Test connection to load available tables/columns, then map names used by this OTServer version."
+        ),
+        "detected_prefix": (
+            "Schema detectado com" if is_pt else "Schema detected with"
+        ),
+        "detected_suffix": (
+            "tabelas. Selecione os nomes que correspondem a este OTServer."
+            if is_pt
+            else "tables. Select the names that match this OTServer."
+        ),
+        "empty_hint": (
+            "Nenhuma sugestão de schema carregada ainda. Execute Testar conexão para buscar opções no banco."
+            if is_pt
+            else "No schema suggestions loaded yet. Run Test connection to fetch options from database."
+        ),
     }
 
 
@@ -1375,6 +1496,9 @@ class OTServerCreateView(
         context = super().get_context_data(**kwargs)
         context["show_secondary_content"] = False
         context["test_result"] = kwargs.get("test_result")
+        context["schema_options"] = kwargs.get("schema_options", {})
+        language = (translation.get_language() or "").lower()
+        context["schema_ui"] = _schema_ui_labels(is_pt=language.startswith("pt"))
         return context
 
     def post(
@@ -1417,8 +1541,54 @@ class OTServerCreateView(
             messages.success(request, _("Connection test succeeded."))
         else:
             messages.error(request, _("Connection test failed."))
+        schema_options: dict[str, object] = {}
+        if test_result["database"].get("ok"):
+            try:
+                schema_options = inspect_otserver_schema(
+                    database_engine=form.cleaned_data["database_engine"],
+                    db_host=form.cleaned_data["db_host"],
+                    db_port=form.cleaned_data["db_port"],
+                    db_name=form.cleaned_data["db_name"],
+                    db_user=form.cleaned_data["db_user"],
+                    db_password=form.cleaned_data["db_password"],
+                    db_charset=form.cleaned_data["db_charset"],
+                    db_use_ssl=form.cleaned_data["db_use_ssl"],
+                )
+            except Exception as exc:
+                messages.warning(
+                    request,
+                    _("Could not inspect schema automatically: %(error)s")
+                    % {"error": str(exc)},
+                )
+        form_data = form.data.copy()
+        schema_autofill = _build_schema_autofill(
+            schema_options=schema_options,
+            current_values={
+                "players_table": str(form_data.get("players_table", "")).strip(),
+                "deaths_table": str(form_data.get("deaths_table", "")).strip(),
+                "player_id_column": str(form_data.get("player_id_column", "")).strip(),
+                "death_player_id_column": str(
+                    form_data.get("death_player_id_column", "")
+                ).strip(),
+                "death_time_column": str(
+                    form_data.get("death_time_column", "")
+                ).strip(),
+                "death_level_column": str(
+                    form_data.get("death_level_column", "")
+                ).strip(),
+                "death_killer_column": str(
+                    form_data.get("death_killer_column", "")
+                ).strip(),
+            },
+        )
+        for key, value in schema_autofill.items():
+            if value and not str(form_data.get(key, "")).strip():
+                form_data[key] = value
+        form = self.form_class(form_data, instance=form.instance)
         return self.render_to_response(
-            self.get_context_data(form=form, test_result=test_result)
+            self.get_context_data(
+                form=form, test_result=test_result, schema_options=schema_options
+            )
         )
 
     def form_valid(self, form: OTServerForm) -> HttpResponse:
@@ -1480,6 +1650,9 @@ class OTServerUpdateView(
         context = super().get_context_data(**kwargs)
         context["show_secondary_content"] = False
         context["test_result"] = kwargs.get("test_result")
+        context["schema_options"] = kwargs.get("schema_options", {})
+        language = (translation.get_language() or "").lower()
+        context["schema_ui"] = _schema_ui_labels(is_pt=language.startswith("pt"))
         return context
 
     def post(
@@ -1534,9 +1707,56 @@ class OTServerUpdateView(
             messages.success(request, _("Connection test succeeded."))
         else:
             messages.error(request, _("Connection test failed."))
+        schema_options: dict[str, object] = {}
+        if test_result["database"].get("ok"):
+            try:
+                schema_options = inspect_otserver_schema(
+                    database_engine=form.cleaned_data["database_engine"],
+                    db_host=form.cleaned_data["db_host"],
+                    db_port=form.cleaned_data["db_port"],
+                    db_name=form.cleaned_data["db_name"],
+                    db_user=form.cleaned_data["db_user"],
+                    db_password=db_password,
+                    db_charset=form.cleaned_data["db_charset"],
+                    db_use_ssl=form.cleaned_data["db_use_ssl"],
+                )
+            except Exception as exc:
+                messages.warning(
+                    request,
+                    _("Could not inspect schema automatically: %(error)s")
+                    % {"error": str(exc)},
+                )
+        form_data = form.data.copy()
+        schema_autofill = _build_schema_autofill(
+            schema_options=schema_options,
+            current_values={
+                "players_table": str(form_data.get("players_table", "")).strip(),
+                "deaths_table": str(form_data.get("deaths_table", "")).strip(),
+                "player_id_column": str(form_data.get("player_id_column", "")).strip(),
+                "death_player_id_column": str(
+                    form_data.get("death_player_id_column", "")
+                ).strip(),
+                "death_time_column": str(
+                    form_data.get("death_time_column", "")
+                ).strip(),
+                "death_level_column": str(
+                    form_data.get("death_level_column", "")
+                ).strip(),
+                "death_killer_column": str(
+                    form_data.get("death_killer_column", "")
+                ).strip(),
+            },
+        )
+        for key, value in schema_autofill.items():
+            if value and not str(form_data.get(key, "")).strip():
+                form_data[key] = value
+        form = self.form_class(form_data, instance=self.object)
         return self.render_to_response(
             self.get_context_data(
-                object=self.object, form=form, test_result=test_result
+                object=self.object,
+                form=form,
+                test_result=test_result,
+                schema_options=schema_options,
             )
         )
 
@@ -1544,6 +1764,11 @@ class OTServerUpdateView(
         previous_server = OTServer.objects.get(pk=form.instance.pk)
         previous_db_password = previous_server.get_db_password()
         previous_api_token = previous_server.get_api_token()
+        previous_schema_mapping = (
+            previous_server.schema_mapping
+            if isinstance(previous_server.schema_mapping, dict)
+            else {}
+        )
         response = super().form_valid(form)
         details = _otserver_audit_details(
             server=form.instance,
@@ -1556,6 +1781,21 @@ class OTServerUpdateView(
             target=form.instance.name,
             details=details,
         )
+        current_schema_mapping = (
+            form.instance.schema_mapping
+            if isinstance(form.instance.schema_mapping, dict)
+            else {}
+        )
+        if previous_schema_mapping != current_schema_mapping:
+            log_audit_event(
+                request=self.request,
+                action="otserver.schema_mapping.update",
+                target=form.instance.name,
+                details={
+                    "before": previous_schema_mapping,
+                    "after": current_schema_mapping,
+                },
+            )
         messages.success(self.request, _("OTServer updated successfully."))
         return response
 

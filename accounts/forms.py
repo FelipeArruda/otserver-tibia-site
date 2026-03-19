@@ -348,6 +348,76 @@ class OTServerForm(forms.ModelForm):
             },
         ),
     )
+    players_table = forms.CharField(
+        label=_("Players table"),
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": BASE_INPUT_CLASSES,
+                "placeholder": _("Auto-detect (e.g. players)"),
+            }
+        ),
+    )
+    deaths_table = forms.CharField(
+        label=_("Deaths table"),
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": BASE_INPUT_CLASSES,
+                "placeholder": _("Auto-detect (e.g. player_deaths)"),
+            }
+        ),
+    )
+    player_id_column = forms.CharField(
+        label=_("Player ID column"),
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": BASE_INPUT_CLASSES,
+                "placeholder": _("Auto-detect (e.g. id)"),
+            }
+        ),
+    )
+    death_player_id_column = forms.CharField(
+        label=_("Death player ID column"),
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": BASE_INPUT_CLASSES,
+                "placeholder": _("Auto-detect (e.g. player_id)"),
+            }
+        ),
+    )
+    death_time_column = forms.CharField(
+        label=_("Death time column"),
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": BASE_INPUT_CLASSES,
+                "placeholder": _("Auto-detect (e.g. time)"),
+            }
+        ),
+    )
+    death_level_column = forms.CharField(
+        label=_("Death level column"),
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": BASE_INPUT_CLASSES,
+                "placeholder": _("Auto-detect (e.g. level)"),
+            }
+        ),
+    )
+    death_killer_column = forms.CharField(
+        label=_("Death killer column"),
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": BASE_INPUT_CLASSES,
+                "placeholder": _("Auto-detect (e.g. killed_by)"),
+            }
+        ),
+    )
 
     class Meta:
         model = OTServer
@@ -393,6 +463,10 @@ class OTServerForm(forms.ModelForm):
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)
+        schema_mapping = {}
+        if self.instance.pk and isinstance(self.instance.schema_mapping, dict):
+            schema_mapping = self.instance.schema_mapping
+
         self.fields["timezone"].choices = PlatformSettingForm._build_timezone_choices()
 
         self.fields["environment"].label = _("Environment")
@@ -414,9 +488,10 @@ class OTServerForm(forms.ModelForm):
         self.fields["api_base_url"].label = _("API base URL")
         self.fields["monitor_enabled"].label = _("Monitoring enabled")
         language = (translation.get_language() or "").lower()
+        is_pt = language.startswith("pt")
         self.fields["monitor_interval_minutes"].label = (
             "Intervalo de monitoramento (minutos)"
-            if language.startswith("pt")
+            if is_pt
             else "Monitoring interval (minutes)"
         )
         self.fields["monitor_interval_minutes"].required = False
@@ -424,6 +499,84 @@ class OTServerForm(forms.ModelForm):
             self.instance.monitor_interval_minutes or 5 if self.instance.pk else 5
         )
         self.fields["is_active"].label = _("Active")
+        self.fields["players_table"].widget.attrs["list"] = "schema-table-options"
+        self.fields["deaths_table"].widget.attrs["list"] = "schema-table-options"
+        self.fields["player_id_column"].widget.attrs["list"] = "schema-column-options"
+        self.fields["death_player_id_column"].widget.attrs["list"] = (
+            "schema-column-options"
+        )
+        self.fields["death_time_column"].widget.attrs["list"] = "schema-column-options"
+        self.fields["death_level_column"].widget.attrs["list"] = "schema-column-options"
+        self.fields["death_killer_column"].widget.attrs["list"] = (
+            "schema-column-options"
+        )
+        self.fields["players_table"].initial = schema_mapping.get("players_table", "")
+        self.fields["deaths_table"].initial = schema_mapping.get("deaths_table", "")
+        self.fields["player_id_column"].initial = schema_mapping.get(
+            "player_id_column", ""
+        )
+        self.fields["death_player_id_column"].initial = schema_mapping.get(
+            "death_player_id_column", ""
+        )
+        self.fields["death_time_column"].initial = schema_mapping.get(
+            "death_time_column", ""
+        )
+        self.fields["death_level_column"].initial = schema_mapping.get(
+            "death_level_column", ""
+        )
+        self.fields["death_killer_column"].initial = schema_mapping.get(
+            "death_killer_column", ""
+        )
+        self.fields["players_table"].label = (
+            "Tabela de players" if is_pt else "Players table"
+        )
+        self.fields["deaths_table"].label = (
+            "Tabela de mortes" if is_pt else "Deaths table"
+        )
+        self.fields["player_id_column"].label = (
+            "Coluna de ID do player" if is_pt else "Player ID column"
+        )
+        self.fields["death_player_id_column"].label = (
+            "Coluna de player ID nas mortes" if is_pt else "Death player ID column"
+        )
+        self.fields["death_time_column"].label = (
+            "Coluna de data/hora da morte" if is_pt else "Death time column"
+        )
+        self.fields["death_level_column"].label = (
+            "Coluna de level da morte" if is_pt else "Death level column"
+        )
+        self.fields["death_killer_column"].label = (
+            "Coluna de assassino da morte" if is_pt else "Death killer column"
+        )
+        self.fields["players_table"].widget.attrs["placeholder"] = (
+            "Detecção automática (ex.: players)"
+            if is_pt
+            else "Auto-detect (e.g. players)"
+        )
+        self.fields["deaths_table"].widget.attrs["placeholder"] = (
+            "Detecção automática (ex.: player_deaths)"
+            if is_pt
+            else "Auto-detect (e.g. player_deaths)"
+        )
+        self.fields["player_id_column"].widget.attrs["placeholder"] = (
+            "Detecção automática (ex.: id)" if is_pt else "Auto-detect (e.g. id)"
+        )
+        self.fields["death_player_id_column"].widget.attrs["placeholder"] = (
+            "Detecção automática (ex.: player_id)"
+            if is_pt
+            else "Auto-detect (e.g. player_id)"
+        )
+        self.fields["death_time_column"].widget.attrs["placeholder"] = (
+            "Detecção automática (ex.: time)" if is_pt else "Auto-detect (e.g. time)"
+        )
+        self.fields["death_level_column"].widget.attrs["placeholder"] = (
+            "Detecção automática (ex.: level)" if is_pt else "Auto-detect (e.g. level)"
+        )
+        self.fields["death_killer_column"].widget.attrs["placeholder"] = (
+            "Detecção automática (ex.: killed_by)"
+            if is_pt
+            else "Auto-detect (e.g. killed_by)"
+        )
 
         if self.instance.pk:
             self.fields["db_password"].required = False
@@ -471,6 +624,19 @@ class OTServerForm(forms.ModelForm):
                 otserver.db_password = current_server.db_password
             if not self.cleaned_data.get("api_token"):
                 otserver.api_token = current_server.api_token
+        otserver.schema_mapping = {
+            key: str(self.cleaned_data.get(key, "")).strip()
+            for key in (
+                "players_table",
+                "deaths_table",
+                "player_id_column",
+                "death_player_id_column",
+                "death_time_column",
+                "death_level_column",
+                "death_killer_column",
+            )
+            if str(self.cleaned_data.get(key, "")).strip()
+        }
         if commit:
             otserver.save()
         return otserver
