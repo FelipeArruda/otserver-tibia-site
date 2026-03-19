@@ -47,6 +47,7 @@ from accounts.models import (
 )
 from accounts.services import (
     check_otserver_connections,
+    fetch_otserver_character_deaths,
     list_otserver_characters,
     log_audit_event,
     save_otserver_health_check,
@@ -1172,6 +1173,7 @@ class CharacterDetailView(
                 "Complete view of character and account data from the selected OTServer."
             )
             context["associated_characters"] = []
+            context["recent_deaths"] = []
             return context
 
         context["character"] = selected_character
@@ -1190,6 +1192,14 @@ class CharacterDetailView(
                 if str(character.get("name", "")).strip().casefold() != normalized_name
             ]
         context["associated_characters"] = associated_characters
+        try:
+            context["recent_deaths"] = fetch_otserver_character_deaths(
+                server=server,
+                character_name=str(selected_character.get("name", "")),
+                limit=3,
+            )
+        except Exception:
+            context["recent_deaths"] = []
 
         context["detail_description"] = _(
             "OTServer: %(server)s | Account ID: %(account_id)s"
@@ -1198,6 +1208,14 @@ class CharacterDetailView(
             "account_id": selected_character.get("account_id") or "-",
         }
         context["characters_ui"] = {
+            "page_title": (
+                "Detalhes do personagem" if is_pt else "Character details"
+            ),
+            "page_description": (
+                "Visão completa dos dados do personagem e da conta no OTServer selecionado."
+                if is_pt
+                else "Complete view of character and account data from the selected OTServer."
+            ),
             "account_section": (
                 "Informa\u00e7\u00f5es da conta" if is_pt else "Account information"
             ),
@@ -1227,9 +1245,18 @@ class CharacterDetailView(
                 "\u00daltimo login da conta" if is_pt else "Account last login"
             ),
             "status_label": "Status",
+            "status_online": "Online",
+            "status_offline": "Offline",
+            "status_unknown": "Desconhecido" if is_pt else "Unknown",
             "server_label": "OTServer",
             "level_label": "N\u00edvel" if is_pt else "Level",
+            "name_label": "Nome" if is_pt else "Name",
             "updated_label": "Atualizado em" if is_pt else "Updated at",
+            "action_label": "Ação" if is_pt else "Action",
+            "view_label": "Visualizar" if is_pt else "View",
+            "open_character_label": (
+                "Abrir personagem" if is_pt else "Open character"
+            ),
             "back_label": (
                 "Voltar para personagens" if is_pt else "Back to characters"
             ),
@@ -1257,6 +1284,28 @@ class CharacterDetailView(
                 "Mesma conta, outros personagens neste OTServer."
                 if is_pt
                 else "Same account, other characters in this OTServer."
+            ),
+            "recent_deaths_title": (
+                "Últimas mortes" if is_pt else "Recent deaths"
+            ),
+            "recent_deaths_empty": (
+                "Nenhuma morte registrada para este personagem."
+                if is_pt
+                else "No deaths recorded for this character."
+            ),
+            "recent_deaths_level": "Nível" if is_pt else "Level",
+            "recent_deaths_killer": (
+                "Morto por" if is_pt else "Killed by"
+            ),
+            "character_not_found_title": (
+                "Personagem não encontrado."
+                if is_pt
+                else "Character not found."
+            ),
+            "character_not_found_hint": (
+                "Tente novamente pela lista de personagens."
+                if is_pt
+                else "Try again from the character list."
             ),
             "no_linked_characters": (
                 "Nenhum outro personagem vinculado a esta conta."

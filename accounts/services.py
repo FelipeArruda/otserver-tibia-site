@@ -389,6 +389,154 @@ def fetch_otserver_characters(
     return characters
 
 
+def fetch_otserver_character_deaths(
+    *,
+    server: OTServer,
+    character_name: str,
+    limit: int = 10,
+    timeout_seconds: int = 5,
+) -> list[dict[str, Any]]:
+    try:
+        import pymysql
+        from pymysql.cursors import DictCursor
+    except Exception as exc:
+        raise RuntimeError(_("PyMySQL dependency is not installed.")) from exc
+
+    if server.database_engine not in {"mysql", "mariadb"}:
+        raise RuntimeError(_("Unsupported database engine."))
+
+    normalized_name = character_name.strip()
+    if not normalized_name:
+        return []
+
+    query_limit = max(1, min(int(limit), 50))
+    connect_kwargs: dict[str, Any] = {
+        "host": server.db_host,
+        "port": int(server.db_port),
+        "user": server.db_user,
+        "password": server.get_db_password(),
+        "database": server.db_name,
+        "charset": server.db_charset or "utf8mb4",
+        "connect_timeout": timeout_seconds,
+        "cursorclass": DictCursor,
+    }
+    if server.db_use_ssl:
+        connect_kwargs["ssl"] = {}
+
+    connection = pymysql.connect(**connect_kwargs)
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SHOW TABLES LIKE %s", ("players",))
+            if cursor.fetchone() is None:
+                return []
+            death_table_name = _resolve_death_table_name(cursor=cursor)
+            if not death_table_name:
+                return []
+
+            cursor.execute("SHOW COLUMNS FROM players")
+            player_columns = {
+                str(column.get("Field", "")).lower()
+                for column in cursor.fetchall()
+                if isinstance(column, dict)
+            }
+            cursor.execute(f"SHOW COLUMNS FROM {_quote_identifier(death_table_name)}")
+            death_columns = {
+                str(column.get("Field", "")).lower()
+                for column in cursor.fetchall()
+                if isinstance(column, dict)
+            }
+
+            if "name" not in player_columns:
+                return []
+            player_id_column = _first_available_column(
+                player_columns, ("id", "player_id", "playerid", "guid")
+            )
+            death_player_id_column = _first_available_column(
+                death_columns, ("player_id", "playerid", "pid")
+            )
+            if not player_id_column or not death_player_id_column:
+                return []
+
+            death_date_column = _first_available_column(
+                death_columns, ("date", "time", "created_at", "death_at")
+            )
+            death_level_column = _first_available_column(death_columns, ("level",))
+            death_killer_column = _first_available_column(
+                death_columns,
+                ("killed_by", "killer", "mostdamage_by", "by"),
+            )
+            death_id_column = _first_available_column(
+                death_columns, ("id", "death_id", "deathid")
+            )
+            if not death_date_column and not death_id_column:
+                return []
+
+            cursor.execute(
+                "SELECT "
+                f"{_quote_identifier(player_id_column)} AS player_id "
+                "FROM players WHERE name = %s LIMIT 1",
+                (normalized_name,),
+            )
+            player_row = cursor.fetchone() or {}
+            player_id = _as_int_or_none(player_row.get("player_id"))
+            if player_id is None:
+                return []
+
+            select_parts = []
+            if death_date_column:
+                select_parts.append(
+                    f"death.{_quote_identifier(death_date_column)} AS occurred_at"
+                )
+            else:
+                select_parts.append("NULL AS occurred_at")
+            if death_level_column:
+                select_parts.append(
+                    f"death.{_quote_identifier(death_level_column)} AS death_level"
+                )
+            else:
+                select_parts.append("NULL AS death_level")
+            if death_killer_column:
+                select_parts.append(
+                    f"death.{_quote_identifier(death_killer_column)} AS killed_by"
+                )
+            else:
+                select_parts.append("NULL AS killed_by")
+            if death_id_column:
+                select_parts.append(f"death.{_quote_identifier(death_id_column)} AS id")
+            else:
+                select_parts.append("NULL AS id")
+
+            order_by_column = (
+                f"death.{_quote_identifier(death_date_column)}"
+                if death_date_column
+                else f"death.{_quote_identifier(death_id_column)}"
+            )
+            cursor.execute(
+                "SELECT "
+                + ", ".join(select_parts)
+                + f" FROM {_quote_identifier(death_table_name)} AS death "
+                + f"WHERE death.{_quote_identifier(death_player_id_column)} = %s "
+                + f"ORDER BY {order_by_column} DESC LIMIT {query_limit}",
+                (player_id,),
+            )
+            rows = cursor.fetchall()
+    finally:
+        connection.close()
+
+    deaths: list[dict[str, Any]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        deaths.append(
+            {
+                "occurred_at": _as_datetime_or_none(row.get("occurred_at")),
+                "level": _as_int_or_none(row.get("death_level")),
+                "killed_by": _as_text_or_empty(row.get("killed_by")),
+            }
+        )
+    return deaths
+
+
 def fetch_otserver_character_summary(
     *,
     server: OTServer,
@@ -940,6 +1088,14 @@ def _resolve_account_source(
 
 def _resolve_account_table_name(*, cursor: Any) -> str:
     for table_name in ("account", "accounts"):
+        cursor.execute("SHOW TABLES LIKE %s", (table_name,))
+        if cursor.fetchone() is not None:
+            return table_name
+    return ""
+
+
+def _resolve_death_table_name(*, cursor: Any) -> str:
+    for table_name in ("players_death", "player_deaths", "player_death"):
         cursor.execute("SHOW TABLES LIKE %s", (table_name,))
         if cursor.fetchone() is not None:
             return table_name

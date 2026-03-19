@@ -271,12 +271,22 @@ def test_character_detail_renders_account_and_character_sections() -> None:
     assert client.login(username=user.email, password="StrongPass123!")
 
     mocked_character = _build_character(7, otserver_name=server.name)
-    with patch("accounts.views.list_otserver_characters") as list_mock:
+    with (
+        patch("accounts.views.list_otserver_characters") as list_mock,
+        patch("accounts.views.fetch_otserver_character_deaths") as deaths_mock,
+    ):
         list_mock.return_value = {
             "characters": [mocked_character],
             "errors": [],
             "available_vocations": ["Druid", "Knight"],
         }
+        deaths_mock.return_value = [
+            {
+                "occurred_at": datetime(2026, 3, 18, 10, 30, tzinfo=UTC),
+                "level": 7,
+                "killed_by": "Dragon",
+            }
+        ]
         response = client.get(
             reverse(
                 "accounts:character_detail",
@@ -288,6 +298,7 @@ def test_character_detail_renders_account_and_character_sections() -> None:
         )
     assert response.status_code == 200
     content = response.content.decode("utf-8")
-    assert "OTServer:" in content
-    assert "Account ID:" in content
+    assert "Detalhes do personagem" in content
+    assert "ID da conta" in content
     assert mocked_character["account_email"] in content
+    assert "Dragon" in content
