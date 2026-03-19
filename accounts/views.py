@@ -1,4 +1,4 @@
-﻿from datetime import date, timedelta
+from datetime import date, timedelta
 
 from django.conf import settings
 from django.contrib import messages
@@ -1208,9 +1208,7 @@ class CharacterDetailView(
             "account_id": selected_character.get("account_id") or "-",
         }
         context["characters_ui"] = {
-            "page_title": (
-                "Detalhes do personagem" if is_pt else "Character details"
-            ),
+            "page_title": ("Detalhes do personagem" if is_pt else "Character details"),
             "page_description": (
                 "Visão completa dos dados do personagem e da conta no OTServer selecionado."
                 if is_pt
@@ -1254,9 +1252,7 @@ class CharacterDetailView(
             "updated_label": "Atualizado em" if is_pt else "Updated at",
             "action_label": "Ação" if is_pt else "Action",
             "view_label": "Visualizar" if is_pt else "View",
-            "open_character_label": (
-                "Abrir personagem" if is_pt else "Open character"
-            ),
+            "open_character_label": ("Abrir personagem" if is_pt else "Open character"),
             "back_label": (
                 "Voltar para personagens" if is_pt else "Back to characters"
             ),
@@ -1285,22 +1281,16 @@ class CharacterDetailView(
                 if is_pt
                 else "Same account, other characters in this OTServer."
             ),
-            "recent_deaths_title": (
-                "Últimas mortes" if is_pt else "Recent deaths"
-            ),
+            "recent_deaths_title": ("Últimas mortes" if is_pt else "Recent deaths"),
             "recent_deaths_empty": (
                 "Nenhuma morte registrada para este personagem."
                 if is_pt
                 else "No deaths recorded for this character."
             ),
             "recent_deaths_level": "Nível" if is_pt else "Level",
-            "recent_deaths_killer": (
-                "Morto por" if is_pt else "Killed by"
-            ),
+            "recent_deaths_killer": ("Morto por" if is_pt else "Killed by"),
             "character_not_found_title": (
-                "Personagem não encontrado."
-                if is_pt
-                else "Character not found."
+                "Personagem não encontrado." if is_pt else "Character not found."
             ),
             "character_not_found_hint": (
                 "Tente novamente pela lista de personagens."
@@ -2096,4 +2086,3 @@ class AuditLogListView(
             return date.fromisoformat(value)
         except ValueError:
             return None
-
