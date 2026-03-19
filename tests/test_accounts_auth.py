@@ -718,6 +718,7 @@ def test_otserver_crud_flow_with_permissions() -> None:
             "players_table": "players",
             "deaths_table": "player_deaths",
             "player_id_column": "id",
+            "player_group_id_column": "group_id",
             "death_player_id_column": "player_id",
             "death_time_column": "time",
             "death_level_column": "level",
@@ -749,6 +750,7 @@ def test_otserver_crud_flow_with_permissions() -> None:
     assert create_log.details["schema_players_table"] == "players"
     assert create_log.details["schema_deaths_table"] == "player_deaths"
     assert create_log.details["schema_player_id_column"] == "id"
+    assert create_log.details["schema_player_group_id_column"] == "group_id"
     assert create_log.details["schema_death_player_id_column"] == "player_id"
     assert create_log.details["schema_death_time_column"] == "time"
     assert create_log.details["schema_death_level_column"] == "level"
@@ -781,6 +783,7 @@ def test_otserver_crud_flow_with_permissions() -> None:
             "players_table": "players_custom",
             "deaths_table": "player_deaths_custom",
             "player_id_column": "guid",
+            "player_group_id_column": "groupid_custom",
             "death_player_id_column": "pid",
             "death_time_column": "created_at",
             "death_level_column": "lvl",
@@ -811,6 +814,7 @@ def test_otserver_crud_flow_with_permissions() -> None:
     assert update_log.details["schema_players_table"] == "players_custom"
     assert update_log.details["schema_deaths_table"] == "player_deaths_custom"
     assert update_log.details["schema_player_id_column"] == "guid"
+    assert update_log.details["schema_player_group_id_column"] == "groupid_custom"
     assert update_log.details["schema_death_player_id_column"] == "pid"
     assert update_log.details["schema_death_time_column"] == "created_at"
     assert update_log.details["schema_death_level_column"] == "lvl"
@@ -822,6 +826,10 @@ def test_otserver_crud_flow_with_permissions() -> None:
     )
     assert schema_update_log.details["before"]["players_table"] == "players"
     assert schema_update_log.details["after"]["players_table"] == "players_custom"
+    assert schema_update_log.details["before"]["player_group_id_column"] == "group_id"
+    assert (
+        schema_update_log.details["after"]["player_group_id_column"] == "groupid_custom"
+    )
 
     delete_response = client.post(reverse("accounts:otserver_delete", args=[server.pk]))
     assert delete_response.status_code == 302

@@ -354,6 +354,65 @@ def test_resolve_account_source_supports_accounts_table_name() -> None:
     assert "AS account_last_login" in select_parts[5]
 
 
+def test_resolve_account_source_uses_players_group_id_for_account_type() -> None:
+    class FakeCursor:
+        def __init__(self) -> None:
+            self._last_query = ""
+
+        def execute(self, query, params=None):  # noqa: ANN001
+            self._last_query = str(query)
+            self._params = params
+
+        def fetchone(self):  # noqa: ANN201
+            if "SHOW TABLES LIKE" in self._last_query:
+                if self._params == ("account",):
+                    return {"Tables_in_db": "account"}
+            return None
+
+        def fetchall(self):  # noqa: ANN201
+            if "SHOW COLUMNS FROM `account`" in self._last_query:
+                return [{"Field": "id"}, {"Field": "email"}]
+            return []
+
+    select_parts, join_sql = _resolve_account_source(
+        cursor=FakeCursor(),
+        players_columns={"id", "name", "account_id", "group_id"},
+    )
+
+    assert "INNER JOIN `account` AS account_table" in join_sql
+    assert select_parts[3] == "players.`group_id` AS account_type"
+
+
+def test_resolve_account_source_uses_mapped_players_group_column() -> None:
+    class FakeCursor:
+        def __init__(self) -> None:
+            self._last_query = ""
+
+        def execute(self, query, params=None):  # noqa: ANN001
+            self._last_query = str(query)
+            self._params = params
+
+        def fetchone(self):  # noqa: ANN201
+            if "SHOW TABLES LIKE" in self._last_query:
+                if self._params == ("account",):
+                    return {"Tables_in_db": "account"}
+            return None
+
+        def fetchall(self):  # noqa: ANN201
+            if "SHOW COLUMNS FROM `account`" in self._last_query:
+                return [{"Field": "id"}, {"Field": "email"}]
+            return []
+
+    select_parts, join_sql = _resolve_account_source(
+        cursor=FakeCursor(),
+        players_columns={"id", "name", "account_id", "rank_type"},
+        schema_mapping={"player_group_id_column": "rank_type"},
+    )
+
+    assert "INNER JOIN `account` AS account_table" in join_sql
+    assert select_parts[3] == "players.`rank_type` AS account_type"
+
+
 def test_resolve_players_table_uses_configured_name_when_available() -> None:
     class FakeCursor:
         def __init__(self) -> None:

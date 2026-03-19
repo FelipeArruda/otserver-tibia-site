@@ -304,7 +304,7 @@
           <p class="mt-1 text-sm text-slate-500">{{ characters_ui.linked_characters_hint|default:_("Other characters linked to the same account in this OTServer.") }}</p>
         </div>
         <span class="inline-flex w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-          {{ associated_characters|length }}
+          {{ associated_characters_total|default:associated_characters|length }}
         </span>
       </div>
 
@@ -418,6 +418,23 @@
             </article>
           {% endfor %}
         </div>
+        {% if linked_is_paginated %}
+          <div class="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+            <span>{{ characters_ui.pagination_page }} {{ linked_page_obj.number }} / {{ linked_page_obj.paginator.num_pages }}</span>
+            <div class="flex items-center gap-2">
+              {% if linked_page_obj.has_previous %}
+                <a href="?{% if linked_pagination_query %}{{ linked_pagination_query }}&{% endif %}linked_page={{ linked_page_obj.previous_page_number }}" class="rounded-lg border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-700 transition hover:bg-slate-100">
+                  {{ characters_ui.pagination_previous }}
+                </a>
+              {% endif %}
+              {% if linked_page_obj.has_next %}
+                <a href="?{% if linked_pagination_query %}{{ linked_pagination_query }}&{% endif %}linked_page={{ linked_page_obj.next_page_number }}" class="rounded-lg border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-700 transition hover:bg-slate-100">
+                  {{ characters_ui.pagination_next }}
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
       {% else %}
         <div class="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
           <p class="text-sm text-slate-600">{{ characters_ui.no_linked_characters }}</p>
