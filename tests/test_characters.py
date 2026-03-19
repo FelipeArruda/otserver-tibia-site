@@ -19,6 +19,12 @@ def _build_character(index: int, *, otserver_name: str = "Atlas") -> dict[str, o
         "level": index,
         "is_online": index % 3 == 0,
         "updated_at": datetime(2026, 3, 17, 12, 0, tzinfo=UTC),
+        "account_id": 1000 + index,
+        "account_name": f"Account-{index:02d}",
+        "account_email": f"character-{index:02d}@ot.dev",
+        "account_type": "premium",
+        "account_created_at": datetime(2026, 3, 1, 9, 0, tzinfo=UTC),
+        "account_last_login": datetime(2026, 3, 17, 11, 55, tzinfo=UTC),
     }
 
 
@@ -97,6 +103,8 @@ def test_characters_list_supports_filters_sorting_and_pagination_contract() -> N
                 "q": "Character",
                 "vocation": "Knight",
                 "status": "online",
+                "account_id": "1003",
+                "account_email": "character-03@",
                 "min_level": "10",
                 "max_level": "99",
                 "order": "level_desc",
@@ -116,6 +124,8 @@ def test_characters_list_supports_filters_sorting_and_pagination_contract() -> N
     assert called_kwargs["search"] == "Character"
     assert called_kwargs["vocation"] == "Knight"
     assert called_kwargs["status"] == "online"
+    assert called_kwargs["account_id"] == "1003"
+    assert called_kwargs["account_email"] == "character-03@"
     assert called_kwargs["min_level"] == 10
     assert called_kwargs["max_level"] == 99
     assert called_kwargs["order"] == "level_desc"
@@ -191,3 +201,93 @@ def test_characters_table_headers_use_nome_and_vocacao_in_portuguese() -> None:
     assert response.status_code == 200
     assert "Nome" in content
     assert "Vocação" in content
+    assert "Visualizar" in content
+
+
+@pytest.mark.django_db
+def test_characters_list_exposes_view_link_for_each_row() -> None:
+    user_model = get_user_model()
+    user = user_model.objects.create_user(
+        email="characters-view-link@example.com", password="StrongPass123!"
+    )
+    user.user_permissions.add(Permission.objects.get(codename="view_otserver"))
+    OTServer.objects.create(
+        name="Atlas",
+        environment="production",
+        database_engine="mysql",
+        db_host="localhost",
+        db_port=3306,
+        db_name="otserv",
+        db_user="root",
+        db_password="secret",
+        timezone="UTC",
+        is_active=True,
+    )
+    client = Client()
+    assert client.login(username=user.email, password="StrongPass123!")
+
+    mocked_character = _build_character(3)
+    with patch("accounts.views.list_otserver_characters") as list_mock:
+        list_mock.return_value = {
+            "characters": [mocked_character],
+            "errors": [],
+            "available_vocations": ["Druid", "Knight"],
+        }
+        response = client.get(reverse("accounts:characters"))
+
+    assert response.status_code == 200
+    content = response.content.decode("utf-8")
+    expected_url = reverse(
+        "accounts:character_detail",
+        kwargs={
+            "otserver_pk": mocked_character["otserver_pk"],
+            "character_name": mocked_character["name"],
+        },
+    )
+    assert expected_url in content
+
+
+@pytest.mark.django_db
+def test_character_detail_renders_account_and_character_sections() -> None:
+    user_model = get_user_model()
+    user = user_model.objects.create_user(
+        email="character-detail@example.com", password="StrongPass123!"
+    )
+    user.user_permissions.add(Permission.objects.get(codename="view_otserver"))
+    server = OTServer.objects.create(
+        name="Atlas",
+        environment="production",
+        database_engine="mysql",
+        db_host="localhost",
+        db_port=3306,
+        db_name="otserv",
+        db_user="root",
+        db_password="secret",
+        timezone="UTC",
+        is_active=True,
+    )
+    client = Client()
+    client.post(reverse("set_language"), {"language": "pt-br", "next": "/"})
+    assert client.login(username=user.email, password="StrongPass123!")
+
+    mocked_character = _build_character(7, otserver_name=server.name)
+    with patch("accounts.views.list_otserver_characters") as list_mock:
+        list_mock.return_value = {
+            "characters": [mocked_character],
+            "errors": [],
+            "available_vocations": ["Druid", "Knight"],
+        }
+        response = client.get(
+            reverse(
+                "accounts:character_detail",
+                kwargs={
+                    "otserver_pk": server.pk,
+                    "character_name": mocked_character["name"],
+                },
+            )
+        )
+    assert response.status_code == 200
+    content = response.content.decode("utf-8")
+    assert "OTServer:" in content
+    assert "Account ID:" in content
+    assert mocked_character["account_email"] in content
