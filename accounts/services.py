@@ -447,7 +447,7 @@ def fetch_otserver_characters(
                 "account_id": _as_int_or_none(row.get("account_id")),
                 "account_name": _as_text_or_empty(row.get("account_name")),
                 "account_email": _as_text_or_empty(row.get("account_email")),
-                "account_type": _as_text_or_empty(row.get("account_type")),
+                "account_type": _translate_account_type(row.get("account_type")),
                 "account_created_at": _as_datetime_or_none(
                     row.get("account_created_at")
                 ),
@@ -965,6 +965,20 @@ def _as_text_or_empty(value: object) -> str:
     if value is None:
         return ""
     return str(value).strip()
+
+
+def _translate_account_type(value: object) -> str:
+    account_type_code = _as_int_or_none(value)
+    if account_type_code is None:
+        return _as_text_or_empty(value)
+    return {
+        0: "None",
+        1: "Player",
+        2: "Tutor",
+        3: "SeniorTutor",
+        4: "GameMaster",
+        5: "GOD",
+    }.get(account_type_code, str(account_type_code))
 
 
 def _as_int_or_none(value: object) -> int | None:
