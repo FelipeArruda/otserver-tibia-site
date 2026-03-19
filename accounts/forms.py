@@ -378,6 +378,16 @@ class OTServerForm(forms.ModelForm):
             }
         ),
     )
+    player_group_id_column = forms.CharField(
+        label=_("Player group ID column"),
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": BASE_INPUT_CLASSES,
+                "placeholder": _("Auto-detect (e.g. group_id)"),
+            }
+        ),
+    )
     death_player_id_column = forms.CharField(
         label=_("Death player ID column"),
         required=False,
@@ -502,6 +512,9 @@ class OTServerForm(forms.ModelForm):
         self.fields["players_table"].widget.attrs["list"] = "schema-table-options"
         self.fields["deaths_table"].widget.attrs["list"] = "schema-table-options"
         self.fields["player_id_column"].widget.attrs["list"] = "schema-column-options"
+        self.fields["player_group_id_column"].widget.attrs["list"] = (
+            "schema-column-options"
+        )
         self.fields["death_player_id_column"].widget.attrs["list"] = (
             "schema-column-options"
         )
@@ -514,6 +527,9 @@ class OTServerForm(forms.ModelForm):
         self.fields["deaths_table"].initial = schema_mapping.get("deaths_table", "")
         self.fields["player_id_column"].initial = schema_mapping.get(
             "player_id_column", ""
+        )
+        self.fields["player_group_id_column"].initial = schema_mapping.get(
+            "player_group_id_column", ""
         )
         self.fields["death_player_id_column"].initial = schema_mapping.get(
             "death_player_id_column", ""
@@ -535,6 +551,9 @@ class OTServerForm(forms.ModelForm):
         )
         self.fields["player_id_column"].label = (
             "Coluna de ID do player" if is_pt else "Player ID column"
+        )
+        self.fields["player_group_id_column"].label = (
+            "Coluna do group ID do player" if is_pt else "Player group ID column"
         )
         self.fields["death_player_id_column"].label = (
             "Coluna de player ID nas mortes" if is_pt else "Death player ID column"
@@ -630,6 +649,7 @@ class OTServerForm(forms.ModelForm):
                 "players_table",
                 "deaths_table",
                 "player_id_column",
+                "player_group_id_column",
                 "death_player_id_column",
                 "death_time_column",
                 "death_level_column",

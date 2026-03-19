@@ -380,6 +380,7 @@ def fetch_otserver_characters(
             account_selects, account_join_sql = _resolve_account_source(
                 cursor=cursor,
                 players_columns=available_columns,
+                schema_mapping=schema_mapping,
             )
 
             select_parts = [
@@ -1078,22 +1079,41 @@ def _resolve_online_source(
 
 
 def _resolve_account_source(
-    *, cursor: Any, players_columns: set[str]
+    *,
+    cursor: Any,
+    players_columns: set[str],
+    schema_mapping: dict[str, Any] | None = None,
 ) -> tuple[list[str], str]:
+    configured_player_group_column = ""
+    if isinstance(schema_mapping, dict):
+        configured_player_group_column = str(
+            schema_mapping.get("player_group_id_column", "")
+        ).strip()
     players_account_key = _first_available_column(
         players_columns,
         ("account_id", "account", "accountid"),
+    )
+    account_type_key = _first_available_column(
+        players_columns,
+        (configured_player_group_column.lower(),)
+        if configured_player_group_column
+        else ("group_id", "groupid", "group"),
     )
     account_id_select = (
         f"players.{_quote_identifier(players_account_key)} AS account_id"
         if players_account_key
         else "NULL AS account_id"
     )
+    account_type_select = (
+        f"players.{_quote_identifier(account_type_key)} AS account_type"
+        if account_type_key
+        else "NULL AS account_type"
+    )
     select_parts = [
         account_id_select,
         "NULL AS account_name",
         "NULL AS account_email",
-        "NULL AS account_type",
+        account_type_select,
         "NULL AS account_created_at",
         "NULL AS account_last_login",
         "NULL AS account_real_name",
@@ -1129,10 +1149,6 @@ def _resolve_account_source(
         account_columns,
         ("email", "account_email"),
     )
-    account_type_column = _first_available_column(
-        account_columns,
-        ("type", "account_type"),
-    )
     account_created_column = _first_available_column(
         account_columns,
         ("created_at", "created", "creation"),
@@ -1167,9 +1183,7 @@ def _resolve_account_source(
             else "NULL AS account_email"
         ),
         (
-            f"account_table.{_quote_identifier(account_type_column)} AS account_type"
-            if account_type_column
-            else "NULL AS account_type"
+            account_type_select
         ),
         (
             f"account_table.{_quote_identifier(account_created_column)} AS account_created_at"

@@ -302,3 +302,67 @@ def test_character_detail_renders_account_and_character_sections() -> None:
     assert "ID da conta" in content
     assert mocked_character["account_email"] in content
     assert "Dragon" in content
+
+
+@pytest.mark.django_db
+def test_character_detail_paginate_linked_characters_with_5_per_page() -> None:
+    user_model = get_user_model()
+    user = user_model.objects.create_user(
+        email="character-detail-pagination@example.com", password="StrongPass123!"
+    )
+    user.user_permissions.add(Permission.objects.get(codename="view_otserver"))
+    server = OTServer.objects.create(
+        name="Atlas",
+        environment="production",
+        database_engine="mysql",
+        db_host="localhost",
+        db_port=3306,
+        db_name="otserv",
+        db_user="root",
+        db_password="secret",
+        timezone="UTC",
+        is_active=True,
+    )
+    client = Client()
+    assert client.login(username=user.email, password="StrongPass123!")
+
+    selected = _build_character(7, otserver_name=server.name)
+    selected["name"] = "Main Character"
+    linked_characters = [selected]
+    for index in range(1, 7):
+        linked = _build_character(7, otserver_name=server.name)
+        linked["name"] = f"Linked {index}"
+        linked_characters.append(linked)
+
+    with (
+        patch("accounts.views.list_otserver_characters") as list_mock,
+        patch("accounts.views.fetch_otserver_character_deaths") as deaths_mock,
+    ):
+        list_mock.side_effect = [
+            {
+                "characters": [selected],
+                "errors": [],
+                "available_vocations": ["Druid", "Knight"],
+            },
+            {
+                "characters": linked_characters,
+                "errors": [],
+                "available_vocations": ["Druid", "Knight"],
+            },
+        ]
+        deaths_mock.return_value = []
+        response = client.get(
+            reverse(
+                "accounts:character_detail",
+                kwargs={
+                    "otserver_pk": server.pk,
+                    "character_name": selected["name"],
+                },
+            ),
+            {"linked_page": "2"},
+        )
+
+    assert response.status_code == 200
+    content = response.content.decode("utf-8")
+    assert "Linked 6" in content
+    assert "Linked 1" not in content

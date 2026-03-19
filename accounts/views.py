@@ -74,6 +74,9 @@ def _otserver_audit_details(
         "players_table": str(schema_mapping.get("players_table", "")).strip(),
         "deaths_table": str(schema_mapping.get("deaths_table", "")).strip(),
         "player_id_column": str(schema_mapping.get("player_id_column", "")).strip(),
+        "player_group_id_column": str(
+            schema_mapping.get("player_group_id_column", "")
+        ).strip(),
         "death_player_id_column": str(
             schema_mapping.get("death_player_id_column", "")
         ).strip(),
@@ -107,6 +110,7 @@ def _otserver_audit_details(
         "schema_players_table": normalized_schema["players_table"],
         "schema_deaths_table": normalized_schema["deaths_table"],
         "schema_player_id_column": normalized_schema["player_id_column"],
+        "schema_player_group_id_column": normalized_schema["player_group_id_column"],
         "schema_death_player_id_column": normalized_schema["death_player_id_column"],
         "schema_death_time_column": normalized_schema["death_time_column"],
         "schema_death_level_column": normalized_schema["death_level_column"],
@@ -163,6 +167,10 @@ def _build_schema_autofill(
         "deaths_table": deaths_table,
         "player_id_column": current_values.get("player_id_column", "").strip()
         or _pick_first_match(player_columns, ("id", "player_id", "playerid", "guid")),
+        "player_group_id_column": current_values.get(
+            "player_group_id_column", ""
+        ).strip()
+        or _pick_first_match(player_columns, ("group_id", "groupid", "group")),
         "death_player_id_column": current_values.get(
             "death_player_id_column", ""
         ).strip()
@@ -182,15 +190,15 @@ def _build_schema_autofill(
 def _schema_ui_labels(*, is_pt: bool) -> dict[str, str]:
     return {
         "title": (
-            "Mapeamento avançado de schema" if is_pt else "Advanced schema mapping"
+            "Mapeamento avancado de schema" if is_pt else "Advanced schema mapping"
         ),
         "subtitle": (
-            "Opcional: mapeie nomes customizados de tabela/coluna para esta versão de OTServer."
+            "Opcional: mapeie nomes customizados de tabela/coluna para esta versao de OTServer."
             if is_pt
             else "Optional: map custom table/column names for this OTServer version."
         ),
         "description": (
-            "Use Testar conexão para carregar tabelas/colunas disponíveis e mapear os nomes usados nesta versão do OTServer."
+            "Use Testar conexao para carregar tabelas/colunas disponiveis e mapear os nomes usados nesta versao do OTServer."
             if is_pt
             else "Use Test connection to load available tables/columns, then map names used by this OTServer version."
         ),
@@ -203,9 +211,26 @@ def _schema_ui_labels(*, is_pt: bool) -> dict[str, str]:
             else "tables. Select the names that match this OTServer."
         ),
         "empty_hint": (
-            "Nenhuma sugestão de schema carregada ainda. Execute Testar conexão para buscar opções no banco."
+            "Nenhuma sugestao de schema carregada ainda. Execute Testar conexao para buscar opcoes no banco."
             if is_pt
             else "No schema suggestions loaded yet. Run Test connection to fetch options from database."
+        ),
+        "players_mapping_title": (
+            "Mapeamento da tabela de players"
+            if is_pt
+            else "Players table mapping"
+        ),
+        "deaths_mapping_title": (
+            "Mapeamento da tabela de mortes"
+            if is_pt
+            else "Deaths table mapping"
+        ),
+        "characters_source_badge": (
+            "Fonte de personagens" if is_pt else "Characters source"
+        ),
+        "deaths_source_badge": "Fonte de mortes" if is_pt else "Deaths source",
+        "no_table_selected": (
+            "Nenhuma tabela selecionada" if is_pt else "No table selected"
         ),
     }
 
@@ -1259,6 +1284,7 @@ class CharacterDetailView(
     PermissionRequiredMixin,
     TemplateView,
 ):
+    linked_characters_page_size = 5
     template_name = "accounts/character_detail.html"
     permission_required = "accounts.view_otserver"
     raise_exception = True
@@ -1312,7 +1338,19 @@ class CharacterDetailView(
                 for character in associated_result["characters"]
                 if str(character.get("name", "")).strip().casefold() != normalized_name
             ]
-        context["associated_characters"] = associated_characters
+        associated_paginator = Paginator(
+            associated_characters, self.linked_characters_page_size
+        )
+        associated_page_obj = associated_paginator.get_page(
+            self.request.GET.get("linked_page")
+        )
+        linked_params = self.request.GET.copy()
+        linked_params.pop("linked_page", None)
+        context["associated_characters_total"] = len(associated_characters)
+        context["associated_characters"] = list(associated_page_obj.object_list)
+        context["linked_page_obj"] = associated_page_obj
+        context["linked_is_paginated"] = associated_page_obj.has_other_pages()
+        context["linked_pagination_query"] = linked_params.urlencode()
         try:
             context["recent_deaths"] = fetch_otserver_character_deaths(
                 server=server,
@@ -1423,6 +1461,9 @@ class CharacterDetailView(
                 if is_pt
                 else "No other characters linked to this account."
             ),
+            "pagination_previous": "Anterior" if is_pt else "Previous",
+            "pagination_next": "Próxima" if is_pt else "Next",
+            "pagination_page": "Página" if is_pt else "Page",
         }
         return context
 
@@ -1567,6 +1608,9 @@ class OTServerCreateView(
                 "players_table": str(form_data.get("players_table", "")).strip(),
                 "deaths_table": str(form_data.get("deaths_table", "")).strip(),
                 "player_id_column": str(form_data.get("player_id_column", "")).strip(),
+                "player_group_id_column": str(
+                    form_data.get("player_group_id_column", "")
+                ).strip(),
                 "death_player_id_column": str(
                     form_data.get("death_player_id_column", "")
                 ).strip(),
@@ -1733,6 +1777,9 @@ class OTServerUpdateView(
                 "players_table": str(form_data.get("players_table", "")).strip(),
                 "deaths_table": str(form_data.get("deaths_table", "")).strip(),
                 "player_id_column": str(form_data.get("player_id_column", "")).strip(),
+                "player_group_id_column": str(
+                    form_data.get("player_group_id_column", "")
+                ).strip(),
                 "death_player_id_column": str(
                     form_data.get("death_player_id_column", "")
                 ).strip(),
