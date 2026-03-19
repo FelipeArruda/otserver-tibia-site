@@ -828,8 +828,7 @@ def test_otserver_crud_flow_with_permissions() -> None:
     assert schema_update_log.details["after"]["players_table"] == "players_custom"
     assert schema_update_log.details["before"]["player_group_id_column"] == "group_id"
     assert (
-        schema_update_log.details["after"]["player_group_id_column"]
-        == "groupid_custom"
+        schema_update_log.details["after"]["player_group_id_column"] == "groupid_custom"
     )
 
     delete_response = client.post(reverse("accounts:otserver_delete", args=[server.pk]))

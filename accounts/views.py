@@ -216,14 +216,10 @@ def _schema_ui_labels(*, is_pt: bool) -> dict[str, str]:
             else "No schema suggestions loaded yet. Run Test connection to fetch options from database."
         ),
         "players_mapping_title": (
-            "Mapeamento da tabela de players"
-            if is_pt
-            else "Players table mapping"
+            "Mapeamento da tabela de players" if is_pt else "Players table mapping"
         ),
         "deaths_mapping_title": (
-            "Mapeamento da tabela de mortes"
-            if is_pt
-            else "Deaths table mapping"
+            "Mapeamento da tabela de mortes" if is_pt else "Deaths table mapping"
         ),
         "characters_source_badge": (
             "Fonte de personagens" if is_pt else "Characters source"

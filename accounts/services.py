@@ -1182,9 +1182,7 @@ def _resolve_account_source(
             if account_email_column
             else "NULL AS account_email"
         ),
-        (
-            account_type_select
-        ),
+        (account_type_select),
         (
             f"account_table.{_quote_identifier(account_created_column)} AS account_created_at"
             if account_created_column
