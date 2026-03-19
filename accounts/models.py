@@ -225,6 +225,12 @@ class OTServer(models.Model):
         blank=True,
         verbose_name=_("Last health check message"),
     )
+    schema_mapping = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name=_("Schema mapping"),
+        help_text=_("Optional manual mapping for table and column names."),
+    )
     is_active = models.BooleanField(default=True, verbose_name=_("Active"))
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created at"))
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated at"))

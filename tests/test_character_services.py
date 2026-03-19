@@ -352,3 +352,41 @@ def test_resolve_account_source_supports_accounts_table_name() -> None:
     assert "AS account_type" in select_parts[3]
     assert "AS account_created_at" in select_parts[4]
     assert "AS account_last_login" in select_parts[5]
+
+
+def test_resolve_players_table_uses_configured_name_when_available() -> None:
+    class FakeCursor:
+        def __init__(self) -> None:
+            self._params = None
+
+        def execute(self, query, params=None):  # noqa: ANN001
+            del query
+            self._params = params
+
+        def fetchone(self):  # noqa: ANN201
+            if self._params == ("playerss",):
+                return {"Tables_in_db": "playerss"}
+            return None
+
+    table_name = services._resolve_players_table_name_from_cursor(
+        cursor=FakeCursor(),
+        configured_table_name="playerss",
+    )
+
+    assert table_name == "playerss"
+
+
+def test_resolve_players_table_raises_for_invalid_manual_name() -> None:
+    class FakeCursor:
+        def execute(self, query, params=None):  # noqa: ANN001
+            del query, params
+
+        def fetchone(self):  # noqa: ANN201
+            return None
+
+    with pytest.raises(RuntimeError) as exc_info:
+        services._resolve_players_table_name_from_cursor(
+            cursor=FakeCursor(),
+            configured_table_name="playerss",
+        )
+    assert "playerss" in str(exc_info.value)

@@ -715,6 +715,13 @@ def test_otserver_crud_flow_with_permissions() -> None:
             "timezone": "UTC",
             "monitor_enabled": "on",
             "is_active": "on",
+            "players_table": "players",
+            "deaths_table": "player_deaths",
+            "player_id_column": "id",
+            "death_player_id_column": "player_id",
+            "death_time_column": "time",
+            "death_level_column": "level",
+            "death_killer_column": "killed_by",
         },
     )
     assert create_response.status_code == 302
@@ -739,6 +746,13 @@ def test_otserver_crud_flow_with_permissions() -> None:
     assert create_log.details["timezone"] == "UTC"
     assert create_log.details["monitor_enabled"] is True
     assert create_log.details["is_active"] is True
+    assert create_log.details["schema_players_table"] == "players"
+    assert create_log.details["schema_deaths_table"] == "player_deaths"
+    assert create_log.details["schema_player_id_column"] == "id"
+    assert create_log.details["schema_death_player_id_column"] == "player_id"
+    assert create_log.details["schema_death_time_column"] == "time"
+    assert create_log.details["schema_death_level_column"] == "level"
+    assert create_log.details["schema_death_killer_column"] == "killed_by"
 
     detail_response = client.get(reverse("accounts:otserver_detail", args=[server.pk]))
     assert detail_response.status_code == 200
@@ -764,6 +778,13 @@ def test_otserver_crud_flow_with_permissions() -> None:
             "timezone": "America/Sao_Paulo",
             "monitor_enabled": "on",
             "is_active": "on",
+            "players_table": "players_custom",
+            "deaths_table": "player_deaths_custom",
+            "player_id_column": "guid",
+            "death_player_id_column": "pid",
+            "death_time_column": "created_at",
+            "death_level_column": "lvl",
+            "death_killer_column": "killer_name",
         },
     )
     assert update_response.status_code == 302
@@ -787,6 +808,20 @@ def test_otserver_crud_flow_with_permissions() -> None:
     assert update_log.details["db_use_ssl"] is False
     assert update_log.details["api_base_url"] == ""
     assert update_log.details["timezone"] == "America/Sao_Paulo"
+    assert update_log.details["schema_players_table"] == "players_custom"
+    assert update_log.details["schema_deaths_table"] == "player_deaths_custom"
+    assert update_log.details["schema_player_id_column"] == "guid"
+    assert update_log.details["schema_death_player_id_column"] == "pid"
+    assert update_log.details["schema_death_time_column"] == "created_at"
+    assert update_log.details["schema_death_level_column"] == "lvl"
+    assert update_log.details["schema_death_killer_column"] == "killer_name"
+    schema_update_log = AuditLog.objects.get(
+        action="otserver.schema_mapping.update",
+        target="Crystal Server",
+        actor=manager,
+    )
+    assert schema_update_log.details["before"]["players_table"] == "players"
+    assert schema_update_log.details["after"]["players_table"] == "players_custom"
 
     delete_response = client.post(reverse("accounts:otserver_delete", args=[server.pk]))
     assert delete_response.status_code == 302
