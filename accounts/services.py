@@ -300,6 +300,10 @@ def fetch_otserver_characters(
             online_join_sql, online_presence_expr = _resolve_online_source(
                 cursor=cursor, players_columns=available_columns
             )
+            account_selects, account_join_sql = _resolve_account_source(
+                cursor=cursor,
+                players_columns=available_columns,
+            )
 
             select_parts = [
                 "players.name AS name",
@@ -319,6 +323,7 @@ def fetch_otserver_characters(
                     else "NULL AS lastlogin"
                 ),
             ]
+            select_parts.extend(account_selects)
             if online_presence_expr:
                 select_parts.append(
                     f"CASE WHEN {online_presence_expr} THEN 1 ELSE 0 END AS online"
@@ -330,7 +335,7 @@ def fetch_otserver_characters(
 
             query = (
                 f"SELECT {', '.join(select_parts)} "
-                f"FROM players AS players {online_join_sql}"
+                f"FROM players AS players {online_join_sql} {account_join_sql}"
             )
             params: list[str] = []
             if search:
@@ -361,9 +366,175 @@ def fetch_otserver_characters(
                 "level": _as_int_or_none(row.get("level")),
                 "is_online": _as_bool_or_none(row.get("online")),
                 "updated_at": _as_datetime_or_none(row.get("lastlogin")),
+                "account_id": _as_int_or_none(row.get("account_id")),
+                "account_name": _as_text_or_empty(row.get("account_name")),
+                "account_email": _as_text_or_empty(row.get("account_email")),
+                "account_type": _as_text_or_empty(row.get("account_type")),
+                "account_created_at": _as_datetime_or_none(
+                    row.get("account_created_at")
+                ),
+                "account_last_login": _as_datetime_or_none(
+                    row.get("account_last_login")
+                ),
+                "account_real_name": _as_text_or_empty(row.get("account_real_name")),
+                "account_location": _as_text_or_empty(row.get("account_location")),
+                "account_country": _as_text_or_empty(row.get("account_country")),
+                "account_premium_points": _as_int_or_none(
+                    row.get("account_premium_points")
+                ),
+                "account_premdays": _as_int_or_none(row.get("account_premdays")),
+                "account_coins": _as_int_or_none(row.get("account_coins")),
             }
         )
     return characters
+
+
+def fetch_otserver_character_deaths(
+    *,
+    server: OTServer,
+    character_name: str,
+    limit: int = 10,
+    timeout_seconds: int = 5,
+) -> list[dict[str, Any]]:
+    try:
+        import pymysql
+        from pymysql.cursors import DictCursor
+    except Exception as exc:
+        raise RuntimeError(_("PyMySQL dependency is not installed.")) from exc
+
+    if server.database_engine not in {"mysql", "mariadb"}:
+        raise RuntimeError(_("Unsupported database engine."))
+
+    normalized_name = character_name.strip()
+    if not normalized_name:
+        return []
+
+    query_limit = max(1, min(int(limit), 50))
+    connect_kwargs: dict[str, Any] = {
+        "host": server.db_host,
+        "port": int(server.db_port),
+        "user": server.db_user,
+        "password": server.get_db_password(),
+        "database": server.db_name,
+        "charset": server.db_charset or "utf8mb4",
+        "connect_timeout": timeout_seconds,
+        "cursorclass": DictCursor,
+    }
+    if server.db_use_ssl:
+        connect_kwargs["ssl"] = {}
+
+    connection = pymysql.connect(**connect_kwargs)
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SHOW TABLES LIKE %s", ("players",))
+            if cursor.fetchone() is None:
+                return []
+            death_table_name = _resolve_death_table_name(cursor=cursor)
+            if not death_table_name:
+                return []
+
+            cursor.execute("SHOW COLUMNS FROM players")
+            player_columns = {
+                str(column.get("Field", "")).lower()
+                for column in cursor.fetchall()
+                if isinstance(column, dict)
+            }
+            cursor.execute(f"SHOW COLUMNS FROM {_quote_identifier(death_table_name)}")
+            death_columns = {
+                str(column.get("Field", "")).lower()
+                for column in cursor.fetchall()
+                if isinstance(column, dict)
+            }
+
+            if "name" not in player_columns:
+                return []
+            player_id_column = _first_available_column(
+                player_columns, ("id", "player_id", "playerid", "guid")
+            )
+            death_player_id_column = _first_available_column(
+                death_columns, ("player_id", "playerid", "pid")
+            )
+            if not player_id_column or not death_player_id_column:
+                return []
+
+            death_date_column = _first_available_column(
+                death_columns, ("date", "time", "created_at", "death_at")
+            )
+            death_level_column = _first_available_column(death_columns, ("level",))
+            death_killer_column = _first_available_column(
+                death_columns,
+                ("killed_by", "killer", "mostdamage_by", "by"),
+            )
+            death_id_column = _first_available_column(
+                death_columns, ("id", "death_id", "deathid")
+            )
+            if not death_date_column and not death_id_column:
+                return []
+
+            cursor.execute(
+                "SELECT "
+                f"{_quote_identifier(player_id_column)} AS player_id "
+                "FROM players WHERE name = %s LIMIT 1",
+                (normalized_name,),
+            )
+            player_row = cursor.fetchone() or {}
+            player_id = _as_int_or_none(player_row.get("player_id"))
+            if player_id is None:
+                return []
+
+            select_parts = []
+            if death_date_column:
+                select_parts.append(
+                    f"death.{_quote_identifier(death_date_column)} AS occurred_at"
+                )
+            else:
+                select_parts.append("NULL AS occurred_at")
+            if death_level_column:
+                select_parts.append(
+                    f"death.{_quote_identifier(death_level_column)} AS death_level"
+                )
+            else:
+                select_parts.append("NULL AS death_level")
+            if death_killer_column:
+                select_parts.append(
+                    f"death.{_quote_identifier(death_killer_column)} AS killed_by"
+                )
+            else:
+                select_parts.append("NULL AS killed_by")
+            if death_id_column:
+                select_parts.append(f"death.{_quote_identifier(death_id_column)} AS id")
+            else:
+                select_parts.append("NULL AS id")
+
+            order_by_column = (
+                f"death.{_quote_identifier(death_date_column)}"
+                if death_date_column
+                else f"death.{_quote_identifier(death_id_column)}"
+            )
+            cursor.execute(
+                "SELECT "
+                + ", ".join(select_parts)
+                + f" FROM {_quote_identifier(death_table_name)} AS death "
+                + f"WHERE death.{_quote_identifier(death_player_id_column)} = %s "
+                + f"ORDER BY {order_by_column} DESC LIMIT {query_limit}",
+                (player_id,),
+            )
+            rows = cursor.fetchall()
+    finally:
+        connection.close()
+
+    deaths: list[dict[str, Any]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        deaths.append(
+            {
+                "occurred_at": _as_datetime_or_none(row.get("occurred_at")),
+                "level": _as_int_or_none(row.get("death_level")),
+                "killed_by": _as_text_or_empty(row.get("killed_by")),
+            }
+        )
+    return deaths
 
 
 def fetch_otserver_character_summary(
@@ -516,6 +687,8 @@ def list_otserver_characters(
     min_level: int | None = None,
     max_level: int | None = None,
     status: str = "",
+    account_id: str = "",
+    account_email: str = "",
     order: str = "name_asc",
 ) -> dict[str, Any]:
     filtered_servers = [server for server in servers if server.is_active]
@@ -546,6 +719,8 @@ def list_otserver_characters(
         min_level=min_level,
         max_level=max_level,
         status=status,
+        account_id=account_id,
+        account_email=account_email,
     )
     sorted_characters = sort_otserver_characters(filtered_characters, order=order)
     available_vocations = sorted(
@@ -571,9 +746,13 @@ def filter_otserver_characters(
     min_level: int | None = None,
     max_level: int | None = None,
     status: str = "",
+    account_id: str = "",
+    account_email: str = "",
 ) -> list[dict[str, Any]]:
     normalized_vocation = vocation.strip().casefold()
     normalized_status = status.strip().lower()
+    normalized_account_email = account_email.strip().casefold()
+    normalized_account_id = account_id.strip()
 
     filtered: list[dict[str, Any]] = []
     for character in characters:
@@ -595,6 +774,16 @@ def filter_otserver_characters(
             continue
         if normalized_status == "offline" and character_online is not False:
             continue
+        if normalized_account_id:
+            current_account_id = character.get("account_id")
+            if str(current_account_id) != normalized_account_id:
+                continue
+        if normalized_account_email:
+            character_account_email = (
+                str(character.get("account_email", "")).strip().casefold()
+            )
+            if normalized_account_email not in character_account_email:
+                continue
 
         filtered.append(character)
 
@@ -752,6 +941,174 @@ def _resolve_online_source(
         return join_sql, "online_players.online_key IS NOT NULL"
 
     return "", ""
+
+
+def _resolve_account_source(
+    *, cursor: Any, players_columns: set[str]
+) -> tuple[list[str], str]:
+    players_account_key = _first_available_column(
+        players_columns,
+        ("account_id", "account", "accountid"),
+    )
+    account_id_select = (
+        f"players.{_quote_identifier(players_account_key)} AS account_id"
+        if players_account_key
+        else "NULL AS account_id"
+    )
+    select_parts = [
+        account_id_select,
+        "NULL AS account_name",
+        "NULL AS account_email",
+        "NULL AS account_type",
+        "NULL AS account_created_at",
+        "NULL AS account_last_login",
+        "NULL AS account_real_name",
+        "NULL AS account_location",
+        "NULL AS account_country",
+        "NULL AS account_premium_points",
+        "NULL AS account_premdays",
+        "NULL AS account_coins",
+    ]
+    if not players_account_key:
+        return select_parts, ""
+
+    account_table_name = _resolve_account_table_name(cursor=cursor)
+    if not account_table_name:
+        return select_parts, ""
+
+    cursor.execute(f"SHOW COLUMNS FROM {_quote_identifier(account_table_name)}")
+    account_columns = {
+        str(column.get("Field", "")).lower()
+        for column in cursor.fetchall()
+        if isinstance(column, dict)
+    }
+    account_key = _first_available_column(
+        account_columns, ("id", "account_id", "accountid")
+    )
+    if not account_key:
+        return select_parts, ""
+
+    account_name_column = _first_available_column(
+        account_columns, ("name", "account_name")
+    )
+    account_email_column = _first_available_column(
+        account_columns,
+        ("email", "account_email"),
+    )
+    account_type_column = _first_available_column(
+        account_columns,
+        ("type", "account_type"),
+    )
+    account_created_column = _first_available_column(
+        account_columns,
+        ("created_at", "created", "creation"),
+    )
+    account_last_login_column = _first_available_column(
+        account_columns,
+        ("last_login", "lastlogin", "web_lastlogin", "lastday"),
+    )
+    account_real_name_column = _first_available_column(
+        account_columns,
+        ("rlname", "real_name"),
+    )
+    account_location_column = _first_available_column(account_columns, ("location",))
+    account_country_column = _first_available_column(account_columns, ("country",))
+    account_premium_points_column = _first_available_column(
+        account_columns,
+        ("premium_points",),
+    )
+    account_premdays_column = _first_available_column(account_columns, ("premdays",))
+    account_coins_column = _first_available_column(account_columns, ("coins",))
+
+    select_parts = [
+        account_id_select,
+        (
+            f"account_table.{_quote_identifier(account_name_column)} AS account_name"
+            if account_name_column
+            else "NULL AS account_name"
+        ),
+        (
+            f"account_table.{_quote_identifier(account_email_column)} AS account_email"
+            if account_email_column
+            else "NULL AS account_email"
+        ),
+        (
+            f"account_table.{_quote_identifier(account_type_column)} AS account_type"
+            if account_type_column
+            else "NULL AS account_type"
+        ),
+        (
+            f"account_table.{_quote_identifier(account_created_column)} AS account_created_at"
+            if account_created_column
+            else "NULL AS account_created_at"
+        ),
+        (
+            f"account_table.{_quote_identifier(account_last_login_column)} AS account_last_login"
+            if account_last_login_column
+            else "NULL AS account_last_login"
+        ),
+        (
+            f"account_table.{_quote_identifier(account_real_name_column)} AS account_real_name"
+            if account_real_name_column
+            else "NULL AS account_real_name"
+        ),
+        (
+            f"account_table.{_quote_identifier(account_location_column)} AS account_location"
+            if account_location_column
+            else "NULL AS account_location"
+        ),
+        (
+            f"account_table.{_quote_identifier(account_country_column)} AS account_country"
+            if account_country_column
+            else "NULL AS account_country"
+        ),
+        (
+            f"account_table.{_quote_identifier(account_premium_points_column)} AS account_premium_points"
+            if account_premium_points_column
+            else "NULL AS account_premium_points"
+        ),
+        (
+            f"account_table.{_quote_identifier(account_premdays_column)} AS account_premdays"
+            if account_premdays_column
+            else "NULL AS account_premdays"
+        ),
+        (
+            f"account_table.{_quote_identifier(account_coins_column)} AS account_coins"
+            if account_coins_column
+            else "NULL AS account_coins"
+        ),
+    ]
+    join_sql = (
+        f"INNER JOIN {_quote_identifier(account_table_name)} AS account_table "
+        f"ON account_table.{_quote_identifier(account_key)} = "
+        f"players.{_quote_identifier(players_account_key)}"
+    )
+    return select_parts, join_sql
+
+
+def _resolve_account_table_name(*, cursor: Any) -> str:
+    for table_name in ("account", "accounts"):
+        cursor.execute("SHOW TABLES LIKE %s", (table_name,))
+        if cursor.fetchone() is not None:
+            return table_name
+    return ""
+
+
+def _resolve_death_table_name(*, cursor: Any) -> str:
+    for table_name in ("players_death", "player_deaths", "player_death"):
+        cursor.execute("SHOW TABLES LIKE %s", (table_name,))
+        if cursor.fetchone() is not None:
+            return table_name
+    return ""
+
+
+def _first_available_column(
+    available_columns: set[str], candidates: tuple[str, ...]
+) -> str:
+    for candidate in candidates:
+        if candidate in available_columns:
+            return candidate
+    return ""
 
 
 def _quote_identifier(identifier: str) -> str:

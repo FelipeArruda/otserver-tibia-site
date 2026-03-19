@@ -7,6 +7,7 @@ from django.utils import translation
 from accounts import services
 from accounts.models import OTServer, TibiaVacation, TibiaVersion
 from accounts.services import (
+    _resolve_account_source,
     _resolve_online_source,
     filter_otserver_characters,
     list_otserver_characters,
@@ -50,6 +51,22 @@ def test_filter_otserver_characters_filters_by_status_vocation_and_level() -> No
 
     assert len(filtered) == 1
     assert filtered[0]["name"] == "Alpha"
+
+
+def test_filter_otserver_characters_supports_account_filters() -> None:
+    characters = [
+        {"name": "Alpha", "account_id": 101, "account_email": "alpha@ot.dev"},
+        {"name": "Beta", "account_id": 202, "account_email": "beta@ot.dev"},
+    ]
+
+    filtered = filter_otserver_characters(
+        characters,
+        account_id="202",
+        account_email="beta@",
+    )
+
+    assert len(filtered) == 1
+    assert filtered[0]["name"] == "Beta"
 
 
 def test_sort_otserver_characters_supports_level_and_updated_sorting() -> None:
@@ -255,3 +272,83 @@ def test_resolve_online_source_prefers_players_online_join_by_player_id() -> Non
     assert "player_id" in join_sql
     assert "players.`id`" in join_sql
     assert presence_expr == "online_players.online_key IS NOT NULL"
+
+
+def test_resolve_account_source_builds_safe_join_and_fallback_fields() -> None:
+    class FakeCursor:
+        def __init__(self) -> None:
+            self._last_query = ""
+
+        def execute(self, query, params=None):  # noqa: ANN001
+            del params
+            self._last_query = str(query)
+
+        def fetchone(self):  # noqa: ANN201
+            if "SHOW TABLES LIKE" in self._last_query:
+                return {"Tables_in_db": "account"}
+            return None
+
+        def fetchall(self):  # noqa: ANN201
+            if "SHOW COLUMNS FROM `account`" in self._last_query:
+                return [
+                    {"Field": "id"},
+                    {"Field": "email"},
+                    {"Field": "created"},
+                    {"Field": "lastday"},
+                ]
+            return []
+
+    select_parts, join_sql = _resolve_account_source(
+        cursor=FakeCursor(),
+        players_columns={"id", "name", "account_id"},
+    )
+
+    assert "INNER JOIN `account` AS account_table" in join_sql
+    assert "players.`account_id`" in join_sql
+    assert "account_table.`id`" in join_sql
+    assert "AS account_id" in select_parts[0]
+    assert "AS account_email" in select_parts[2]
+    assert "AS account_created_at" in select_parts[4]
+    assert "AS account_last_login" in select_parts[5]
+
+
+def test_resolve_account_source_supports_accounts_table_name() -> None:
+    class FakeCursor:
+        def __init__(self) -> None:
+            self._last_query = ""
+
+        def execute(self, query, params=None):  # noqa: ANN001
+            self._last_query = str(query)
+            self._params = params
+
+        def fetchone(self):  # noqa: ANN201
+            if "SHOW TABLES LIKE" in self._last_query:
+                if self._params == ("account",):
+                    return None
+                if self._params == ("accounts",):
+                    return {"Tables_in_db": "accounts"}
+            return None
+
+        def fetchall(self):  # noqa: ANN201
+            if "SHOW COLUMNS FROM `accounts`" in self._last_query:
+                return [
+                    {"Field": "id"},
+                    {"Field": "name"},
+                    {"Field": "email"},
+                    {"Field": "type"},
+                    {"Field": "created"},
+                    {"Field": "web_lastlogin"},
+                ]
+            return []
+
+    select_parts, join_sql = _resolve_account_source(
+        cursor=FakeCursor(),
+        players_columns={"id", "name", "account_id"},
+    )
+
+    assert "INNER JOIN `accounts` AS account_table" in join_sql
+    assert "AS account_name" in select_parts[1]
+    assert "AS account_email" in select_parts[2]
+    assert "AS account_type" in select_parts[3]
+    assert "AS account_created_at" in select_parts[4]
+    assert "AS account_last_login" in select_parts[5]

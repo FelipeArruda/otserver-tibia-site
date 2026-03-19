@@ -47,6 +47,7 @@ from accounts.models import (
 )
 from accounts.services import (
     check_otserver_connections,
+    fetch_otserver_character_deaths,
     list_otserver_characters,
     log_audit_event,
     save_otserver_health_check,
@@ -1067,6 +1068,8 @@ class CharacterListView(
         search = self.request.GET.get("q", "").strip()
         selected_vocation = self.request.GET.get("vocation", "").strip()
         selected_status = self.request.GET.get("status", "").strip()
+        selected_account_id = self.request.GET.get("account_id", "").strip()
+        selected_account_email = self.request.GET.get("account_email", "").strip()
         selected_order = self.request.GET.get("order", "name_asc").strip()
         min_level = self._parse_level(self.request.GET.get("min_level", ""))
         max_level = self._parse_level(self.request.GET.get("max_level", ""))
@@ -1079,6 +1082,8 @@ class CharacterListView(
             min_level=min_level,
             max_level=max_level,
             status=selected_status,
+            account_id=selected_account_id,
+            account_email=selected_account_email,
             order=selected_order,
         )
         all_filtered_characters = characters_result["characters"]
@@ -1091,6 +1096,8 @@ class CharacterListView(
             "q": search,
             "vocation": selected_vocation,
             "status": selected_status,
+            "account_id": selected_account_id,
+            "account_email": selected_account_email,
             "order": selected_order,
             "min_level": self.request.GET.get("min_level", "").strip(),
             "max_level": self.request.GET.get("max_level", "").strip(),
@@ -1109,7 +1116,11 @@ class CharacterListView(
         context["source_count"] = len(context["otserver_choices"])
         context["characters_ui"] = {
             "name_label": "Nome" if is_pt else "Character",
-            "vocation_label": "Vocação" if is_pt else "Vocation",
+            "vocation_label": "Voca\u00e7\u00e3o" if is_pt else "Vocation",
+            "account_id_label": "ID da conta" if is_pt else "Account ID",
+            "account_name_label": "Nome da conta" if is_pt else "Account name",
+            "account_email_label": "E-mail da conta" if is_pt else "Account email",
+            "view_label": "Visualizar" if is_pt else "View",
         }
         return context
 
@@ -1119,6 +1130,180 @@ class CharacterListView(
             return int(value.strip())
         except (TypeError, ValueError):
             return None
+
+
+class CharacterDetailView(
+    DashboardNavigationMixin,
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    TemplateView,
+):
+    template_name = "accounts/character_detail.html"
+    permission_required = "accounts.view_otserver"
+    raise_exception = True
+    active_menu_key = "characters"
+
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context = super().get_context_data(**kwargs)
+        context["show_secondary_content"] = False
+        language = (translation.get_language() or "").lower()
+        is_pt = language.startswith("pt")
+
+        server = get_object_or_404(OTServer, pk=kwargs["otserver_pk"], is_active=True)
+        character_name = str(kwargs["character_name"]).strip()
+        matches = list_otserver_characters(
+            servers=[server],
+            search=character_name,
+            otserver_pk=str(server.pk),
+            order="name_asc",
+        )["characters"]
+        normalized_name = character_name.casefold()
+        selected_character = next(
+            (
+                character
+                for character in matches
+                if str(character.get("name", "")).strip().casefold() == normalized_name
+            ),
+            None,
+        )
+        if selected_character is None:
+            messages.error(self.request, _("Character not found for this OTServer."))
+            context["character"] = {}
+            context["detail_description"] = _(
+                "Complete view of character and account data from the selected OTServer."
+            )
+            context["associated_characters"] = []
+            context["recent_deaths"] = []
+            return context
+
+        context["character"] = selected_character
+        account_id = selected_character.get("account_id")
+        associated_characters: list[dict[str, object]] = []
+        if account_id is not None:
+            associated_result = list_otserver_characters(
+                servers=[server],
+                otserver_pk=str(server.pk),
+                account_id=str(account_id),
+                order="name_asc",
+            )
+            associated_characters = [
+                character
+                for character in associated_result["characters"]
+                if str(character.get("name", "")).strip().casefold() != normalized_name
+            ]
+        context["associated_characters"] = associated_characters
+        try:
+            context["recent_deaths"] = fetch_otserver_character_deaths(
+                server=server,
+                character_name=str(selected_character.get("name", "")),
+                limit=3,
+            )
+        except Exception:
+            context["recent_deaths"] = []
+
+        context["detail_description"] = _(
+            "OTServer: %(server)s | Account ID: %(account_id)s"
+        ) % {
+            "server": selected_character.get("otserver_name") or "-",
+            "account_id": selected_character.get("account_id") or "-",
+        }
+        context["characters_ui"] = {
+            "page_title": ("Detalhes do personagem" if is_pt else "Character details"),
+            "page_description": (
+                "Visão completa dos dados do personagem e da conta no OTServer selecionado."
+                if is_pt
+                else "Complete view of character and account data from the selected OTServer."
+            ),
+            "account_section": (
+                "Informa\u00e7\u00f5es da conta" if is_pt else "Account information"
+            ),
+            "character_section": "Personagem" if is_pt else "Character",
+            "linked_characters_section": (
+                "Personagens vinculados \u00e0 conta"
+                if is_pt
+                else "Characters linked to this account"
+            ),
+            "vocation_label": "Voca\u00e7\u00e3o" if is_pt else "Vocation",
+            "account_id_label": "ID da conta" if is_pt else "Account ID",
+            "account_name_label": "Nome da conta" if is_pt else "Account name",
+            "account_email_label": "E-mail da conta" if is_pt else "Account email",
+            "account_type_label": "Tipo de conta" if is_pt else "Account type",
+            "account_real_name_label": "Nome real" if is_pt else "Real name",
+            "account_location_label": "Localiza\u00e7\u00e3o" if is_pt else "Location",
+            "account_country_label": "Pa\u00eds" if is_pt else "Country",
+            "account_premium_points_label": (
+                "Pontos premium" if is_pt else "Premium points"
+            ),
+            "account_premdays_label": "Dias premium" if is_pt else "Premium days",
+            "account_coins_label": "Coins",
+            "account_created_label": (
+                "Conta criada em" if is_pt else "Account created at"
+            ),
+            "account_last_login_label": (
+                "\u00daltimo login da conta" if is_pt else "Account last login"
+            ),
+            "status_label": "Status",
+            "status_online": "Online",
+            "status_offline": "Offline",
+            "status_unknown": "Desconhecido" if is_pt else "Unknown",
+            "server_label": "OTServer",
+            "level_label": "N\u00edvel" if is_pt else "Level",
+            "name_label": "Nome" if is_pt else "Name",
+            "updated_label": "Atualizado em" if is_pt else "Updated at",
+            "action_label": "Ação" if is_pt else "Action",
+            "view_label": "Visualizar" if is_pt else "View",
+            "open_character_label": ("Abrir personagem" if is_pt else "Open character"),
+            "back_label": (
+                "Voltar para personagens" if is_pt else "Back to characters"
+            ),
+            "profile_kicker": "Perfil do personagem" if is_pt else "Character profile",
+            "profile_description": (
+                "Vis\u00e3o detalhada da conta e dos personagens vinculados para revis\u00e3o r\u00e1pida."
+                if is_pt
+                else "Detailed account snapshot and server-linked character information, designed for faster review."
+            ),
+            "account_snapshot_title": (
+                "Resumo da conta" if is_pt else "Account snapshot"
+            ),
+            "quick_status_title": "Status r\u00e1pido" if is_pt else "Quick status",
+            "character_info_hint": (
+                "Informa\u00e7\u00f5es principais do personagem em jogo."
+                if is_pt
+                else "Main in-game information for this character."
+            ),
+            "account_info_hint": (
+                "Dados administrativos e de propriedade da conta vinculada."
+                if is_pt
+                else "Administrative and ownership details of the linked account."
+            ),
+            "linked_characters_hint": (
+                "Mesma conta, outros personagens neste OTServer."
+                if is_pt
+                else "Same account, other characters in this OTServer."
+            ),
+            "recent_deaths_title": ("Últimas mortes" if is_pt else "Recent deaths"),
+            "recent_deaths_empty": (
+                "Nenhuma morte registrada para este personagem."
+                if is_pt
+                else "No deaths recorded for this character."
+            ),
+            "recent_deaths_level": "Nível" if is_pt else "Level",
+            "recent_deaths_killer": ("Morto por" if is_pt else "Killed by"),
+            "character_not_found_title": (
+                "Personagem não encontrado." if is_pt else "Character not found."
+            ),
+            "character_not_found_hint": (
+                "Tente novamente pela lista de personagens."
+                if is_pt
+                else "Try again from the character list."
+            ),
+            "no_linked_characters": (
+                "Nenhum outro personagem vinculado a esta conta."
+                if is_pt
+                else "No other characters linked to this account."
+            ),
+        }
+        return context
 
 
 class OTServerListConnectionTestView(LoginRequiredMixin, PermissionRequiredMixin, View):
