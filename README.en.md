@@ -4,6 +4,32 @@ Language: English | [PortuguÃªs (Brasil)](README.md)
 
 Django web panel for managing OTServ/Tibia servers.
 
+## Project status
+
+This system is under active development. Features and layout can change frequently.
+
+## Quick access (frontend and backend)
+
+With the project running at `http://127.0.0.1:8000`:
+
+- Public interface (home): `http://127.0.0.1:8000/`
+- Main panel (login): `http://127.0.0.1:8000/accounts/login/`
+- Django Admin backend: `http://127.0.0.1:8000/admin/`
+
+## Default development credentials
+
+The `python manage.py seed_test_user` command creates/updates the default user:
+
+- Email/Login: `admin@admin.com`
+- Password: `admin`
+
+Notes:
+
+- In Docker, this command already runs at startup (`entrypoint.sh` and `entrypoint.ps1`).
+- In local execution without Docker, run manually:
+  - `python manage.py migrate`
+  - `python manage.py seed_test_user`
+
 ## Goal
 
 Build a web platform that supports:
