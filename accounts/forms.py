@@ -10,7 +10,14 @@ from django.contrib.auth.models import Group, Permission
 from django.utils import translation
 from django.utils.translation import gettext_lazy as _
 
-from accounts.models import OTServer, PlatformSetting, TibiaVacation, TibiaVersion, User
+from accounts.models import (
+    HomePageTemplate,
+    OTServer,
+    PlatformSetting,
+    TibiaVacation,
+    TibiaVersion,
+    User,
+)
 
 BASE_INPUT_CLASSES = (
     "mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-slate-800 "
@@ -185,6 +192,20 @@ class PlatformSettingForm(forms.ModelForm):
         choices=(),
         widget=forms.Select(attrs={"class": BASE_INPUT_CLASSES}),
     )
+    home_page_template = forms.ChoiceField(
+        choices=(),
+        required=False,
+        widget=forms.Select(attrs={"class": BASE_INPUT_CLASSES}),
+    )
+    home_page_template_upload = forms.FileField(
+        required=False,
+        widget=forms.ClearableFileInput(
+            attrs={
+                "class": BASE_INPUT_CLASSES,
+                "accept": ".html,.htm,text/html",
+            }
+        ),
+    )
 
     class Meta:
         model = PlatformSetting
@@ -194,6 +215,7 @@ class PlatformSettingForm(forms.ModelForm):
             "default_timezone",
             "primary_color",
             "logo_url",
+            "home_page_template",
         )
         widgets = {
             "platform_name": forms.TextInput(
@@ -238,6 +260,14 @@ class PlatformSettingForm(forms.ModelForm):
             self.initial["default_timezone"] = current_timezone
         self.fields["primary_color"].label = _("Primary color")
         self.fields["logo_url"].label = _("Logo URL")
+        self.fields["home_page_template"].label = _("Home page template")
+        self.fields["home_page_template_upload"].label = _("Upload HTML template")
+        self.fields["home_page_template"].choices = self._build_home_template_choices()
+        if not self.initial.get("home_page_template"):
+            self.initial["home_page_template"] = (
+                self.instance.home_page_template
+                or PlatformSetting.HOME_TEMPLATE_TIBIA_LATEST_NEWS
+            )
 
     def clean_default_timezone(self) -> str:
         timezone_name = self.cleaned_data["default_timezone"]
@@ -246,6 +276,24 @@ class PlatformSettingForm(forms.ModelForm):
         except ZoneInfoNotFoundError as exc:
             raise forms.ValidationError(_("Select a valid timezone.")) from exc
         return timezone_name
+
+    def clean_home_page_template_upload(self) -> object:
+        uploaded_file = self.cleaned_data.get("home_page_template_upload")
+        if not uploaded_file:
+            return uploaded_file
+
+        file_name = uploaded_file.name.lower()
+        if not (file_name.endswith(".html") or file_name.endswith(".htm")):
+            raise forms.ValidationError(_("Upload a valid .html template file."))
+        if uploaded_file.size > 1024 * 1024:
+            raise forms.ValidationError(_("Template file must be 1MB or smaller."))
+        return uploaded_file
+
+    def clean_home_page_template(self) -> str:
+        selected = str(self.cleaned_data.get("home_page_template", "")).strip()
+        if selected:
+            return selected
+        return PlatformSetting.HOME_TEMPLATE_TIBIA_LATEST_NEWS
 
     @classmethod
     def _build_timezone_choices(cls) -> list[tuple[str, str]]:
@@ -256,6 +304,18 @@ class PlatformSettingForm(forms.ModelForm):
         if not timezone_names:
             timezone_names = list(cls.FALLBACK_TIMEZONES)
         return [(timezone_name, timezone_name) for timezone_name in timezone_names]
+
+    @staticmethod
+    def _build_home_template_choices() -> list[tuple[str, str]]:
+        choices = [
+            (
+                PlatformSetting.HOME_TEMPLATE_TIBIA_LATEST_NEWS,
+                "Tibia Latest News clone (default)",
+            )
+        ]
+        uploaded_templates = HomePageTemplate.objects.order_by("-created_at")
+        choices.extend((entry.key, entry.name) for entry in uploaded_templates)
+        return choices
 
 
 class RoleManagementForm(forms.ModelForm):

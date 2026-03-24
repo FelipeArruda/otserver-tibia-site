@@ -1,7 +1,10 @@
+from pathlib import Path
+
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
+from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
 from accounts.secrets import decrypt_secret, encrypt_secret
@@ -69,6 +72,7 @@ class User(AbstractUser):
 
 class PlatformSetting(models.Model):
     singleton_id = 1
+    HOME_TEMPLATE_TIBIA_LATEST_NEWS = "tibia-latest-news"
 
     platform_name = models.CharField(max_length=120, default="OTServ Control Panel")
     default_language = models.CharField(
@@ -91,6 +95,10 @@ class PlatformSetting(models.Model):
         ],
     )
     logo_url = models.URLField(blank=True)
+    home_page_template = models.CharField(
+        max_length=80,
+        default=HOME_TEMPLATE_TIBIA_LATEST_NEWS,
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -110,9 +118,40 @@ class PlatformSetting(models.Model):
                 "default_language": "en",
                 "default_timezone": "UTC",
                 "primary_color": "#06b6d4",
+                "home_page_template": cls.HOME_TEMPLATE_TIBIA_LATEST_NEWS,
             },
         )
         return obj
+
+
+class HomePageTemplate(models.Model):
+    name = models.CharField(max_length=120, unique=True)
+    key = models.SlugField(max_length=80, unique=True)
+    template_file = models.FileField(upload_to="home_page_templates/")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = _("Home page template")
+        verbose_name_plural = _("Home page templates")
+
+    def save(self, *args: object, **kwargs: object) -> None:
+        if not self.name and self.template_file:
+            self.name = Path(self.template_file.name).stem
+        if not self.key:
+            base_key = slugify(self.name)[:70] or "home-template"
+            candidate = base_key
+            suffix = 2
+            while HomePageTemplate.objects.filter(key=candidate).exclude(
+                pk=self.pk
+            ).exists():
+                candidate = f"{base_key}-{suffix}"
+                suffix += 1
+            self.key = candidate
+        super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return self.name
 
 
 class AuditLog(models.Model):

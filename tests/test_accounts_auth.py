@@ -1827,6 +1827,41 @@ def test_platform_settings_can_be_updated() -> None:
 
 
 @pytest.mark.django_db
+def test_platform_settings_get_renders_unbound_form_without_required_errors() -> None:
+    user_model = get_user_model()
+    manager = user_model.objects.create_user(
+        email="platform-get-clean@example.com", password="StrongPass123!"
+    )
+    manager.user_permissions.add(
+        Permission.objects.get(codename="change_platformsetting")
+    )
+
+    platform_settings = PlatformSetting.get_solo()
+    platform_settings.platform_name = "OTServ Control Panel"
+    platform_settings.default_language = "en"
+    platform_settings.default_timezone = "UTC"
+    platform_settings.primary_color = "#06b6d4"
+    platform_settings.save(
+        update_fields=[
+            "platform_name",
+            "default_language",
+            "default_timezone",
+            "primary_color",
+        ]
+    )
+
+    client = Client()
+    assert client.login(username=manager.email, password="StrongPass123!")
+    response = client.get(reverse("accounts:platform_settings"))
+    content = response.content.decode("utf-8")
+
+    assert response.status_code == 200
+    assert "This field is required." not in content
+    assert 'name="platform_name"' in content
+    assert 'value="OTServ Control Panel"' in content
+
+
+@pytest.mark.django_db
 def test_platform_settings_form_lists_timezones() -> None:
     form = PlatformSettingForm(instance=PlatformSetting.get_solo())
     choices = {value for value, _label in form.fields["default_timezone"].choices}
