@@ -638,6 +638,35 @@ class PublicNewsHomeView(View):
             return render(request, self.default_template_name, context)
 
 
+class PublicCharactersView(PublicNewsHomeView):
+    def get(
+        self, request: HttpRequest, *args: object, **kwargs: object
+    ) -> HttpResponse:
+        del args, kwargs
+        platform_settings = PlatformSetting.get_solo()
+        context = self._build_public_context(platform_settings)
+
+        search = request.GET.get("q", "").strip()
+        active_servers = list(OTServer.objects.filter(is_active=True).order_by("name"))
+        result = list_otserver_characters(
+            servers=active_servers,
+            search=search,
+            order="level_desc",
+        )
+        characters = result["characters"][:50]
+        errors = result["errors"]
+
+        context.update(
+            {
+                "public_characters_mode": True,
+                "characters_filters": {"q": search},
+                "public_characters": characters,
+                "public_characters_errors": errors,
+            }
+        )
+        return render(request, self.default_template_name, context)
+
+
 class SignUpView(CreateView):
     template_name = "registration/signup.html"
     form_class = SignUpForm

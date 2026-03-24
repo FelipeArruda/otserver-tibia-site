@@ -19,6 +19,7 @@ def test_root_uses_builtin_latest_news_template_by_default() -> None:
 
     assert response.status_code == 200
     assert "Latest News" in content
+    assert "community/characters/" in content
 
 
 @pytest.mark.django_db
@@ -46,6 +47,46 @@ def test_root_displays_online_players_count_from_summary() -> None:
 
     assert response.status_code == 200
     assert "14,903 Players Online" in content
+
+
+@pytest.mark.django_db
+def test_public_characters_page_fetches_and_renders_characters() -> None:
+    OTServer.objects.create(
+        name="Characters Server",
+        tibia_version_id="15.30",
+        environment="production",
+        database_engine="mysql",
+        db_host="127.0.0.1",
+        db_port=3306,
+        db_name="otserv",
+        db_user="root",
+        db_password="secret",
+        is_active=True,
+    )
+    client = Client()
+
+    fake_result = {
+        "characters": [
+            {
+                "name": "Knight One",
+                "vocation": "Knight",
+                "level": 120,
+                "otserver_name": "Characters Server",
+                "is_online": True,
+            }
+        ],
+        "errors": [],
+        "available_vocations": ["Knight"],
+    }
+    with patch("accounts.views.list_otserver_characters", return_value=fake_result):
+        response = client.get("/community/characters/?q=Knight")
+    content = response.content.decode("utf-8")
+
+    assert response.status_code == 200
+    assert "Search Character" in content
+    assert "Knight One" in content
+    assert "Characters Server" in content
+    assert "Online" in content
 
 
 @pytest.mark.django_db
