@@ -314,18 +314,18 @@
                 {% if public_character_found and public_character %}
                   <div style="margin-bottom: 14px;">
                     <div style="background:#7f6d56;color:#fff;padding:6px 10px;font-weight:bold;border:1px solid #4a3f32;">Character Information</div>
-                    <table style="width:100%;border-collapse:collapse;border:1px solid #4a3f32;border-top:0;">
+                    <table style="width:100%;border-collapse:collapse;border:1px solid #9b886a;border-top:0;">
                       <tbody>
-                        <tr style="background:#d4c2a5;"><th style="width:180px;text-align:left;padding:4px 8px;border:1px solid #c3b292;">Name:</th><td style="padding:4px 8px;border:1px solid #c3b292;">{{ public_character.name }}</td></tr>
-                        <tr style="background:#efe1c8;"><th style="text-align:left;padding:4px 8px;border:1px solid #c3b292;">Title:</th><td style="padding:4px 8px;border:1px solid #c3b292;">None (0 titles unlocked)</td></tr>
-                        <tr style="background:#d4c2a5;"><th style="text-align:left;padding:4px 8px;border:1px solid #c3b292;">Sex:</th><td style="padding:4px 8px;border:1px solid #c3b292;">-</td></tr>
-                        <tr style="background:#efe1c8;"><th style="text-align:left;padding:4px 8px;border:1px solid #c3b292;">Vocation:</th><td style="padding:4px 8px;border:1px solid #c3b292;">{{ public_character.vocation|default:'-' }}</td></tr>
-                        <tr style="background:#d4c2a5;"><th style="text-align:left;padding:4px 8px;border:1px solid #c3b292;">Level:</th><td style="padding:4px 8px;border:1px solid #c3b292;">{{ public_character.level|default:'-' }}</td></tr>
-                        <tr style="background:#efe1c8;"><th style="text-align:left;padding:4px 8px;border:1px solid #c3b292;">Achievement Points:</th><td style="padding:4px 8px;border:1px solid #c3b292;">-</td></tr>
-                        <tr style="background:#d4c2a5;"><th style="text-align:left;padding:4px 8px;border:1px solid #c3b292;">World:</th><td style="padding:4px 8px;border:1px solid #c3b292;">{{ public_character.otserver_name|default:'-' }}</td></tr>
-                        <tr style="background:#efe1c8;"><th style="text-align:left;padding:4px 8px;border:1px solid #c3b292;">Residence:</th><td style="padding:4px 8px;border:1px solid #c3b292;">-</td></tr>
-                        <tr style="background:#d4c2a5;"><th style="text-align:left;padding:4px 8px;border:1px solid #c3b292;">Last Login:</th><td style="padding:4px 8px;border:1px solid #c3b292;">{{ public_character.updated_at|date:'M d Y, H:i:s T'|default:'-' }}</td></tr>
-                        <tr style="background:#efe1c8;"><th style="text-align:left;padding:4px 8px;border:1px solid #c3b292;">Account Status:</th><td style="padding:4px 8px;border:1px solid #c3b292;">{{ public_character.account_type|default:'-' }}</td></tr>
+                        <tr style="background:#cbb89a;"><th style="width:180px;text-align:left;padding:4px 8px;border:1px solid #c3b292;background:#baa47f;color:#2f2110;">Name:</th><td style="padding:4px 8px;border:1px solid #c3b292;">{{ public_character.name }}</td></tr>
+                        <tr style="background:#e2d4bc;"><th style="text-align:left;padding:4px 8px;border:1px solid #c3b292;background:#c8b290;color:#2f2110;">Title:</th><td style="padding:4px 8px;border:1px solid #c3b292;">None (0 titles unlocked)</td></tr>
+                        <tr style="background:#cbb89a;"><th style="text-align:left;padding:4px 8px;border:1px solid #c3b292;background:#baa47f;color:#2f2110;">Sex:</th><td style="padding:4px 8px;border:1px solid #c3b292;">-</td></tr>
+                        <tr style="background:#e2d4bc;"><th style="text-align:left;padding:4px 8px;border:1px solid #c3b292;background:#c8b290;color:#2f2110;">Vocation:</th><td style="padding:4px 8px;border:1px solid #c3b292;">{{ public_character.vocation|default:'-' }}</td></tr>
+                        <tr style="background:#cbb89a;"><th style="text-align:left;padding:4px 8px;border:1px solid #c3b292;background:#baa47f;color:#2f2110;">Level:</th><td style="padding:4px 8px;border:1px solid #c3b292;">{{ public_character.level|default:'-' }}</td></tr>
+                        <tr style="background:#e2d4bc;"><th style="text-align:left;padding:4px 8px;border:1px solid #c3b292;background:#c8b290;color:#2f2110;">Achievement Points:</th><td style="padding:4px 8px;border:1px solid #c3b292;">-</td></tr>
+                        <tr style="background:#cbb89a;"><th style="text-align:left;padding:4px 8px;border:1px solid #c3b292;background:#baa47f;color:#2f2110;">World:</th><td style="padding:4px 8px;border:1px solid #c3b292;">{{ public_character.otserver_name|default:'-' }}</td></tr>
+                        <tr style="background:#e2d4bc;"><th style="text-align:left;padding:4px 8px;border:1px solid #c3b292;background:#c8b290;color:#2f2110;">Residence:</th><td style="padding:4px 8px;border:1px solid #c3b292;">-</td></tr>
+                        <tr style="background:#cbb89a;"><th style="text-align:left;padding:4px 8px;border:1px solid #c3b292;background:#baa47f;color:#2f2110;">Last Login:</th><td style="padding:4px 8px;border:1px solid #c3b292;">{{ public_character.updated_at|date:'M d Y, H:i:s T'|default:'-' }}</td></tr>
+                        <tr style="background:#e2d4bc;"><th style="text-align:left;padding:4px 8px;border:1px solid #c3b292;background:#c8b290;color:#2f2110;">Account Status:</th><td style="padding:4px 8px;border:1px solid #c3b292;">{{ public_character.account_type|default:'-' }}</td></tr>
                       </tbody>
                     </table>
                   </div>
