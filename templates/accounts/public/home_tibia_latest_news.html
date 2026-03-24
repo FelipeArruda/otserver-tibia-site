@@ -57,6 +57,18 @@
       visibility: visible;
     }
 
+    .MenuTextLabel {
+      position: absolute;
+      top: 4px;
+      left: 42px;
+      color: #d8caa5;
+      font: 700 27px "Times New Roman", serif;
+      letter-spacing: 0.3px;
+      text-shadow: 1px 1px 0 #20180f;
+      line-height: 1;
+      pointer-events: none;
+    }
+
     .TickerStatic .Row {
       cursor: default;
     }
@@ -150,9 +162,105 @@
               <a href="#"><div id="submenu_news_archive" class="Submenuitem"><div class="LeftChain" style="background-image:url({{ canary }}/images/general/chain.gif)"></div><div class="ActiveSubmenuItemIcon" style="background-image:url({{ canary }}/images/menu/icon-activesubmenu.gif)"></div><div class="SubmenuitemLabel">News Archive</div><div class="RightChain" style="background-image:url({{ canary }}/images/general/chain.gif)"></div></div></a>
               <a href="#"><div id="submenu_event_schedule" class="Submenuitem"><div class="LeftChain" style="background-image:url({{ canary }}/images/general/chain.gif)"></div><div class="ActiveSubmenuItemIcon" style="background-image:url({{ canary }}/images/menu/icon-activesubmenu.gif)"></div><div class="SubmenuitemLabel">Event Schedule</div><div class="RightChain" style="background-image:url({{ canary }}/images/general/chain.gif)"></div></div></a>
             </div>
-
-            <div id="MenuBottom" style="background-image:url({{ canary }}/images/general/box-bottom.gif)"></div>
           </div>
+
+          <div id="about_tibia" class="menuitem">
+            <a href="#">
+              <div class="MenuButton" style="background-image:url({{ canary }}/images/menu/button-background.gif)">
+                <div>
+                  <div class="Button" style="background-image:url({{ canary }}/images/menu/button-background-over.gif)"></div>
+                  <div class="Icon" style="background-image:url({{ canary }}/images/menu/icon-events.gif)"></div>
+                  <div class="MenuTextLabel">About Tibia</div>
+                </div>
+              </div>
+            </a>
+          </div>
+
+          <div id="game_guides" class="menuitem">
+            <a href="#">
+              <div class="MenuButton" style="background-image:url({{ canary }}/images/menu/button-background.gif)">
+                <div>
+                  <div class="Button" style="background-image:url({{ canary }}/images/menu/button-background-over.gif)"></div>
+                  <div class="Icon" style="background-image:url({{ canary }}/images/menu/icon-wars.gif)"></div>
+                  <div class="MenuTextLabel">Game Guides</div>
+                </div>
+              </div>
+            </a>
+          </div>
+
+          <div id="library" class="menuitem">
+            <a href="#">
+              <div class="MenuButton" style="background-image:url({{ canary }}/images/menu/button-background.gif)">
+                <div>
+                  <div class="Button" style="background-image:url({{ canary }}/images/menu/button-background-over.gif)"></div>
+                  <div class="Icon" style="background-image:url({{ canary }}/images/menu/icon-library.gif)"></div>
+                  <div class="Label" style="background-image:url({{ canary }}/images/menu/label-library.gif)"></div>
+                </div>
+              </div>
+            </a>
+          </div>
+
+          <div id="community" class="menuitem">
+            <a href="#">
+              <div class="MenuButton" style="background-image:url({{ canary }}/images/menu/button-background.gif)">
+                <div>
+                  <div class="Button" style="background-image:url({{ canary }}/images/menu/button-background-over.gif)"></div>
+                  <div class="Icon" style="background-image:url({{ canary }}/images/menu/icon-community.gif)"></div>
+                  <div class="Label" style="background-image:url({{ canary }}/images/menu/label-community.gif)"></div>
+                </div>
+              </div>
+            </a>
+          </div>
+
+          <div id="forum" class="menuitem">
+            <a href="#">
+              <div class="MenuButton" style="background-image:url({{ canary }}/images/menu/button-background.gif)">
+                <div>
+                  <div class="Button" style="background-image:url({{ canary }}/images/menu/button-background-over.gif)"></div>
+                  <div class="Icon" style="background-image:url({{ canary }}/images/menu/icon-forum.gif)"></div>
+                  <div class="Label" style="background-image:url({{ canary }}/images/menu/label-forum.gif)"></div>
+                </div>
+              </div>
+            </a>
+          </div>
+
+          <div id="account" class="menuitem">
+            <a href="#">
+              <div class="MenuButton" style="background-image:url({{ canary }}/images/menu/button-background.gif)">
+                <div>
+                  <div class="Button" style="background-image:url({{ canary }}/images/menu/button-background-over.gif)"></div>
+                  <div class="Icon" style="background-image:url({{ canary }}/images/menu/icon-account.gif)"></div>
+                  <div class="Label" style="background-image:url({{ canary }}/images/menu/label-account.gif)"></div>
+                </div>
+              </div>
+            </a>
+          </div>
+
+          <div id="char_bazaar" class="menuitem">
+            <a href="#">
+              <div class="MenuButton" style="background-image:url({{ canary }}/images/menu/button-background.gif)">
+                <div>
+                  <div class="Button" style="background-image:url({{ canary }}/images/menu/button-background-over.gif)"></div>
+                  <div class="Icon" style="background-image:url({{ canary }}/images/menu/icon-charactertrade.gif)"></div>
+                  <div class="Label" style="background-image:url({{ canary }}/images/menu/label-charactertrade.gif)"></div>
+                </div>
+              </div>
+            </a>
+          </div>
+
+          <div id="support" class="menuitem">
+            <a href="#">
+              <div class="MenuButton" style="background-image:url({{ canary }}/images/menu/button-background.gif)">
+                <div>
+                  <div class="Button" style="background-image:url({{ canary }}/images/menu/button-background-over.gif)"></div>
+                  <div class="Icon" style="background-image:url({{ canary }}/images/menu/icon-support.gif)"></div>
+                  <div class="Label" style="background-image:url({{ canary }}/images/menu/anim/label-support.gif)"></div>
+                </div>
+              </div>
+            </a>
+          </div>
+
+          <div id="MenuBottom" style="background-image:url({{ canary }}/images/general/box-bottom.gif)"></div>
         </div>
       </div>
 
