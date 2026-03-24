@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
@@ -5,7 +7,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, override_settings
 from django.urls import reverse
 
-from accounts.models import HomePageTemplate, PlatformSetting
+from accounts.models import HomePageTemplate, OTServer, PlatformSetting
 
 
 @pytest.mark.django_db
@@ -17,6 +19,33 @@ def test_root_uses_builtin_latest_news_template_by_default() -> None:
 
     assert response.status_code == 200
     assert "Latest News" in content
+
+
+@pytest.mark.django_db
+def test_root_displays_online_players_count_from_summary() -> None:
+    OTServer.objects.create(
+        name="Public Home Server",
+        tibia_version_id="15.30",
+        environment="production",
+        database_engine="mysql",
+        db_host="127.0.0.1",
+        db_port=3306,
+        db_name="otserv",
+        db_user="root",
+        db_password="secret",
+        is_active=True,
+    )
+    client = Client()
+
+    with patch(
+        "accounts.views.summarize_otserver_characters",
+        return_value={"online_characters": 14903},
+    ):
+        response = client.get("/")
+    content = response.content.decode("utf-8")
+
+    assert response.status_code == 200
+    assert "14,903 Players Online" in content
 
 
 @pytest.mark.django_db

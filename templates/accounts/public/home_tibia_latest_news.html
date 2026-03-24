@@ -24,7 +24,9 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 5px 10px;
+      height: 28px;
+      padding: 0 10px;
+      box-sizing: border-box;
     }
 
     .InfoBarLeft {
@@ -37,6 +39,8 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
+      line-height: 1;
+      white-space: nowrap;
     }
 
     .InfoTag img {
@@ -265,7 +269,7 @@
                   <span class="InfoTag"><img src="{{ canary }}/images/global/header/icon-discord.png" alt="">Discord</span>
                   <span class="InfoTag"><img src="{{ canary }}/images/global/header/icon-facebook.png" alt="">Facebook</span>
                 </div>
-                <span class="InfoTag"><img src="{{ canary }}/images/global/header/icon-players-online.png" alt="">14,903 Players Online</span>
+                <span class="InfoTag"><img src="{{ canary }}/images/global/header/icon-players-online.png" alt="">{{ online_players_display }} Players Online</span>
               </div>
             </div>
             <div class="Border_1" style="background-image:url({{ canary }}/images/global/content/border-1.gif);"></div>
