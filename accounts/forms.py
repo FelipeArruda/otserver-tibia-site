@@ -310,7 +310,7 @@ class PlatformSettingForm(forms.ModelForm):
         choices = [
             (
                 PlatformSetting.HOME_TEMPLATE_TIBIA_LATEST_NEWS,
-                "Tibia Latest News clone (default)",
+                "Tibia News (default)",
             )
         ]
         uploaded_templates = HomePageTemplate.objects.order_by("-created_at")
