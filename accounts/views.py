@@ -592,43 +592,50 @@ class AccountHomeView(DashboardNavigationMixin, LoginRequiredMixin, TemplateView
 class PublicNewsHomeView(View):
     default_template_name = "accounts/public/home_tibia_latest_news.html"
 
+    @staticmethod
+    def _build_public_context(platform_settings: PlatformSetting) -> dict[str, object]:
+        online_players = 0
+        try:
+            active_servers = list(OTServer.objects.filter(is_active=True))
+            if active_servers:
+                summary = summarize_otserver_characters(
+                    servers=active_servers,
+                    timeout_seconds=3,
+                )
+                online_players = int(summary.get("online_characters") or 0)
+        except Exception:
+            online_players = 0
+
+        return {
+            "platform_settings": platform_settings,
+            "online_players": online_players,
+            "online_players_display": f"{online_players:,}",
+        }
+
     def get(
         self, request: HttpRequest, *args: object, **kwargs: object
     ) -> HttpResponse:
         del args, kwargs
         platform_settings = PlatformSetting.get_solo()
         template_key = platform_settings.home_page_template
+        context = self._build_public_context(platform_settings)
 
         if template_key == PlatformSetting.HOME_TEMPLATE_TIBIA_LATEST_NEWS:
-            return render(
-                request,
-                self.default_template_name,
-                {"platform_settings": platform_settings},
-            )
+            return render(request, self.default_template_name, context)
 
         uploaded_template = HomePageTemplate.objects.filter(key=template_key).first()
         if not uploaded_template:
-            return render(
-                request,
-                self.default_template_name,
-                {"platform_settings": platform_settings},
-            )
+            return render(request, self.default_template_name, context)
 
         try:
             with uploaded_template.template_file.open("rb") as uploaded_file:
                 source = uploaded_file.read().decode("utf-8")
             template = engines["django"].from_string(source)
-            content = template.render(
-                {"platform_settings": platform_settings, "request": request},
-                request,
-            )
+            render_context = {**context, "request": request}
+            content = template.render(render_context, request)
             return HttpResponse(content)
         except Exception:
-            return render(
-                request,
-                self.default_template_name,
-                {"platform_settings": platform_settings},
-            )
+            return render(request, self.default_template_name, context)
 
 
 class SignUpView(CreateView):
