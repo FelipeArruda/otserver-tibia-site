@@ -21,19 +21,20 @@
     .InfoBar {
       color: #f6d29a;
       font: 700 11px Verdana, Arial, sans-serif;
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
+      display: flex;
       align-items: center;
+      justify-content: space-between;
       height: 28px;
       padding: 0 12px;
       box-sizing: border-box;
+      width: 100%;
     }
 
     .InfoBarLeft {
       display: flex;
       gap: 10px;
       align-items: center;
-      justify-self: center;
+      justify-content: flex-start;
     }
 
     .InfoTag {
@@ -51,7 +52,7 @@
     }
 
     .InfoTagOnline {
-      justify-self: end;
+      margin-left: 12px;
     }
 
     .StaticSubmenu {
