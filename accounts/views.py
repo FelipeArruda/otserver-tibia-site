@@ -639,6 +639,24 @@ class PublicNewsHomeView(View):
 
 
 class PublicCharactersView(PublicNewsHomeView):
+    @staticmethod
+    def _resolve_public_account_status(character: dict[str, object] | None) -> str:
+        if not character:
+            return "-"
+
+        prem_days = character.get("account_premdays")
+        try:
+            if prem_days is not None and int(str(prem_days).strip()) > 0:
+                return "Premium Account"
+        except (TypeError, ValueError):
+            pass
+
+        raw_type = str(character.get("account_type", "")).strip().lower()
+        if "premium" in raw_type:
+            return "Premium Account"
+
+        return "Free Account"
+
     def get(
         self, request: HttpRequest, *args: object, **kwargs: object
     ) -> HttpResponse:
@@ -675,6 +693,9 @@ class PublicCharactersView(PublicNewsHomeView):
                 "public_characters_mode": True,
                 "characters_filters": {"name": search},
                 "public_character": selected_character,
+                "public_character_account_status": self._resolve_public_account_status(
+                    selected_character
+                ),
                 "public_character_found": selected_character is not None,
                 "public_character_searched": bool(search),
                 "public_characters_errors": errors,

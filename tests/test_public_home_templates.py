@@ -74,6 +74,7 @@ def test_public_characters_page_fetches_and_renders_characters() -> None:
                 "otserver_name": "Characters Server",
                 "is_online": True,
                 "account_type": "Free Account",
+                "account_premdays": 0,
             }
         ],
         "errors": [],
@@ -88,6 +89,49 @@ def test_public_characters_page_fetches_and_renders_characters() -> None:
     assert "Knight One" in content
     assert "Characters Server" in content
     assert "Search Character" in content
+    assert "Free Account" in content
+
+
+@pytest.mark.django_db
+def test_public_characters_account_status_uses_premium_label_when_premdays_positive() -> (
+    None
+):
+    OTServer.objects.create(
+        name="Premium Characters Server",
+        tibia_version_id="15.30",
+        environment="production",
+        database_engine="mysql",
+        db_host="127.0.0.1",
+        db_port=3306,
+        db_name="otserv",
+        db_user="root",
+        db_password="secret",
+        is_active=True,
+    )
+    client = Client()
+
+    fake_result = {
+        "characters": [
+            {
+                "name": "Premium Knight",
+                "vocation": "Knight",
+                "level": 200,
+                "otserver_name": "Premium Characters Server",
+                "is_online": False,
+                "account_type": "Player",
+                "account_premdays": 30,
+            }
+        ],
+        "errors": [],
+        "available_vocations": ["Knight"],
+    }
+    with patch("accounts.views.list_otserver_characters", return_value=fake_result):
+        response = client.get("/community/characters/?name=Premium")
+    content = response.content.decode("utf-8")
+
+    assert response.status_code == 200
+    assert "Premium Knight" in content
+    assert "Premium Account" in content
 
 
 @pytest.mark.django_db
