@@ -199,15 +199,26 @@
           </div>
 
           <div id="community" class="menuitem">
-            <a href="#">
+            <span>
               <div class="MenuButton" style="background-image:url({{ canary }}/images/menu/button-background.gif)">
                 <div>
                   <div class="Button" style="background-image:url({{ canary }}/images/menu/button-background-over.gif)"></div>
                   <div class="Icon" style="background-image:url({{ canary }}/images/menu/icon-community.gif)"></div>
                   <div class="Label" style="background-image:url({{ canary }}/images/menu/label-community.gif)"></div>
+                  <div class="Extend" style="background-image:url({{ canary }}/images/general/minus.gif)"></div>
                 </div>
               </div>
-            </a>
+            </span>
+            <div id="community_Submenu" class="Submenu StaticSubmenu">
+              <a href="{% url 'public_characters' %}">
+                <div id="submenu_characters" class="Submenuitem" {% if public_characters_mode %}style="background-color:#14433F;"{% endif %}>
+                  <div class="LeftChain" style="background-image:url({{ canary }}/images/general/chain.gif)"></div>
+                  <div class="ActiveSubmenuItemIcon" {% if public_characters_mode %}style="visibility:visible; background-image:url({{ canary }}/images/menu/icon-activesubmenu.gif)"{% else %}style="background-image:url({{ canary }}/images/menu/icon-activesubmenu.gif)"{% endif %}></div>
+                  <div class="SubmenuitemLabel" {% if public_characters_mode %}style="color:white;"{% endif %}>Characters</div>
+                  <div class="RightChain" style="background-image:url({{ canary }}/images/general/chain.gif)"></div>
+                </div>
+              </a>
+            </div>
           </div>
 
           <div id="forum" class="menuitem">
@@ -284,6 +295,59 @@
           </div>
 
           <div id="ContentHelper">
+            {% if public_characters_mode %}
+            <div id="CharactersSearch" class="Box">
+              <div class="Corner-tl" style="background-image:url({{ canary }}/images/content/corner-tl.gif);"></div>
+              <div class="Corner-tr" style="background-image:url({{ canary }}/images/content/corner-tr.gif);"></div>
+              <div class="Border_1" style="background-image:url({{ canary }}/images/content/border-1.gif);"></div>
+              <div class="BorderTitleText" style="background-image:url({{ canary }}/images/content/title-background-green.gif);"></div>
+              <img class="Title" src="{{ canary }}/images/header/headline-characters.gif" alt="Characters">
+              <div class="Border_2"><div class="Border_3"><div class="BoxContent" style="background-image:url({{ canary }}/images/content/scroll.gif);">
+                <form method="get" action="{% url 'public_characters' %}" style="margin-bottom: 12px;">
+                  <div style="background:#7f6d56;color:#fff;padding:6px 10px;font-weight:bold;border:1px solid #4a3f32;">Search Character</div>
+                  <div style="border:1px solid #4a3f32;border-top:0;padding:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <label for="char-name" style="font-weight:bold;min-width:110px;">Character Name:</label>
+                    <input id="char-name" type="text" name="q" value="{{ characters_filters.q }}" style="flex:1;min-width:240px;border:1px solid #7a7a7a;padding:4px 6px;">
+                    <button type="submit" style="border:1px solid #202020;background:#0f50ce;color:#ffe87f;font-weight:bold;padding:4px 18px;cursor:pointer;">Submit</button>
+                  </div>
+                </form>
+                {% if public_characters_errors %}
+                  <div style="margin-bottom:10px;padding:6px 10px;background:#fbe4e6;border:1px solid #ce878e;color:#7b2630;">Some OTServers are currently unavailable.</div>
+                {% endif %}
+                {% if public_characters %}
+                  <table style="width:100%;border-collapse:collapse;">
+                    <thead>
+                      <tr style="background:#7f6d56;color:#fff;">
+                        <th style="text-align:left;padding:6px 8px;border:1px solid #4a3f32;">Name</th>
+                        <th style="text-align:left;padding:6px 8px;border:1px solid #4a3f32;">Vocation</th>
+                        <th style="text-align:left;padding:6px 8px;border:1px solid #4a3f32;">Level</th>
+                        <th style="text-align:left;padding:6px 8px;border:1px solid #4a3f32;">World</th>
+                        <th style="text-align:left;padding:6px 8px;border:1px solid #4a3f32;">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for character in public_characters %}
+                        <tr style="background:{% cycle '#f7f2e6' '#efe6d6' %};">
+                          <td style="padding:6px 8px;border:1px solid #d0c6b0;">{{ character.name }}</td>
+                          <td style="padding:6px 8px;border:1px solid #d0c6b0;">{{ character.vocation|default:'-' }}</td>
+                          <td style="padding:6px 8px;border:1px solid #d0c6b0;">{{ character.level|default:'-' }}</td>
+                          <td style="padding:6px 8px;border:1px solid #d0c6b0;">{{ character.otserver_name|default:'-' }}</td>
+                          <td style="padding:6px 8px;border:1px solid #d0c6b0;">
+                            {% if character.is_online is True %}Online{% elif character.is_online is False %}Offline{% else %}Unknown{% endif %}
+                          </td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                {% else %}
+                  <p style="margin:0;">No characters found.</p>
+                {% endif %}
+              </div></div></div>
+              <div class="Border_1" style="background-image:url({{ canary }}/images/content/border-1.gif);"></div>
+              <div class="CornerWrapper-b"><div class="Corner-bl" style="background-image:url({{ canary }}/images/content/corner-bl.gif);"></div></div>
+              <div class="CornerWrapper-b"><div class="Corner-br" style="background-image:url({{ canary }}/images/content/corner-br.gif);"></div></div>
+            </div>
+            {% else %}
             <div id="newsticker" class="Box TickerStatic">
               <div class="Corner-tl" style="background-image:url({{ canary }}/images/content/corner-tl.gif);"></div>
               <div class="Corner-tr" style="background-image:url({{ canary }}/images/content/corner-tr.gif);"></div>
@@ -342,6 +406,7 @@
               <div class="CornerWrapper-b"><div class="Corner-bl" style="background-image:url({{ canary }}/images/content/corner-bl.gif);"></div></div>
               <div class="CornerWrapper-b"><div class="Corner-br" style="background-image:url({{ canary }}/images/content/corner-br.gif);"></div></div>
             </div>
+            {% endif %}
           </div>
         </div>
       </div>

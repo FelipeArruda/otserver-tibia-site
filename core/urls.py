@@ -21,13 +21,18 @@ from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include, path
 
-from accounts.views import PublicNewsHomeView
+from accounts.views import PublicCharactersView, PublicNewsHomeView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("i18n/", include("django.conf.urls.i18n")),
     path("accounts/", include("accounts.urls")),
     path("", PublicNewsHomeView.as_view(), name="public_home"),
+    path(
+        "community/characters/",
+        PublicCharactersView.as_view(),
+        name="public_characters",
+    ),
 ]
 
 if settings.DEBUG:
