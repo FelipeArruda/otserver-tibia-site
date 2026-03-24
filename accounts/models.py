@@ -142,9 +142,11 @@ class HomePageTemplate(models.Model):
             base_key = slugify(self.name)[:70] or "home-template"
             candidate = base_key
             suffix = 2
-            while HomePageTemplate.objects.filter(key=candidate).exclude(
-                pk=self.pk
-            ).exists():
+            while (
+                HomePageTemplate.objects.filter(key=candidate)
+                .exclude(pk=self.pk)
+                .exists()
+            ):
                 candidate = f"{base_key}-{suffix}"
                 suffix += 1
             self.key = candidate
