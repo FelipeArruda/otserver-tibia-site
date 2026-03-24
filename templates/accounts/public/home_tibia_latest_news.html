@@ -21,18 +21,19 @@
     .InfoBar {
       color: #f6d29a;
       font: 700 11px Verdana, Arial, sans-serif;
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
       align-items: center;
-      justify-content: space-between;
       height: 28px;
-      padding: 0 10px;
+      padding: 0 12px;
       box-sizing: border-box;
     }
 
     .InfoBarLeft {
       display: flex;
-      gap: 8px;
+      gap: 10px;
       align-items: center;
+      justify-self: center;
     }
 
     .InfoTag {
@@ -46,6 +47,11 @@
     .InfoTag img {
       width: 14px;
       height: 14px;
+      display: block;
+    }
+
+    .InfoTagOnline {
+      justify-self: end;
     }
 
     .StaticSubmenu {
@@ -269,7 +275,7 @@
                   <span class="InfoTag"><img src="{{ canary }}/images/global/header/icon-discord.png" alt="">Discord</span>
                   <span class="InfoTag"><img src="{{ canary }}/images/global/header/icon-facebook.png" alt="">Facebook</span>
                 </div>
-                <span class="InfoTag"><img src="{{ canary }}/images/global/header/icon-players-online.png" alt="">{{ online_players_display }} Players Online</span>
+                <span class="InfoTag InfoTagOnline"><img src="{{ canary }}/images/global/header/icon-players-online.png" alt="">{{ online_players_display }} Players Online</span>
               </div>
             </div>
             <div class="Border_1" style="background-image:url({{ canary }}/images/global/content/border-1.gif);"></div>
