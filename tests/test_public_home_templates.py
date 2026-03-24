@@ -80,7 +80,7 @@ def test_public_characters_page_fetches_and_renders_characters() -> None:
         "available_vocations": ["Knight"],
     }
     with patch("accounts.views.list_otserver_characters", return_value=fake_result):
-        response = client.get("/community/characters/?q=Knight")
+        response = client.get("/community/characters/?name=Knight")
     content = response.content.decode("utf-8")
 
     assert response.status_code == 200
