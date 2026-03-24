@@ -1,0 +1,279 @@
+﻿{% load static i18n %}
+{% static 'tibia_theme' as canary %}
+<!doctype html>
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if platform_settings %}{{ platform_settings.platform_name }}{% else %}Tibia.com - Latest News{% endif %}</title>
+  <link rel="stylesheet" href="{{ canary }}/basic.css">
+  <style>
+    body {
+      background-image: url('{{ canary }}/images/header/bgs/03.jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      width: 100%;
+      height: 100%;
+    }
+
+    .InfoBar {
+      color: #f6d29a;
+      font: 700 11px Verdana, Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 10px;
+    }
+
+    .InfoBarLeft {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .InfoTag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .InfoTag img {
+      width: 14px;
+      height: 14px;
+    }
+
+    .StaticSubmenu {
+      display: block !important;
+      visibility: visible !important;
+    }
+
+    .StaticSubmenu .Submenuitem {
+      background-color: #0D2E2B;
+    }
+
+    .StaticSubmenu .ActiveSubmenuItemIcon {
+      visibility: visible;
+    }
+
+    .TickerStatic .Row {
+      cursor: default;
+    }
+
+    #RightArtwork #PedestalAndOnline {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    @media (max-width: 1080px) {
+      #ArtworkHelper {
+        min-width: 980px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div id="top"></div>
+<div id="ArtworkHelper">
+  <div id="Bodycontainer">
+    <div id="ContentRow">
+      <div id="MenuColumn">
+        <div id="LeftArtwork">
+          <img id="TibiaLogoArtworkTop" src="{{ canary }}/images/header/tibia-logo-artwork-top.gif" alt="Tibia">
+          <img id="LogoLink" src="{{ canary }}/images/header/tibia-logo-artwork-string.gif" alt="CipSoft">
+        </div>
+
+        <div id="Loginbox">
+          <div id="LoginTop" style="background-image:url({{ canary }}/images/general/box-top.gif)"></div>
+          <div id="BorderLeft" class="LoginBorder" style="background-image:url({{ canary }}/images/general/chain.gif)"></div>
+          <div id="LoginButtonContainer" style="background-image:url({{ canary }}/images/loginbox/loginbox-textfield-background.gif)">
+            <div id="LoginButton" style="background-image:url({{ canary }}/images/global/buttons/mediumbutton.gif)">
+              <div class="Button" style="visibility: hidden; background-image:url({{ canary }}/images/global/buttons/mediumbutton-over.gif)"></div>
+              <div id="ButtonText" style="background-image:url({{ canary }}/images/global/buttons/mediumbutton_login.png)"></div>
+            </div>
+          </div>
+          <div style="clear:both"></div>
+          <div class="Loginstatus" style="background-image:url({{ canary }}/images/loginbox/loginbox-textfield-background.gif)">
+            <div id="LoginstatusText_2">
+              <div id="LoginstatusText_2_1" class="LoginstatusText" style="background-image:url({{ canary }}/images/loginbox/loginbox-font-create-account.gif)"></div>
+            </div>
+          </div>
+          <div id="BorderRight" class="LoginBorder" style="background-image:url({{ canary }}/images/general/chain.gif)"></div>
+          <div id="LoginBottom" class="Loginstatus" style="background-image:url({{ canary }}/images/general/box-bottom.gif)"></div>
+        </div>
+
+        <div class="SmallMenuBox" id="DownloadBox">
+          <div class="SmallBoxTop" style="background-image:url({{ canary }}/images/global/general/box-top.gif)"></div>
+          <div class="SmallBoxBorder" style="background-image:url({{ canary }}/images/global/general/chain.gif)"></div>
+          <div class="SmallBoxButtonContainer" style="background-image:url({{ canary }}/images/global/loginbox/loginbox-textfield-background.gif)">
+            <div id="PlayNowContainer">
+              <div class="MediumButtonBackground" style="background-image:url({{ canary }}/images/global/buttons/mediumbutton.gif)">
+                <div class="MediumButtonText" style="background-image:url({{ canary }}/images/global/buttons/mediumbutton_download.png)"></div>
+              </div>
+            </div>
+          </div>
+          <div class="SmallBoxBorder BorderRight" style="background-image:url({{ canary }}/images/global/general/chain.gif)"></div>
+          <div class="Loginstatus SmallBoxBottom" style="background-image:url({{ canary }}/images/global/general/box-bottom.gif)"></div>
+        </div>
+
+        <div id="Menu">
+          <div id="MenuTop" style="background-image:url({{ canary }}/images/general/box-top.gif)"></div>
+
+          <div id="news" class="menuitem">
+            <span>
+              <div class="MenuButton" style="background-image:url({{ canary }}/images/menu/button-background.gif)">
+                <div>
+                  <div class="Button" style="background-image:url({{ canary }}/images/menu/button-background-over.gif)"></div>
+                  <span id="news_Lights" class="Lights" style="visibility:hidden;">
+                    <div class="light_lu" style="background-image:url({{ canary }}/images/menu/green-light.gif)"></div>
+                    <div class="light_ld" style="background-image:url({{ canary }}/images/menu/green-light.gif)"></div>
+                    <div class="light_ru" style="background-image:url({{ canary }}/images/menu/green-light.gif)"></div>
+                  </span>
+                  <div id="news_Icon" class="Icon" style="background-image:url({{ canary }}/images/menu/icon-news.gif)"></div>
+                  <div id="news_Label" class="Label" style="background-image:url({{ canary }}/images/menu/label-news.gif)"></div>
+                  <div id="news_Extend" class="Extend" style="background-image:url({{ canary }}/images/general/minus.gif)"></div>
+                </div>
+              </div>
+            </span>
+
+            <div id="news_Submenu" class="Submenu StaticSubmenu">
+              <a href="#">
+                <div id="submenu_news" class="Submenuitem" style="background-color:#14433F;">
+                  <div class="LeftChain" style="background-image:url({{ canary }}/images/general/chain.gif)"></div>
+                  <div id="ActiveSubmenuItemIcon_news" class="ActiveSubmenuItemIcon" style="visibility:visible; background-image:url({{ canary }}/images/menu/icon-activesubmenu.gif)"></div>
+                  <div class="SubmenuitemLabel" style="color:white;">Latest News</div>
+                  <div class="RightChain" style="background-image:url({{ canary }}/images/general/chain.gif)"></div>
+                </div>
+              </a>
+              <a href="#"><div id="submenu_news_archive" class="Submenuitem"><div class="LeftChain" style="background-image:url({{ canary }}/images/general/chain.gif)"></div><div class="ActiveSubmenuItemIcon" style="background-image:url({{ canary }}/images/menu/icon-activesubmenu.gif)"></div><div class="SubmenuitemLabel">News Archive</div><div class="RightChain" style="background-image:url({{ canary }}/images/general/chain.gif)"></div></div></a>
+              <a href="#"><div id="submenu_event_schedule" class="Submenuitem"><div class="LeftChain" style="background-image:url({{ canary }}/images/general/chain.gif)"></div><div class="ActiveSubmenuItemIcon" style="background-image:url({{ canary }}/images/menu/icon-activesubmenu.gif)"></div><div class="SubmenuitemLabel">Event Schedule</div><div class="RightChain" style="background-image:url({{ canary }}/images/general/chain.gif)"></div></div></a>
+            </div>
+
+            <div id="MenuBottom" style="background-image:url({{ canary }}/images/general/box-bottom.gif)"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="ContentColumn">
+        <div class="Content">
+          <div class="Box">
+            <div class="Corner-tl" style="background-image:url({{ canary }}/images/global/content/corner-tl.gif);"></div>
+            <div class="Corner-tr" style="background-image:url({{ canary }}/images/global/content/corner-tr.gif);"></div>
+            <div class="Border_1" style="background-image:url({{ canary }}/images/global/content/border-1.gif);"></div>
+            <div class="BorderTitleText" style="background-image:url({{ canary }}/images/global/content/newsheadline_background.gif); height:28px;">
+              <div class="InfoBar">
+                <div class="InfoBarLeft">
+                  <span class="InfoTag"><img src="{{ canary }}/images/global/header/icon-download.png" alt="">Download</span>
+                  <span class="InfoTag"><img src="{{ canary }}/images/global/header/icon-discord.png" alt="">Discord</span>
+                  <span class="InfoTag"><img src="{{ canary }}/images/global/header/icon-facebook.png" alt="">Facebook</span>
+                </div>
+                <span class="InfoTag"><img src="{{ canary }}/images/global/header/icon-players-online.png" alt="">14,903 Players Online</span>
+              </div>
+            </div>
+            <div class="Border_1" style="background-image:url({{ canary }}/images/global/content/border-1.gif);"></div>
+            <div class="CornerWrapper-b"><div class="Corner-bl" style="background-image:url({{ canary }}/images/global/content/corner-bl.gif);"></div></div>
+            <div class="CornerWrapper-b"><div class="Corner-br" style="background-image:url({{ canary }}/images/global/content/corner-br.gif);"></div></div>
+          </div>
+
+          <div id="ContentHelper">
+            <div id="newsticker" class="Box TickerStatic">
+              <div class="Corner-tl" style="background-image:url({{ canary }}/images/content/corner-tl.gif);"></div>
+              <div class="Corner-tr" style="background-image:url({{ canary }}/images/content/corner-tr.gif);"></div>
+              <div class="Border_1" style="background-image:url({{ canary }}/images/content/border-1.gif);"></div>
+              <div class="BorderTitleText" style="background-image:url({{ canary }}/images/content/title-background-green.gif);"></div>
+              <img class="Title" src="{{ canary }}/images/header/headline-newsticker.gif" alt="News ticker">
+              <div class="Border_2"><div class="Border_3"><div class="BoxContent" style="background-image:url({{ canary }}/images/content/scroll.gif);">
+                <div class="Row"><div class="Odd"><div class="NewsTickerIcon" style="background-image:url({{ canary }}/images/content/newsicon_cipsoft_small.gif);"></div><div class="NewsTickerText"><span class="NewsTickerDate">Mar 24 2026 -</span><div class="NewsTickerShortText">As compensation for the recent reset of Issobra, a double XP/skill weekend will take place on this game world.</div></div></div></div>
+                <div class="Row"><div class="Even"><div class="NewsTickerIcon" style="background-image:url({{ canary }}/images/content/newsicon_community_small.gif);"></div><div class="NewsTickerText"><span class="NewsTickerDate">Mar 24 2026 -</span><div class="NewsTickerShortText">GuildStats.eu has a brand new design! Head over there and take a look.</div></div></div></div>
+                <div class="Row"><div class="Odd"><div class="NewsTickerIcon" style="background-image:url({{ canary }}/images/content/newsicon_support_small.gif);"></div><div class="NewsTickerText"><span class="NewsTickerDate">Mar 23 2026 -</span><div class="NewsTickerShortText">We had to reset the game world Issobra to the state of March 23, 10:00 CEST.</div></div></div></div>
+              </div></div></div>
+              <div class="Border_1" style="background-image:url({{ canary }}/images/content/border-1.gif);"></div>
+              <div class="CornerWrapper-b"><div class="Corner-bl" style="background-image:url({{ canary }}/images/content/corner-bl.gif);"></div></div>
+              <div class="CornerWrapper-b"><div class="Corner-br" style="background-image:url({{ canary }}/images/content/corner-br.gif);"></div></div>
+            </div>
+
+            <div id="FeaturedArticle" class="Box">
+              <div class="Corner-tl" style="background-image:url({{ canary }}/images/content/corner-tl.gif);"></div>
+              <div class="Corner-tr" style="background-image:url({{ canary }}/images/content/corner-tr.gif);"></div>
+              <div class="Border_1" style="background-image:url({{ canary }}/images/content/border-1.gif);"></div>
+              <div class="BorderTitleText" style="background-image:url({{ canary }}/images/content/title-background-green.gif);"></div>
+              <img id="ContentBoxHeadline" class="Title" src="{{ canary }}/images/header/headline-featuredarticle.gif" alt="Featured Article">
+              <div class="Border_2"><div class="Border_3"><div class="BoxContent" style="background-image:url({{ canary }}/images/content/scroll.gif);">
+                <div id="TeaserThumbnail"><img src="{{ canary }}/images/content/newsicon_community_big.gif" width="150" height="100" alt=""></div>
+                <a id="Link" href="#">&raquo; read more</a>
+                <div id="TeaserText"><b><p>Fansite Appreciation Day 2026</p></b>Once again, it is time for the Fansite Appreciation Day! Time for many activities, many chances to win cool prizes and time to have fun.</div>
+              </div></div></div>
+              <div class="Border_1" style="background-image:url({{ canary }}/images/content/border-1.gif);"></div>
+              <div class="CornerWrapper-b"><div class="Corner-bl" style="background-image:url({{ canary }}/images/content/corner-bl.gif);"></div></div>
+              <div class="CornerWrapper-b"><div class="Corner-br" style="background-image:url({{ canary }}/images/content/corner-br.gif);"></div></div>
+            </div>
+
+            <div id="News" class="Box">
+              <div class="Corner-tl" style="background-image:url({{ canary }}/images/content/corner-tl.gif);"></div>
+              <div class="Corner-tr" style="background-image:url({{ canary }}/images/content/corner-tr.gif);"></div>
+              <div class="Border_1" style="background-image:url({{ canary }}/images/content/border-1.gif);"></div>
+              <div class="BorderTitleText" style="background-image:url({{ canary }}/images/content/title-background-green.gif);"></div>
+              <img class="Title" src="{{ canary }}/images/header/headline-news.gif" alt="Latest News">
+              <div class="Border_2"><div class="Border_3"><div class="BoxContent" style="background-image:url({{ canary }}/images/content/scroll.gif);">
+                <div class="NewsHeadlineBackground" style="background-image:url({{ canary }}/images/content/newsheadline_background.gif);">
+                  <div class="NewsHeadlineDate">Mar 24 2026 -</div>
+                  <div class="NewsHeadlineText">Fixes and Changes</div>
+                </div>
+                <div class="NewsContent">
+                  <p><b>Dear Tibians!</b></p>
+                  <p>With today&apos;s server save, we have implemented several fixes and changes:</p>
+                  <ul>
+                    <li>Fixed hometown/citizenship issue on Targuna.</li>
+                    <li>Adjusted rare monster classifications.</li>
+                    <li>Resolved multiple protection zone glitches.</li>
+                  </ul>
+                  <p>Happy hunting,<br>Your Community Managers</p>
+                </div>
+              </div></div></div>
+              <div class="Border_1" style="background-image:url({{ canary }}/images/content/border-1.gif);"></div>
+              <div class="CornerWrapper-b"><div class="Corner-bl" style="background-image:url({{ canary }}/images/content/corner-bl.gif);"></div></div>
+              <div class="CornerWrapper-b"><div class="Corner-br" style="background-image:url({{ canary }}/images/content/corner-br.gif);"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="ThemeboxesColumn">
+        <div id="RightArtwork">
+          <img id="PedestalAndOnline" src="{{ canary }}/images/header/pedestal.gif" alt="Pedestal">
+        </div>
+
+        <div id="Themeboxes" style="padding-top: 140px;">
+          <div id="PremiumBox" class="Themebox" style="background-image:url({{ canary }}/images/themeboxes/premium/premiumbox.gif);">
+            <a class="ThemeboxButton" href="#" style="background-image:url({{ canary }}/images/global/buttons/sbutton.gif);">
+              <div class="BigButtonOver" style="background-image:url({{ canary }}/images/global/buttons/sbutton_over.gif);"></div>
+              <div class="ButtonText" style="background-image:url({{ canary }}/images/global/buttons/_sbutton_getpremium.gif);"></div>
+            </a>
+            <div class="Bottom" style="background-image:url({{ canary }}/images/general/box-bottom.gif);"></div>
+          </div>
+
+          <div id="CurrentPollBox" class="Themebox" style="background-image:url({{ canary }}/images/themeboxes/current-poll/currentpollbox.gif);">
+            <a class="ThemeboxButton" href="#" style="background-image:url({{ canary }}/images/global/buttons/sbutton.gif); top: 91px;">
+              <div class="BigButtonOver" style="background-image:url({{ canary }}/images/global/buttons/sbutton_over.gif);"></div>
+              <div class="ButtonText" style="background-image:url({{ canary }}/images/global/buttons/_sbutton_view.gif);"></div>
+            </a>
+            <div class="Bottom" style="background-image:url({{ canary }}/images/general/box-bottom.gif);"></div>
+          </div>
+
+          <div id="FansiteBox" class="Themebox" style="background-image:url({{ canary }}/images/themeboxes/fansites/fansites_themebox.gif);">
+            <a class="ThemeboxButton" href="#" style="background-image:url({{ canary }}/images/global/buttons/sbutton.gif); top: 91px;">
+              <div class="BigButtonOver" style="background-image:url({{ canary }}/images/global/buttons/sbutton_over.gif);"></div>
+              <div class="ButtonText" style="background-image:url({{ canary }}/images/global/buttons/_sbutton_view.gif);"></div>
+            </a>
+            <div class="Bottom" style="background-image:url({{ canary }}/images/general/box-bottom.gif);"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
+

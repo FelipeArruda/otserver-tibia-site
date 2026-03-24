@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+﻿from datetime import date, timedelta
 
 from django.conf import settings
 from django.contrib import messages
@@ -17,10 +17,12 @@ from django.db import connections
 from django.db.models import Count
 from django.db.models.deletion import ProtectedError
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
+from django.template import engines
 from django.urls import reverse_lazy
 from django.utils import timezone, translation
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from django.views import View
 from django.views.generic import CreateView, TemplateView, UpdateView
@@ -39,6 +41,7 @@ from accounts.forms import (
 )
 from accounts.models import (
     AuditLog,
+    HomePageTemplate,
     OTServer,
     PlatformSetting,
     TibiaVacation,
@@ -546,11 +549,11 @@ class AccountHomeView(DashboardNavigationMixin, LoginRequiredMixin, TemplateView
             ),
             "otserver.connection_test": _localized_text(
                 en="Connection test",
-                pt="Teste de conexão",
+                pt="Teste de conex\u00e3o",
             ),
             "otserver.health_check": _localized_text(
                 en="Automatic health check",
-                pt="Verificação automática",
+                pt="Verifica\u00e7\u00e3o autom\u00e1tica",
             ),
         }
         title = action_map.get(
@@ -586,6 +589,46 @@ class AccountHomeView(DashboardNavigationMixin, LoginRequiredMixin, TemplateView
         }
 
 
+class PublicNewsHomeView(View):
+    default_template_name = "accounts/public/home_tibia_latest_news.html"
+
+    def get(
+        self, request: HttpRequest, *args: object, **kwargs: object
+    ) -> HttpResponse:
+        del args, kwargs
+        platform_settings = PlatformSetting.get_solo()
+        template_key = platform_settings.home_page_template
+
+        if template_key == PlatformSetting.HOME_TEMPLATE_TIBIA_LATEST_NEWS:
+            return render(
+                request,
+                self.default_template_name,
+                {"platform_settings": platform_settings},
+            )
+
+        uploaded_template = HomePageTemplate.objects.filter(key=template_key).first()
+        if not uploaded_template:
+            return render(
+                request,
+                self.default_template_name,
+                {"platform_settings": platform_settings},
+            )
+
+        try:
+            with uploaded_template.template_file.open("rb") as uploaded_file:
+                source = uploaded_file.read().decode("utf-8")
+            template = engines["django"].from_string(source)
+            content = template.render(
+                {"platform_settings": platform_settings, "request": request},
+                request,
+            )
+            return HttpResponse(content)
+        except Exception:
+            return render(
+                request,
+                self.default_template_name,
+                {"platform_settings": platform_settings},
+            )
 class SignUpView(CreateView):
     template_name = "registration/signup.html"
     form_class = SignUpForm
@@ -1092,7 +1135,35 @@ class PlatformSettingsView(
         del queryset
         return PlatformSetting.get_solo()
 
+    def get_form_kwargs(self) -> dict[str, object]:
+        kwargs = super().get_form_kwargs()
+        if self.request.method in {"POST", "PUT"}:
+            data = self.request.POST.copy()
+            current_settings = self.get_object()
+            prefix = self.get_prefix()
+            for field in (
+                "platform_name",
+                "default_language",
+                "default_timezone",
+                "primary_color",
+                "logo_url",
+                "home_page_template",
+            ):
+                value = getattr(current_settings, field, "")
+                key = f"{prefix}-{field}" if prefix else field
+                if key not in data or not str(data.get(key, "")).strip():
+                    data[key] = "" if value is None else str(value)
+            kwargs["data"] = data
+            kwargs["files"] = self.request.FILES
+        return kwargs
+
     def form_valid(self, form: PlatformSettingForm) -> HttpResponse:
+        uploaded_template = self._save_uploaded_template(
+            form.cleaned_data.get("home_page_template_upload")
+        )
+        if uploaded_template is not None:
+            form.instance.home_page_template = uploaded_template.key
+
         response = super().form_valid(form)
         preferred_language = form.instance.default_language
         translation.activate(preferred_language)
@@ -1112,10 +1183,41 @@ class PlatformSettingsView(
                 "default_timezone": form.instance.default_timezone,
                 "primary_color": form.instance.primary_color,
                 "platform_name": form.instance.platform_name,
+                "home_page_template": form.instance.home_page_template,
+                "uploaded_home_page_template": uploaded_template.key
+                if uploaded_template
+                else "",
             },
         )
         messages.success(self.request, _("Platform settings updated successfully."))
         return response
+
+    def _save_uploaded_template(self, uploaded_file: object) -> HomePageTemplate | None:
+        if uploaded_file is None:
+            return None
+
+        file_name = getattr(uploaded_file, "name", "")
+        base_name = file_name.rsplit(".", 1)[0] if "." in file_name else file_name
+        normalized_name = base_name.replace("_", " ").replace("-", " ").strip()
+        base_display_name = normalized_name.title() or "Custom Home Template"
+        display_name = base_display_name
+        name_suffix = 2
+        while HomePageTemplate.objects.filter(name=display_name).exists():
+            display_name = f"{base_display_name} {name_suffix}"
+            name_suffix += 1
+
+        base_key = slugify(display_name)[:70] or "custom-home-template"
+        candidate = base_key
+        key_suffix = 2
+        while HomePageTemplate.objects.filter(key=candidate).exists():
+            candidate = f"{base_key}-{key_suffix}"
+            key_suffix += 1
+
+        return HomePageTemplate.objects.create(
+            name=display_name,
+            key=candidate,
+            template_file=uploaded_file,
+        )
 
 
 class OTServerListView(
@@ -1365,7 +1467,7 @@ class CharacterDetailView(
         context["characters_ui"] = {
             "page_title": ("Detalhes do personagem" if is_pt else "Character details"),
             "page_description": (
-                "Visão completa dos dados do personagem e da conta no OTServer selecionado."
+                "VisÃ£o completa dos dados do personagem e da conta no OTServer selecionado."
                 if is_pt
                 else "Complete view of character and account data from the selected OTServer."
             ),
@@ -1405,7 +1507,7 @@ class CharacterDetailView(
             "level_label": "N\u00edvel" if is_pt else "Level",
             "name_label": "Nome" if is_pt else "Name",
             "updated_label": "Atualizado em" if is_pt else "Updated at",
-            "action_label": "Ação" if is_pt else "Action",
+            "action_label": "AÃ§Ã£o" if is_pt else "Action",
             "view_label": "Visualizar" if is_pt else "View",
             "open_character_label": ("Abrir personagem" if is_pt else "Open character"),
             "back_label": (
@@ -1436,16 +1538,16 @@ class CharacterDetailView(
                 if is_pt
                 else "Same account, other characters in this OTServer."
             ),
-            "recent_deaths_title": ("Últimas mortes" if is_pt else "Recent deaths"),
+            "recent_deaths_title": ("Ãšltimas mortes" if is_pt else "Recent deaths"),
             "recent_deaths_empty": (
                 "Nenhuma morte registrada para este personagem."
                 if is_pt
                 else "No deaths recorded for this character."
             ),
-            "recent_deaths_level": "Nível" if is_pt else "Level",
+            "recent_deaths_level": "NÃ­vel" if is_pt else "Level",
             "recent_deaths_killer": ("Morto por" if is_pt else "Killed by"),
             "character_not_found_title": (
-                "Personagem não encontrado." if is_pt else "Character not found."
+                "Personagem nÃ£o encontrado." if is_pt else "Character not found."
             ),
             "character_not_found_hint": (
                 "Tente novamente pela lista de personagens."
@@ -1458,8 +1560,8 @@ class CharacterDetailView(
                 else "No other characters linked to this account."
             ),
             "pagination_previous": "Anterior" if is_pt else "Previous",
-            "pagination_next": "Próxima" if is_pt else "Next",
-            "pagination_page": "Página" if is_pt else "Page",
+            "pagination_next": "PrÃ³xima" if is_pt else "Next",
+            "pagination_page": "PÃ¡gina" if is_pt else "Page",
         }
         return context
 
@@ -1912,18 +2014,18 @@ class TibiaVersionListView(
                 if is_pt
                 else "Manage available Tibia versions for your OTServers."
             ),
-            "add_button": "Adicionar versão" if is_pt else "Add version",
+            "add_button": "Adicionar versÃ£o" if is_pt else "Add version",
             "sort_order": "Ordem" if is_pt else "Sort order",
             "all_status": "Todos os status" if is_pt else "All status",
             "supported": "Suportada" if is_pt else "Supported",
-            "unsupported": "Não suportada" if is_pt else "Unsupported",
+            "unsupported": "NÃ£o suportada" if is_pt else "Unsupported",
             "otservers_count": "OTServers vinculados" if is_pt else "Linked OTServers",
-            "actions": "Ações" if is_pt else "Actions",
+            "actions": "AÃ§Ãµes" if is_pt else "Actions",
             "none_found": (
-                "Nenhuma versão encontrada." if is_pt else "No Tibia versions found."
+                "Nenhuma versÃ£o encontrada." if is_pt else "No Tibia versions found."
             ),
             "remove_confirm": (
-                "Remover esta versão do Tibia?"
+                "Remover esta versÃ£o do Tibia?"
                 if is_pt
                 else "Remove this Tibia version?"
             ),
@@ -1947,13 +2049,13 @@ class TibiaVersionCreateView(
         language = (translation.get_language() or "").lower()
         is_pt = language.startswith("pt")
         context["version_ui"] = {
-            "title": "Nova versão do Tibia" if is_pt else "New Tibia version",
+            "title": "Nova versÃ£o do Tibia" if is_pt else "New Tibia version",
             "description": (
-                "Cadastre versões para uso em OTServers e mapeamentos."
+                "Cadastre versÃµes para uso em OTServers e mapeamentos."
                 if is_pt
                 else "Register versions for OTServer usage and mappings."
             ),
-            "back": "Voltar para versões" if is_pt else "Back to versions",
+            "back": "Voltar para versÃµes" if is_pt else "Back to versions",
         }
         context["show_secondary_content"] = False
         return context
@@ -1973,7 +2075,7 @@ class TibiaVersionCreateView(
             self.request,
             _localized_text(
                 en="Tibia version created successfully.",
-                pt="Versão do Tibia criada com sucesso.",
+                pt="VersÃ£o do Tibia criada com sucesso.",
             ),
         )
         return response
@@ -2006,13 +2108,13 @@ class TibiaVersionUpdateView(
         language = (translation.get_language() or "").lower()
         is_pt = language.startswith("pt")
         context["version_ui"] = {
-            "title": "Editar versão do Tibia" if is_pt else "Edit Tibia version",
+            "title": "Editar versÃ£o do Tibia" if is_pt else "Edit Tibia version",
             "description": (
-                "Atualize ordem e status de suporte da versão."
+                "Atualize ordem e status de suporte da versÃ£o."
                 if is_pt
                 else "Update sort order and supported status."
             ),
-            "back": "Voltar para versões" if is_pt else "Back to versions",
+            "back": "Voltar para versÃµes" if is_pt else "Back to versions",
         }
         context["show_secondary_content"] = False
         return context
@@ -2039,7 +2141,7 @@ class TibiaVersionUpdateView(
             self.request,
             _localized_text(
                 en="Tibia version updated successfully.",
-                pt="Versão do Tibia atualizada com sucesso.",
+                pt="VersÃ£o do Tibia atualizada com sucesso.",
             ),
         )
         return response
@@ -2075,7 +2177,7 @@ class TibiaVersionDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
                         "OTServers or related records."
                     ),
                     pt=(
-                        "Não é possível remover esta versão do Tibia porque ela está "
+                        "NÃ£o Ã© possÃ­vel remover esta versÃ£o do Tibia porque ela estÃ¡ "
                         "em uso por OTServers ou registros relacionados."
                     ),
                 ),
@@ -2092,7 +2194,7 @@ class TibiaVersionDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
             request,
             _localized_text(
                 en="Tibia version removed successfully.",
-                pt="Versão do Tibia removida com sucesso.",
+                pt="VersÃ£o do Tibia removida com sucesso.",
             ),
         )
         return redirect("accounts:tibia_versions")
@@ -2146,22 +2248,22 @@ class TibiaVacationListView(
             "accounts.delete_tibiavacation"
         )
         context["vocation_ui"] = {
-            "title": "Vocações" if is_pt else "Vocations",
+            "title": "VocaÃ§Ãµes" if is_pt else "Vocations",
             "description": (
-                "Gerencie traduções de vocações por versão do Tibia."
+                "Gerencie traduÃ§Ãµes de vocaÃ§Ãµes por versÃ£o do Tibia."
                 if is_pt
                 else "Manage vocation translations by Tibia version."
             ),
-            "add_button": "Adicionar vocação" if is_pt else "Add vocation",
+            "add_button": "Adicionar vocaÃ§Ã£o" if is_pt else "Add vocation",
             "all_otservers": "Todos os OTServers" if is_pt else "All OTServers",
-            "vocation_id": "ID da vocação" if is_pt else "Vocation ID",
-            "name_pt": "Nome (Português)" if is_pt else "Name (Portuguese)",
-            "description_label": "Descrição" if is_pt else "Description",
-            "actions": "Ações" if is_pt else "Actions",
-            "none_found": "Nenhuma vocação encontrada."
+            "vocation_id": "ID da vocaÃ§Ã£o" if is_pt else "Vocation ID",
+            "name_pt": "Nome (PortuguÃªs)" if is_pt else "Name (Portuguese)",
+            "description_label": "DescriÃ§Ã£o" if is_pt else "Description",
+            "actions": "AÃ§Ãµes" if is_pt else "Actions",
+            "none_found": "Nenhuma vocaÃ§Ã£o encontrada."
             if is_pt
             else "No vocations found.",
-            "remove_confirm": "Remover esta vocação?"
+            "remove_confirm": "Remover esta vocaÃ§Ã£o?"
             if is_pt
             else "Remove this vocation?",
         }
@@ -2184,13 +2286,13 @@ class TibiaVacationCreateView(
         language = (translation.get_language() or "").lower()
         is_pt = language.startswith("pt")
         context["vocation_ui"] = {
-            "title": "Nova vocação" if is_pt else "New vocation",
+            "title": "Nova vocaÃ§Ã£o" if is_pt else "New vocation",
             "description": (
-                "Mantenha registros de tradução de vocações por OTServer."
+                "Mantenha registros de traduÃ§Ã£o de vocaÃ§Ãµes por OTServer."
                 if is_pt
                 else "Maintain vocation translation records per OTServer."
             ),
-            "back": "Voltar para vocações" if is_pt else "Back to vocations",
+            "back": "Voltar para vocaÃ§Ãµes" if is_pt else "Back to vocations",
         }
         context["show_secondary_content"] = False
         return context
@@ -2210,7 +2312,7 @@ class TibiaVacationCreateView(
             self.request,
             _localized_text(
                 en="Vocation created successfully.",
-                pt="Vocação criada com sucesso.",
+                pt="VocaÃ§Ã£o criada com sucesso.",
             ),
         )
         return response
@@ -2243,13 +2345,13 @@ class TibiaVacationUpdateView(
         language = (translation.get_language() or "").lower()
         is_pt = language.startswith("pt")
         context["vocation_ui"] = {
-            "title": "Editar vocação" if is_pt else "Edit vocation",
+            "title": "Editar vocaÃ§Ã£o" if is_pt else "Edit vocation",
             "description": (
-                "Mantenha registros de tradução de vocações por OTServer."
+                "Mantenha registros de traduÃ§Ã£o de vocaÃ§Ãµes por OTServer."
                 if is_pt
                 else "Maintain vocation translation records per OTServer."
             ),
-            "back": "Voltar para vocações" if is_pt else "Back to vocations",
+            "back": "Voltar para vocaÃ§Ãµes" if is_pt else "Back to vocations",
         }
         context["show_secondary_content"] = False
         return context
@@ -2269,7 +2371,7 @@ class TibiaVacationUpdateView(
             self.request,
             _localized_text(
                 en="Vocation updated successfully.",
-                pt="Vocação atualizada com sucesso.",
+                pt="VocaÃ§Ã£o atualizada com sucesso.",
             ),
         )
         return response
@@ -2305,7 +2407,7 @@ class TibiaVacationDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View)
             request,
             _localized_text(
                 en="Vocation removed successfully.",
-                pt="Vocação removida com sucesso.",
+                pt="VocaÃ§Ã£o removida com sucesso.",
             ),
         )
         return redirect("accounts:tibia_vacations")
@@ -2369,3 +2471,6 @@ class AuditLogListView(
             return date.fromisoformat(value)
         except ValueError:
             return None
+
+
+
