@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -187,4 +187,3 @@ def test_platform_settings_post_empty_required_values_uses_existing_values() -> 
     assert updated_settings.default_language == "en"
     assert updated_settings.default_timezone == "UTC"
     assert updated_settings.primary_color == "#06b6d4"
-

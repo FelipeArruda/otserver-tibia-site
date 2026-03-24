@@ -4,30 +4,37 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('accounts', '0016_otserver_schema_mapping'),
+        ("accounts", "0016_otserver_schema_mapping"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='HomePageTemplate',
+            name="HomePageTemplate",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=120, unique=True)),
-                ('key', models.SlugField(max_length=80, unique=True)),
-                ('template_file', models.FileField(upload_to='home_page_templates/')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=120, unique=True)),
+                ("key", models.SlugField(max_length=80, unique=True)),
+                ("template_file", models.FileField(upload_to="home_page_templates/")),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
             options={
-                'verbose_name': 'Home page template',
-                'verbose_name_plural': 'Home page templates',
-                'ordering': ['-created_at'],
+                "verbose_name": "Home page template",
+                "verbose_name_plural": "Home page templates",
+                "ordering": ["-created_at"],
             },
         ),
         migrations.AddField(
-            model_name='platformsetting',
-            name='home_page_template',
-            field=models.CharField(default='tibia-latest-news', max_length=80),
+            model_name="platformsetting",
+            name="home_page_template",
+            field=models.CharField(default="tibia-latest-news", max_length=80),
         ),
     ]

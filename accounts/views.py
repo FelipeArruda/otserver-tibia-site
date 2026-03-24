@@ -1,4 +1,4 @@
-﻿from datetime import date, timedelta
+from datetime import date, timedelta
 
 from django.conf import settings
 from django.contrib import messages
@@ -629,6 +629,8 @@ class PublicNewsHomeView(View):
                 self.default_template_name,
                 {"platform_settings": platform_settings},
             )
+
+
 class SignUpView(CreateView):
     template_name = "registration/signup.html"
     form_class = SignUpForm
@@ -2471,6 +2473,3 @@ class AuditLogListView(
             return date.fromisoformat(value)
         except ValueError:
             return None
-
-
-
