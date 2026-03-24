@@ -657,6 +657,16 @@ class PublicCharactersView(PublicNewsHomeView):
 
         return "Free Account"
 
+    @staticmethod
+    def _resolve_public_position(character: dict[str, object] | None) -> str:
+        if not character:
+            return "-"
+        raw_type = str(character.get("account_type", "")).strip()
+        normalized = raw_type.casefold()
+        if normalized in {"", "none", "player", "free account", "premium account"}:
+            return "-"
+        return raw_type
+
     def get(
         self, request: HttpRequest, *args: object, **kwargs: object
     ) -> HttpResponse:
@@ -694,6 +704,9 @@ class PublicCharactersView(PublicNewsHomeView):
                 "characters_filters": {"name": search},
                 "public_character": selected_character,
                 "public_character_account_status": self._resolve_public_account_status(
+                    selected_character
+                ),
+                "public_character_position": self._resolve_public_position(
                     selected_character
                 ),
                 "public_character_found": selected_character is not None,
