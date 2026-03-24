@@ -653,14 +653,30 @@ class PublicCharactersView(PublicNewsHomeView):
             search=search,
             order="level_desc",
         )
-        characters = result["characters"][:50]
+        characters = result["characters"]
         errors = result["errors"]
+        selected_character: dict[str, object] | None = None
+        if search and characters:
+            normalized_search = search.casefold()
+            selected_character = next(
+                (
+                    character
+                    for character in characters
+                    if str(character.get("name", "")).strip().casefold()
+                    == normalized_search
+                ),
+                None,
+            )
+            if selected_character is None and len(characters) == 1:
+                selected_character = characters[0]
 
         context.update(
             {
                 "public_characters_mode": True,
                 "characters_filters": {"q": search},
-                "public_characters": characters,
+                "public_character": selected_character,
+                "public_character_found": selected_character is not None,
+                "public_character_searched": bool(search),
                 "public_characters_errors": errors,
             }
         )

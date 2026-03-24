@@ -73,6 +73,7 @@ def test_public_characters_page_fetches_and_renders_characters() -> None:
                 "level": 120,
                 "otserver_name": "Characters Server",
                 "is_online": True,
+                "account_type": "Free Account",
             }
         ],
         "errors": [],
@@ -83,10 +84,10 @@ def test_public_characters_page_fetches_and_renders_characters() -> None:
     content = response.content.decode("utf-8")
 
     assert response.status_code == 200
-    assert "Search Character" in content
+    assert "Character Information" in content
     assert "Knight One" in content
     assert "Characters Server" in content
-    assert "Online" in content
+    assert "Search Character" in content
 
 
 @pytest.mark.django_db
