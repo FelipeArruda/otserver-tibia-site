@@ -646,7 +646,7 @@ class PublicCharactersView(PublicNewsHomeView):
         platform_settings = PlatformSetting.get_solo()
         context = self._build_public_context(platform_settings)
 
-        search = request.GET.get("q", "").strip()
+        search = request.GET.get("name", "").strip()
         active_servers = list(OTServer.objects.filter(is_active=True).order_by("name"))
         result = list_otserver_characters(
             servers=active_servers,
@@ -673,7 +673,7 @@ class PublicCharactersView(PublicNewsHomeView):
         context.update(
             {
                 "public_characters_mode": True,
-                "characters_filters": {"q": search},
+                "characters_filters": {"name": search},
                 "public_character": selected_character,
                 "public_character_found": selected_character is not None,
                 "public_character_searched": bool(search),
