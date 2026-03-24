@@ -2314,7 +2314,7 @@ class TibiaVacationCreateView(
             self.request,
             _localized_text(
                 en="Vocation created successfully.",
-                pt="VocaÃ§Ã£o criada com sucesso.",
+                pt="Vocação criada com sucesso.",
             ),
         )
         return response
@@ -2373,7 +2373,7 @@ class TibiaVacationUpdateView(
             self.request,
             _localized_text(
                 en="Vocation updated successfully.",
-                pt="VocaÃ§Ã£o atualizada com sucesso.",
+                pt="Vocação atualizada com sucesso.",
             ),
         )
         return response
@@ -2409,7 +2409,7 @@ class TibiaVacationDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View)
             request,
             _localized_text(
                 en="Vocation removed successfully.",
-                pt="VocaÃ§Ã£o removida com sucesso.",
+                pt="Vocação removida com sucesso.",
             ),
         )
         return redirect("accounts:tibia_vacations")
