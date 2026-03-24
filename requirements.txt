@@ -1,6 +1,6 @@
 Django==6.0.3
 psycopg[binary]==3.2.12
 tzdata==2025.3
-PyMySQL==1.1.1
+PyMySQL==1.1.2
 cryptography==45.0.7
 celery[redis]==5.5.3
