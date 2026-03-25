@@ -4,33 +4,33 @@
 [![Windows Build](https://github.com/FelipeArruda/otserver-tibia-site/actions/workflows/docker-windows.yml/badge.svg)](https://github.com/FelipeArruda/otserver-tibia-site/actions/workflows/docker-windows.yml)
 [![Quality Checks](https://github.com/FelipeArruda/otserver-tibia-site/actions/workflows/quality.yml/badge.svg)](https://github.com/FelipeArruda/otserver-tibia-site/actions/workflows/quality.yml)
 
-Idioma: PortuguÃªs (Brasil) | [English](README.en.md)
+Idioma: Português (Brasil) | [English](README.en.md)
 
-Painel web em Django para gerenciamento e operaÃ§Ã£o de servidores OTServ/Tibia.
+Painel web em Django para gerenciamento e operação de servidores OTServ/Tibia.
 
 ## Status do projeto
 
-Este sistema esta em desenvolvimento ativo. Funcionalidades e layout podem mudar com frequencia.
+Este sistema está em desenvolvimento ativo. Funcionalidades e layout podem mudar com frequência.
 
-## Acesso rapido (interface e backend)
+## Acesso rápido (interface e backend)
 
 Com o projeto rodando em `http://127.0.0.1:8000`:
 
-- Interface publica (home): `http://127.0.0.1:8000/`
+- Interface pública (home): `http://127.0.0.1:8000/`
 - Painel principal (login): `http://127.0.0.1:8000/accounts/login/`
 - Backend Django Admin: `http://127.0.0.1:8000/admin/`
 
-## Credenciais padrao de desenvolvimento
+## Credenciais padrão de desenvolvimento
 
-O comando `python manage.py seed_test_user` cria/atualiza o usuario padrao:
+O comando `python manage.py seed_test_user` cria/atualiza o usuário padrão:
 
 - E-mail/Login: `admin@admin.com`
 - Senha: `admin`
 
-Observacoes:
+Observações:
 
-- Em Docker, esse comando ja roda no startup (`entrypoint.sh` e `entrypoint.ps1`).
-- Em execucao local sem Docker, rode manualmente:
+- Em Docker, esse comando já roda no startup (`entrypoint.sh` e `entrypoint.ps1`).
+- Em execução local sem Docker, rode manualmente:
   - `python manage.py migrate`
   - `python manage.py seed_test_user`
 
@@ -38,26 +38,26 @@ Observacoes:
 
 Construir uma plataforma web para:
 
-- autenticaÃ§Ã£o de usuÃ¡rios;
-- cadastro e gerenciamento de multiplos servidores OTServ;
-- validaÃ§Ã£o de status do servidor (online/offline);
-- exibiÃ§Ã£o de players online;
+- autenticação de usuários;
+- cadastro e gerenciamento de múltiplos servidores OTServ;
+- validação de status do servidor (online/offline);
+- exibição de players online;
 - leitura de entidades do banco do OTServ;
-- seleÃ§Ã£o de versÃ£o do servidor;
+- seleção de versão do servidor;
 - shopping integrado;
-- sistema de temas com upload e ativaÃ§Ã£o;
-- execuÃ§Ã£o local e em containers.
+- sistema de temas com upload e ativação;
+- execução local e em containers.
 
 ## Stack principal
 
 - Backend: Django
 - Frontend: Django Templates + Tailwind CSS
-- Banco da aplicaÃ§Ã£o: PostgreSQL (padrÃ£o), com opÃ§Ã£o de MariaDB
+- Banco da aplicação: PostgreSQL (padrão), com opção de MariaDB
 - Infra: Docker + Docker Compose
 
 ## Build e Deploy (Docker)
 
-### PrÃ©-requisitos
+### Pré-requisitos
 
 - Docker
 - Docker Compose
@@ -79,15 +79,15 @@ O mesmo `docker-compose.yml` atende local e Coolify.
 - Local: mantenha `WEB_PUBLISHED_PORT=8000`.
 - Coolify: defina `WEB_PUBLISHED_PORT=0` para evitar conflito de porta no host.
 
-O container roda migraÃ§Ãµes automaticamente no startup (`python manage.py migrate --noinput`) antes de iniciar o servidor.
+O container roda migrações automaticamente no startup (`python manage.py migrate --noinput`) antes de iniciar o servidor.
 
-AplicaÃ§Ã£o local: `http://localhost:8000`
+Aplicação local: `http://localhost:8000`
 
-Com a stack atual, o `docker compose` tambÃ©m sobe:
+Com a stack atual, o `docker compose` também sobe:
 
 - `redis` (broker/result backend);
-- `celery_worker` (execuÃ§Ã£o de tarefas assÃ­ncronas);
-- `celery_beat` (agendamento periÃ³dico).
+- `celery_worker` (execução de tarefas assíncronas);
+- `celery_beat` (agendamento periódico).
 
 A rotina de `health check` dos OTServers roda automaticamente via Celery Beat, respeitando o intervalo configurado por OTServer.
 
@@ -105,7 +105,7 @@ Windows:
 docker build -f Dockerfile.windows -t otserver-tibia-site:windows .
 ```
 
-ObservaÃ§Ã£o: os Dockerfiles fazem `python -m pip install --upgrade pip` antes da instalaÃ§Ã£o dos pacotes.
+Observação: os Dockerfiles fazem `python -m pip install --upgrade pip` antes da instalação dos pacotes.
 
 ## CI/CD (GitHub Actions + Docker Hub)
 
@@ -122,7 +122,7 @@ Disparo:
 - `pull_request` para validar build de Linux e Windows sem publicar imagem
 - `workflow_dispatch` manual
 
-Secrets obrigatÃ³rios no repositÃ³rio GitHub:
+Secrets obrigatórios no repositório GitHub:
 
 - `DOCKERHUB_USERNAME`
 - `DOCKERHUB_TOKEN`
@@ -152,7 +152,7 @@ Observacao sobre build local do Dockerfile de Windows:
 
 ## Qualidade e Testes
 
-DependÃªncias de dev:
+Dependências de dev:
 
 ```bash
 pip install -r requirements-dev.txt
@@ -169,9 +169,9 @@ pytest -q
 
 O workflow `quality.yml` roda esses checks automaticamente em push/PR para manter o projeto funcional.
 
-## AtualizaÃ§Ã£o de DependÃªncias
+## Atualização de Dependências
 
-O Dependabot estÃ¡ habilitado em `.github/dependabot.yml` para monitorar dependÃªncias `pip` (incluindo `requirements.txt`) e abrir PRs semanais de atualizaÃ§Ã£o.
+O Dependabot está habilitado em `.github/dependabot.yml` para monitorar dependências `pip` (incluindo `requirements.txt`) e abrir PRs semanais de atualização.
 
 ## Estrutura atual
 
@@ -206,5 +206,6 @@ python scripts/compile_messages.py
 ```
 
 Sem esse passo, a mudanca de idioma pode salvar o cookie mas nao refletir no HTML renderizado.
+
 
 
