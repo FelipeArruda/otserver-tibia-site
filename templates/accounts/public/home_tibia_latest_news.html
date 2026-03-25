@@ -6,7 +6,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% if platform_settings %}{{ platform_settings.platform_name }}{% else %}Tibia.com - Latest News{% endif %}</title>
-  <link rel="stylesheet" href="{{ canary }}/basic.css">
+  <link rel="stylesheet" href="{{ canary }}/basic.css?v=20260325r13">
   <style>
     body {
       background-image: url('{{ canary }}/images/header/bgs/03.jpg');
@@ -82,9 +82,37 @@
       left: 0;
     }
 
-    @media (max-width: 1080px) {
-      #ArtworkHelper {
-        min-width: 980px;
+    @media (max-width: 1024px) {
+      body {
+        background-attachment: scroll;
+      }
+
+      .InfoBar {
+        height: auto;
+        min-height: 28px;
+        flex-wrap: wrap;
+        gap: 6px 10px;
+        padding: 4px 10px;
+      }
+
+      .InfoBarLeft {
+        flex-wrap: wrap;
+        top: 0;
+      }
+
+      .InfoTagOnline {
+        margin-left: 0;
+        top: 0;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .InfoBar {
+        justify-content: flex-start;
+      }
+
+      .InfoTag {
+        white-space: normal;
       }
     }
   </style>
@@ -393,9 +421,9 @@
                                     <tr class="Odd">
                                       <td class="LabelV120" style="width:135px;">Character Name:</td>
                                       <td>
-                                        <div style="display:flex;align-items:center;gap:10px;">
-                                          <input id="char-name" type="text" name="name" value="{{ characters_filters.name }}" style="flex:1;min-width:240px;border:1px solid #8f8f8f;background:#f2f2f2;padding:3px 6px;color:#2b1f12;box-shadow:inset 1px 1px 0 #ffffff, inset -1px -1px 0 #b9b9b9;">
-                                          <button type="submit" style="border:1px solid #1a1a1a;background:#0f50ce;color:#ffe87f;font-weight:bold;padding:2px 18px;cursor:pointer;box-shadow:inset 1px 1px 0 #53a5ff, inset -1px -1px 0 #0a2d8b, 0 0 0 1px #ffd95e;">Submit</button>
+                                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                                          <input id="char-name" type="text" name="name" value="{{ characters_filters.name }}" style="flex:1;min-width:0;border:1px solid #8f8f8f;background:#f2f2f2;padding:3px 6px;color:#2b1f12;box-shadow:inset 1px 1px 0 #ffffff, inset -1px -1px 0 #b9b9b9;">
+                                          <button type="submit" style="border:1px solid #1a1a1a;background:#0f50ce;color:#ffe87f;font-weight:bold;padding:2px 18px;cursor:pointer;box-shadow:inset 1px 1px 0 #53a5ff, inset -1px -1px 0 #0a2d8b, 0 0 0 1px #ffd95e;max-width:100%;">Submit</button>
                                         </div>
                                       </td>
                                     </tr>
