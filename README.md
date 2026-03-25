@@ -1,4 +1,4 @@
-﻿# OTServ Control Panel
+# OTServ Control Panel
 
 [![Linux Build](https://github.com/FelipeArruda/otserver-tibia-site/actions/workflows/docker-linux.yml/badge.svg)](https://github.com/FelipeArruda/otserver-tibia-site/actions/workflows/docker-linux.yml)
 [![Windows Build](https://github.com/FelipeArruda/otserver-tibia-site/actions/workflows/docker-windows.yml/badge.svg)](https://github.com/FelipeArruda/otserver-tibia-site/actions/workflows/docker-windows.yml)
