@@ -1,6 +1,6 @@
 ﻿# OTServ Control Panel
 
-Language: English | [PortuguÃªs (Brasil)](README.md)
+Language: English | [Português (Brasil)](README.md)
 
 Django web panel for managing OTServ/Tibia servers.
 
@@ -202,4 +202,5 @@ python scripts/compile_messages.py
 ```
 
 Without this step, the language cookie may change but rendered HTML can remain untranslated.
+
 
